@@ -8,6 +8,7 @@ import User from "./pages/user/user_dashboard";
 import AddProduct from "./pages/product/AddProducr";
 import EditProduct from "./pages/product/edit_product";
 import Inventory from "./pages/inventory/inventory_dashboard";
+import { ManageAllInventoryAmazon } from "./pages/enterprise/EnterprisePages";
 import BlogPage from "./pages/Blog";
 import AddBlockPAge from "./pages/Blog/Add_Block_Page";
 import EditProductPage from "./pages/Blog/Edit_Blog";
@@ -21,6 +22,7 @@ import CateogoryRoute from "./Routes/Category_Route";
 import DarazRoute from "./Routes/daraz_route/index";
 import DarazCallback from "./pages/Daraz/auth/DarazCallback";
 import SuppliersRoute from "./Routes/Suppliers_Route/index";
+import EnterpriseRoutes from "./Routes/enterprise_routes";
 export default function App() {
   return (
     <Routes>
@@ -68,6 +70,18 @@ export default function App() {
           <ProtectedRoute>
             <Layout>
               <EditProduct />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+
+      <Route
+        path="/manage-all-inventory"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ManageAllInventoryAmazon />
             </Layout>
           </ProtectedRoute>
         }
@@ -126,6 +140,7 @@ export default function App() {
       {PricingRoute}
       {Colours_Route}
       {SuppliersRoute}
+      {EnterpriseRoutes}
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -35,17 +35,18 @@ export default function Sidebar({ onClose }) {
         {/* SECTION 1: PRODUCTS */}
         <Section title="Products">
           <Item 
-            to="/products" 
+            to="/system/products" 
             icon={Package} 
             label="Product Catalog" 
             onLinkClick={onClose}
             subLinks={[
-              { to: "/products", label: "All Products" },
+              { to: "/system/products", label: "All Products" },
               { to: "/add-product", label: "Add New Product" },
-              { to: "/category-view", label: "Categories" },
+              { to: "/system/categories", label: "Categories" },
               { to: "/colours", label: "Colours Management" },
-              { to: "/sku-mapping", label: "SKU Mapping Nodes" },
-              { to: "/inventory", label: "Stock Control (Warehouse)" }
+              { to: "/daraz/sku-mapping", label: "SKU Mapping Nodes" },
+              { to: "/manage-all-inventory", label: "Manage All Inventory" },
+              { to: "/manage-all-inventory", label: "Stock Control (Warehouse)" }
             ]}
           />
         </Section>
@@ -60,11 +61,20 @@ export default function Sidebar({ onClose }) {
             subLinks={[
               { to: "/daraz-dashboard", label: "Daraz Seller Central" },
               { to: "/daraz/accounts", label: "Daraz Accounts" },
-              { to: "/daraz/products", label: "Daraz Products" },
+              { to: "/daraz/advanced", label: "Daraz Overview" },
+              { to: "/manage-all-inventory", label: "Manage Daraz Products" },
+              { to: "/manage-all-inventory", label: "Manage All Inventory" },
+              { to: "/daraz/manage-inventory", label: "Manage Daraz Inventory" },
+              { to: "/system/categories", label: "Local Category Manager" },
+              { to: "/system/images", label: "Images Dashboard" },
               { to: "/daraz/orders", label: "Daraz Orders" },
-              { to: "/daraz/inventory", label: "Daraz Inventory Health" },
-              { to: "/daraz/categories", label: "Daraz Categories" },
-              { to: "/daraz/finance", label: "Daraz Finance Ledger" },
+              { to: "/daraz/net-sales", label: "Net Sales Dashboard" },
+              { to: "/daraz/sku-mapping", label: "SKU Mapping" },
+              { to: "/daraz/category-mapping", label: "Category Mapping" },
+              { to: "/daraz/images", label: "Product Images" },
+              { to: "/daraz/business-reports", label: "Business Reports" },
+              { to: "/daraz/sync-logs", label: "Sync Logs" },
+              { to: "/daraz/pack-rules", label: "Pack Rules" },
               { to: "/woo-Products", label: "WooCommerce Products" }
             ]}
           />

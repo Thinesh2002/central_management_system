@@ -160,3 +160,102 @@ exports.getOrderItems = async (orderDbId) => {
   const [rows] = await db.query(`SELECT * FROM daraz_order_items WHERE order_db_id = ? ORDER BY id ASC`, [orderDbId]);
   return rows;
 };
+
+/* ================= ADVANCED PROFIT / NET SALES SUMMARY ================= */
+const _tableCache = new Map();
+const _columnCache = new Map();
+const _tableExists = async (tableName) => {
+  if (_tableCache.has(tableName)) return _tableCache.get(tableName);
+  const [rows] = await db.query("SHOW TABLES LIKE ?", [tableName]);
+  const exists = rows.length > 0;
+  _tableCache.set(tableName, exists);
+  return exists;
+};
+const _columns = async (tableName) => {
+  if (_columnCache.has(tableName)) return _columnCache.get(tableName);
+  if (!(await _tableExists(tableName))) return new Set();
+  const [rows] = await db.query(`SHOW COLUMNS FROM ${tableName}`);
+  const set = new Set(rows.map((r) => r.Field));
+  _columnCache.set(tableName, set);
+  return set;
+};
+const _n = (v) => Number.isFinite(Number(v)) ? Number(v) : 0;
+
+exports.getNetSalesSummary = async ({ account_code = null, start = null, end = null, limit = 500 } = {}) => {
+  const where = [];
+  const params = [];
+  if (account_code && account_code !== "all") { where.push("o.account_code = ?"); params.push(account_code); }
+  if (start) { where.push("DATE(o.daraz_created_at) >= ?"); params.push(start); }
+  if (end) { where.push("DATE(o.daraz_created_at) <= ?"); params.push(end); }
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const [items] = await db.query(`
+    SELECT oi.*, o.order_status, o.daraz_created_at, o.currency, o.order_total
+    FROM daraz_order_items oi
+    JOIN daraz_orders o ON o.id = oi.order_db_id
+    ${whereSql}
+    ORDER BY o.daraz_created_at DESC, oi.id DESC
+    LIMIT ?
+  `, [...params, Math.min(Number(limit) || 500, 2000)]);
+
+  let variationMap = new Map();
+  let hasVariationTable = await _tableExists("product_variations");
+  if (hasVariationTable) {
+    const cols = await _columns("product_variations");
+    const costCol = cols.has("cost_price") ? "cost_price" : cols.has("buy_price") ? "buy_price" : cols.has("product_buy_price") ? "product_buy_price" : null;
+    const sellCol = cols.has("selling_price") ? "selling_price" : cols.has("price") ? "price" : null;
+    if (cols.has("sku")) {
+      const [vars] = await db.query(`SELECT sku, ${costCol ? `${costCol} AS cost_price` : "NULL AS cost_price"}, ${sellCol ? `${sellCol} AS selling_price` : "NULL AS selling_price"} FROM product_variations`);
+      variationMap = new Map(vars.map((r) => [String(r.sku || "").toLowerCase(), r]));
+    }
+  }
+
+  let productRevenue = 0;
+  let shipping = 0;
+  let vouchers = 0;
+  let commission = 0;
+  let productCost = 0;
+  let missingCostItems = 0;
+  let skuMissingItems = 0;
+  const rows = items.map((item) => {
+    const qty = _n(item.quantity || 1) || 1;
+    const sale = _n(item.paid_price || item.unit_price) * qty;
+    const fee = _n(item.commission_amount);
+    const skuKey = String(item.seller_sku || "").toLowerCase();
+    const variation = variationMap.get(skuKey) || null;
+    const cost = variation ? _n(variation.cost_price) * qty : 0;
+    if (!variation) skuMissingItems += 1;
+    if (!variation || cost <= 0) missingCostItems += 1;
+
+    productRevenue += sale;
+    shipping += _n(item.shipping_fee);
+    vouchers += _n(item.voucher_amount);
+    commission += fee;
+    productCost += cost;
+
+    return {
+      ...item,
+      sales_amount: sale,
+      product_cost: cost,
+      estimated_net_sales: sale + _n(item.shipping_fee) - _n(item.voucher_amount) - fee - cost,
+      cost_status: !variation ? "SKU not in product system" : cost <= 0 ? "Product cost missing" : "OK"
+    };
+  });
+
+  const netSales = productRevenue + shipping - vouchers - commission - productCost;
+  return {
+    summary: {
+      order_items: rows.length,
+      product_revenue: productRevenue,
+      shipping_fee: shipping,
+      voucher_amount: vouchers,
+      commission_amount: commission,
+      product_cost: productCost,
+      estimated_net_sales: netSales,
+      missing_cost_items: missingCostItems,
+      sku_missing_items: skuMissingItems,
+      product_variations_table_available: hasVariationTable
+    },
+    rows
+  };
+};

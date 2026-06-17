@@ -1,25 +1,11 @@
 const express = require("express");
 const router = express.Router();
+const enterprise = require("../../controllers/system/enterprise_cms_controller");
 
-const {
-  createCategory,
-  getAllCategories,
-  getCategoryByCode,
-  updateCategory,
-  deleteCategory,
-} = require("../../controllers/product/category_controller");
-
-/* ================= CREATE ================= */
-router.post("/", createCategory);
-
-/* ================= READ ================= */
-router.get("/", getAllCategories);
-router.get("/:categoryCode", getCategoryByCode);
-
-/* ================= UPDATE ================= */
-router.put("/:categoryCode", updateCategory);
-
-/* ================= DELETE ================= */
-router.delete("/:categoryCode", deleteCategory);
+router.get("/", enterprise.categories);
+router.post("/", enterprise.saveCategory);
+router.post("/add", enterprise.saveCategory);
+router.put("/:categoryCode", enterprise.saveCategory);
+router.delete("/:code", enterprise.deleteCategory);
 
 module.exports = router;

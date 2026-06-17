@@ -13,9 +13,14 @@ const Product = {
           product_name,
           sub_category_code,
           brand,
-          description
+          description,
+          buy_price,
+          cost_price,
+          selling_price,
+          pack_size,
+          pack_code
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const values = [
@@ -23,7 +28,12 @@ const Product = {
         data.product_name,
         data.sub_category_code || null,
         data.brand || null,
-        data.description || null
+        data.description || null,
+        Number(data.buy_price || 0),
+        Number(data.cost_price || data.buy_price || 0),
+        Number(data.selling_price || 0),
+        Number(data.pack_size || 1),
+        data.pack_code || (data.pack_size ? `${data.pack_size}PK` : "1PK")
       ];
 
       const [result] = await db.query(sql, values);
@@ -44,16 +54,24 @@ getAll: async () => {
       SELECT 
         p.*,
         sc.sub_category_name,
-        MAX(pi.main_image) AS main_image,
-        COUNT(pv.sku) AS variation_count
+        img.main_image,
+        COALESCE(var_counts.variation_count, 0) AS variation_count,
+        COALESCE(inv.available_stock, 0) AS available_stock
       FROM products p
       LEFT JOIN sub_categories sc 
         ON sc.sub_category_code = p.sub_category_code
-      LEFT JOIN product_images pi
-        ON pi.sku = p.parent_sku
-      LEFT JOIN product_variations pv 
-        ON pv.parent_sku = p.parent_sku
-      GROUP BY p.parent_sku
+      LEFT JOIN (
+        SELECT sku, MAX(main_image) AS main_image
+        FROM product_images
+        GROUP BY sku
+      ) img ON img.sku = p.parent_sku
+      LEFT JOIN (
+        SELECT parent_sku, COUNT(*) AS variation_count
+        FROM product_variations
+        GROUP BY parent_sku
+      ) var_counts ON var_counts.parent_sku = p.parent_sku
+      LEFT JOIN inventory inv
+        ON inv.sku = p.parent_sku
       ORDER BY p.created_at DESC
     `;
 
@@ -61,7 +79,7 @@ getAll: async () => {
     return rows;
 
   } catch (error) {
-    console.error("PRODUCT GET ALL ERROR:", error);
+    console.error("PRODUCT GET ALL ERROR:", error.message);
     throw error;
   }
 },
@@ -119,7 +137,13 @@ getAll: async () => {
         "product_name",
         "sub_category_code",
         "brand",
-        "description"
+        "description",
+        "buy_price",
+        "cost_price",
+        "selling_price",
+        "pack_size",
+        "pack_code",
+        "product_status"
       ];
 
       for (const field of allowedFields) {

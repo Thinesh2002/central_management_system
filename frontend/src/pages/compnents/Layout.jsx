@@ -63,7 +63,13 @@ export default function Layout({ children }) {
                 </div>
               </div>
             ) : (
-              children
+              <>
+                {children}
+                <footer className="mt-6 mb-2 border-t border-stone-200 bg-white rounded-sm px-4 py-3 text-[11px] text-stone-500 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span>Daraz Seller Central CMS • Product, order, finance, and inventory automation workspace</span>
+                  <span>Auto sync every 30 minutes when tokens are active</span>
+                </footer>
+              </>
             )}
 
           </div>

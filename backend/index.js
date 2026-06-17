@@ -23,9 +23,16 @@ const wooproductRoutes = require("./routes/product/woo_commerce_route/woo_commer
 const darazCategoryRoutes = require("./routes/daraz/daraz_category/daraz_category_route");
 const darazOrderRoutes = require("./routes/daraz/daraz_order_route");
 const darazInventoryRoutes = require("./routes/daraz/daraz_inventory_route");
+const darazAdvancedRoutes = require("./routes/daraz/advanced/daraz_advanced_route");
+const systemSettingsRoutes = require("./routes/system/system_settings_route");
+const unifiedInventoryRoutes = require("./routes/system/unified_inventory_route");
+const enterpriseCmsRoutes = require("./routes/system/enterprise_cms_route");
 const darazToDarazTransferRoutes = require("./routes/daraz/transfer/daraz_to_daraz_transfer_routes");
 const supplierRoutes = require("./routes/supplier/supplier_routes");
 
+const { bootstrapProductManagementSchema } = require("./bootstrap/productManagementSchemaBootstrap");
+const { ensureUnifiedInventorySchema } = require("./models/system/unified_inventory_model");
+const enterpriseCmsModel = require("./models/system/enterprise_cms_model");
 require("./cron/daraz_corn");
 
 const app = express();
@@ -52,6 +59,7 @@ app.use("/api/daraz", darazProductRoutes);
 app.use("/api/daraz", darazCategoryRoutes);
 app.use("/api/daraz", darazOrderRoutes);
 app.use("/api/daraz", darazInventoryRoutes);
+app.use("/api/daraz/advanced", darazAdvancedRoutes);
 app.use("/api/sku-mapping", skuMappingRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/daraz/analytics", productTrendRoutes);
@@ -59,6 +67,9 @@ app.use("/api/sub-categories", subCategoryRoutes);
 app.use("/api/woo-products", wooproductRoutes);
 app.use("/api/daraz-to-daraz", darazToDarazTransferRoutes);
 app.use("/api/suppliers", supplierRoutes);
+app.use("/api/system", systemSettingsRoutes);
+app.use("/api/system-inventory", unifiedInventoryRoutes);
+app.use("/api/enterprise", enterpriseCmsRoutes);
 
 
 /* ================= STATIC FILES ================= */
@@ -69,6 +80,18 @@ app.use("/images", express.static(path.join(__dirname, "images")));
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running → http://localhost:${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await bootstrapProductManagementSchema();
+    await ensureUnifiedInventorySchema();
+    await enterpriseCmsModel.ensureSchema();
+  } catch (error) {
+    console.error("[BOOTSTRAP_WARNING]: Backend will start, but schema bootstrap failed:", error.message);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server running → http://localhost:${PORT}`);
+  });
+};
+
+startServer();

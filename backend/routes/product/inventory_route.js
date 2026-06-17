@@ -1,25 +1,19 @@
 const express = require("express");
 const router = express.Router();
+const enterprise = require("../../controllers/system/enterprise_cms_controller");
 
-const {
-  createInventory,
-  getAllInventory,
-  getInventoryBySku,
-  updateInventory,
-  deleteInventory
-} = require("../../controllers/product/inventory_controller");
-
-/* ================= CREATE ================= */
-router.post("/", createInventory);
-
-/* ================= READ ================= */
-router.get("/", getAllInventory);
-router.get("/:sku", getInventoryBySku);
-
-/* ================= UPDATE ================= */
-router.put("/:sku", updateInventory);
-
-/* ================= DELETE ================= */
-router.delete("/:sku", deleteInventory);
+router.get("/", enterprise.products);
+router.get("/view", enterprise.products);
+router.post("/", enterprise.updateStock);
+router.post("/update-stock", enterprise.updateStock);
+router.put("/:sku", (req, res) => {
+  req.body.sku = req.params.sku;
+  return enterprise.updateStock(req, res);
+});
+router.get("/:sku", (req, res) => {
+  req.query.search = req.params.sku;
+  req.query.limit = 1;
+  return enterprise.products(req, res);
+});
 
 module.exports = router;

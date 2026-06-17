@@ -326,6 +326,7 @@ exports.getDashboardSummary = async () => {
       p.account_code,
       p.account_name,
       COUNT(DISTINCT p.id) AS total_products,
+      COUNT(DISTINCT p.item_id) AS total_item_ids,
       COUNT(DISTINCT s.id) AS total_skus,
       SUM(CASE WHEN COALESCE(s.quantity, 0) <= 0 THEN 1 ELSE 0 END) AS oos_skus,
       MAX(p.last_synced_at) AS latest_sync
@@ -335,15 +336,26 @@ exports.getDashboardSummary = async () => {
     ORDER BY p.account_name ASC
   `);
 
-  const [logs] = await db.query(`
-    SELECT * FROM daraz_sync_logs
-    ORDER BY id DESC
-    LIMIT 10
-  `);
+  const [logs] = await db.query(`SELECT * FROM daraz_sync_logs ORDER BY id DESC LIMIT 15`).catch(() => [[]]);
+  const [orders] = await db.query(`
+    SELECT COUNT(*) AS total_orders,
+           SUM(COALESCE(order_total, 0)) AS total_order_value,
+           SUM(CASE WHEN LOWER(COALESCE(order_status,'')) LIKE '%cancel%' THEN 1 ELSE 0 END) AS cancelled_orders,
+           MAX(daraz_created_at) AS latest_order_date
+    FROM daraz_orders
+  `).catch(() => [[{}]]);
+  const [queue] = await db.query(`
+    SELECT status, COUNT(*) AS total
+    FROM daraz_stock_update_queue
+    GROUP BY status
+  `).catch(() => [[]]);
 
   return {
     summary: summary[0] || {},
+    product_summary: byAccount,
     by_account: byAccount,
+    order_summary: orders[0] || {},
+    stock_queue_summary: queue,
     recent_sync_logs: logs
   };
 };

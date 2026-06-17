@@ -130,6 +130,32 @@ export const darazApi = {
     return res.data;
   },
 
+
+  deleteAccount: async (accountCode) => {
+    const res = await API.delete(`/accounts/${accountCode}`);
+    return res.data;
+  },
+
+  getInventoryHealth: async (params = {}) => {
+    const res = await API.get("/daraz/inventory/health", { params });
+    return normalizeListResponse(res.data, ["rows", "data", "skus"]);
+  },
+
+  queueLocalInventorySync: async (payload = {}) => {
+    const res = await API.post("/daraz/inventory/sync-local", payload);
+    return res.data;
+  },
+
+  getInventoryHistory: async (params = {}) => {
+    const res = await API.get("/daraz/inventory/history", { params });
+    return normalizeListResponse(res.data, ["history", "rows", "data"]);
+  },
+
+  getNetSales: async (params = {}) => {
+    const res = await API.get("/daraz/orders/net-sales", { params });
+    return { raw: res.data, summary: res.data?.summary || {}, rows: res.data?.rows || [] };
+  },
+
   refreshAccountToken: async (accountCode) => {
     const res = await API.post(`/accounts/${accountCode}/refresh-token`);
     return res.data;
@@ -224,6 +250,97 @@ export const darazApi = {
     return res.data;
   },
 
+
+  advancedDashboard: async () => {
+    const res = await API.get("/daraz/advanced/dashboard");
+    return res.data?.data || {};
+  },
+
+  advancedProducts: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/products", { params });
+    return normalizeListResponse(res.data, ["rows", "data", "products"]);
+  },
+
+  advancedInventory: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/inventory", { params });
+    return normalizeListResponse(res.data, ["rows", "data", "skus"]);
+  },
+
+  updateDarazStock: async (payload = {}) => {
+    const res = await API.put("/daraz/advanced/inventory/stock", payload);
+    return res.data;
+  },
+
+  getAdvancedSkuMappings: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/sku-mapping", { params });
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
+
+  saveAdvancedSkuMapping: async (payload = {}) => {
+    const res = await API.post("/daraz/advanced/sku-mapping", payload);
+    return res.data;
+  },
+
+  getCategoryMappings: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/category-mapping", { params });
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
+
+  saveCategoryMapping: async (payload = {}) => {
+    const res = await API.post("/daraz/advanced/category-mapping", payload);
+    return res.data;
+  },
+
+  getPackRules: async () => {
+    const res = await API.get("/daraz/advanced/pack-rules");
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
+
+  savePackRule: async (payload = {}) => {
+    const res = await API.post("/daraz/advanced/pack-rules", payload);
+    return res.data;
+  },
+
+  getAdvancedImages: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/images", { params });
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
+
+  getAdvancedNetSales: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/net-sales", { params });
+    return { raw: res.data, summary: res.data?.summary || {}, rows: res.data?.rows || [] };
+  },
+
+  getAdvancedSyncLogs: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/sync-logs", { params });
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
+
+  getBusinessReports: async (params = {}) => {
+    const res = await API.get("/daraz/advanced/business-reports", { params });
+    return res.data;
+  },
+
+  advancedSyncProducts: async (accountCode = null) => {
+    const url = accountCode ? `/daraz/advanced/sync-products/${accountCode}` : "/daraz/advanced/sync-products";
+    const res = await API.post(url);
+    return res.data;
+  },
+
+  getSystemBookmarks: async () => {
+    const res = await API.get("/system/bookmarks");
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
+
+  saveSystemBookmark: async (payload = {}) => {
+    const res = await API.post("/system/bookmarks", payload);
+    return res.data;
+  },
+
+  getSystemFeatures: async () => {
+    const res = await API.get("/system/features");
+    return normalizeListResponse(res.data, ["rows", "data"]);
+  },
   getFinance: async () => {
     const res = await API.get("/daraz/finance/all-with-image");
     return normalizeListResponse(res.data, ["data", "transactions", "rows"]);

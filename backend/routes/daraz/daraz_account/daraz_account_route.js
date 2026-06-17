@@ -8,6 +8,7 @@ router.get("/:account_code/auth-url", controller.getAuthUrl);
 router.get("/:account_code", controller.getAccountByCode);
 router.post("/", controller.createAccount);
 router.put("/:account_code", controller.updateAccount);
+router.delete("/:account_code", controller.deleteAccount);
 router.post("/:account_code/refresh-token", controller.refreshToken);
 router.get("/:account_code/auth/callback", controller.createTokenFromCode);
 

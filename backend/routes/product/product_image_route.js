@@ -8,7 +8,7 @@ const {
   getImagesBySku,
   deleteMainImage,
   deleteSubImage
-} = require("../../controllers/product//product_image_controller");
+} = require("../../controllers/product/product_image_controller");
 
 /* ================= UPLOAD ================= */
 // Use upload.single first, then moveToSkuFolder to handle the file move

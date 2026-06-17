@@ -62,3 +62,21 @@ exports.getOrderDetails = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to fetch Daraz order details", error: error.message });
   }
 };
+
+exports.getNetSalesSummary = async (req, res) => {
+  try {
+    const data = await orderModel.getNetSalesSummary({
+      account_code: req.query.account_code,
+      start: req.query.start,
+      end: req.query.end,
+      limit: req.query.limit
+    });
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Daraz net sales could not be calculated. Check orders, order items, SKU, and product cost data.",
+      error: error.message
+    });
+  }
+};

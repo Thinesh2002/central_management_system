@@ -73,11 +73,13 @@ const Category = {
       const sql = `
         SELECT 
           c.*,
-          COUNT(sc.sub_category_code) AS sub_category_count
+          COALESCE(sc_counts.sub_category_count, 0) AS sub_category_count
         FROM categories c
-        LEFT JOIN sub_categories sc 
-          ON sc.category_code = c.category_code
-        GROUP BY c.category_code
+        LEFT JOIN (
+          SELECT category_code, COUNT(*) AS sub_category_count
+          FROM sub_categories
+          GROUP BY category_code
+        ) sc_counts ON sc_counts.category_code = c.category_code
         ORDER BY c.category_name ASC
         LIMIT ? OFFSET ?
       `;

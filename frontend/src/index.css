@@ -15,7 +15,7 @@
 }
 
 body {
-  @apply bg-[#213C51]; 
+  @apply bg-stone-50 text-slate-900; 
 }
 
 .sidebar-scroll::-webkit-scrollbar {

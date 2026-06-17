@@ -10,7 +10,12 @@ const createProduct = async (req, res) => {
       product_name,
       sub_category_code,
       brand,
-      description
+      description,
+      buy_price,
+      cost_price,
+      selling_price,
+      pack_size,
+      pack_code
     } = req.body;
 
     parent_sku = parent_sku?.trim();
@@ -58,7 +63,12 @@ const createProduct = async (req, res) => {
       product_name,
       sub_category_code: sub_category_code || null,
       brand: brand || null,
-      description: description || null
+      description: description || null,
+      buy_price: Number(buy_price || 0),
+      cost_price: Number(cost_price || buy_price || 0),
+      selling_price: Number(selling_price || 0),
+      pack_size: Number(pack_size || 1),
+      pack_code: pack_code || (pack_size ? `${pack_size}PK` : "1PK")
     });
 
     res.status(201).json({

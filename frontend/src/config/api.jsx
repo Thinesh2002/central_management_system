@@ -1,7 +1,7 @@
 import axios from "axios";
 import { clearAuth } from "./auth";
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://backend.teckvora.com/api";
 const normalizedBaseUrl = rawBaseUrl.replace(/\/$/, "");
 
 export const API_BASE_URL = normalizedBaseUrl.replace(/\/api$/, "");
