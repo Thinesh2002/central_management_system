@@ -1,7 +1,34 @@
-export function getName(item) {
+function pickFirst(item, keys = []) {
+  for (const key of keys) {
+    const value = item?.[key];
+
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+export function getName(item, type = "") {
   if (!item) return "";
 
+  const typeNameKeys = {
+    category: ["category_name", "name", "title", "label"],
+    subCategory: [
+      "sub_category_name",
+      "subcategory_name",
+      "subCategoryName",
+      "name",
+      "title",
+      "label",
+    ],
+    model: ["model_name", "product_model_name", "name", "title", "label"],
+    colour: ["colour_name", "color_name", "name", "title", "label"],
+  };
+
   return (
+    pickFirst(item, typeNameKeys[type] || []) ||
     item.name ||
     item.title ||
     item.category_name ||
@@ -19,10 +46,23 @@ export function getName(item) {
   );
 }
 
-export function getCode(item) {
+export function getCode(item, type = "") {
   if (!item) return "";
 
+  const typeCodeKeys = {
+    category: ["category_code", "code"],
+    subCategory: [
+      "sub_category_code",
+      "subcategory_code",
+      "subCategoryCode",
+      "code",
+    ],
+    model: ["model_code", "product_model_code", "code"],
+    colour: ["colour_code", "color_code", "hex_code", "code"],
+  };
+
   return (
+    pickFirst(item, typeCodeKeys[type] || []) ||
     item.code ||
     item.category_code ||
     item.sub_category_code ||
@@ -34,7 +74,7 @@ export function getCode(item) {
     item.color_code ||
     item.hex_code ||
     item.sku_code ||
-    getName(item)
+    getName(item, type)
   );
 }
 
@@ -57,18 +97,35 @@ export function makeSlug(value) {
 }
 
 export function generateProductSku({ category, subCategory, model }) {
-  const cat = makeCode(getCode(category) || getName(category));
-  const sub = makeCode(getCode(subCategory) || getName(subCategory));
-  const mod = makeCode(getCode(model) || getName(model));
+  const cat = makeCode(
+    getCode(category, "category") || getName(category, "category")
+  );
+
+  const sub = makeCode(
+    getCode(subCategory, "subCategory") ||
+      getName(subCategory, "subCategory")
+  );
+
+  const mod = makeCode(getCode(model, "model") || getName(model, "model"));
 
   return `${cat}${sub}${mod}`;
 }
 
 export function generateVariantSku({ category, subCategory, model, colour }) {
-  const cat = makeCode(getCode(category) || getName(category));
-  const sub = makeCode(getCode(subCategory) || getName(subCategory));
-  const mod = makeCode(getCode(model) || getName(model));
-  const col = makeCode(getCode(colour) || getName(colour));
+  const cat = makeCode(
+    getCode(category, "category") || getName(category, "category")
+  );
+
+  const sub = makeCode(
+    getCode(subCategory, "subCategory") ||
+      getName(subCategory, "subCategory")
+  );
+
+  const mod = makeCode(getCode(model, "model") || getName(model, "model"));
+
+  const col = makeCode(
+    getCode(colour, "colour") || getName(colour, "colour")
+  );
 
   return `${cat}${sub}${mod}${col}`;
 }
@@ -85,7 +142,9 @@ export function normalizeList(response) {
   if (Array.isArray(response?.data?.products)) return response.data.products;
   if (Array.isArray(response?.data?.models)) return response.data.models;
   if (Array.isArray(response?.data?.categories)) return response.data.categories;
-  if (Array.isArray(response?.data?.sub_categories)) return response.data.sub_categories;
+  if (Array.isArray(response?.data?.sub_categories)) {
+    return response.data.sub_categories;
+  }
 
   if (Array.isArray(response?.data)) return response.data;
 
