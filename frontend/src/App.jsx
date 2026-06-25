@@ -5,7 +5,7 @@ import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
 import UsersPage from "./pages/users/UsersPage";
 import AccessControlPage from "./pages/access/AccessControlPage";
-import LogsPage from "./pages/logs/logs_page";
+import LogsPage from "./pages/logs/LogsPage";
 import ProductManagementRoutes from "./routes/product_management/index";
 import MarketplaceManagementRoutes from "./routes/marketplace_management/index";
 import DarazProductRoute from "./routes/Daraz/product_management/index";
