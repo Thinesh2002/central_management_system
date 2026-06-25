@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
+import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import {
   generateProductSku,
   getErrorMessage,
   getName,
   makeSlug,
   normalizeList,
-} from "./utils/productSku";
+} from "../utils/productSku";
 
 const FIELD_CLASS =
   "h-11 w-full rounded-xl border border-slate-700 bg-[#0b1220] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60";

@@ -10,12 +10,15 @@ import CategoryViewPage from "../../pages/product_management/category/View_categ
 import CategoryEditPage from "../../pages/product_management/category/edit_category_page/index";
 import ColourPage from "../../pages/product_management/colour/index";
 
-import LocalProductsDashboard from "../../pages/product_management/products/index";
-import LocalProductAddPage from "../../pages/product_management/products/LocalProductAddPage";
+import LocalProductViewPage from "../../pages/product_management/products/product_detail_page/index";
+
+
+import LocalProductsDashboard from "../../pages/product_management/products/product_dashboard/index";
+import LocalProductAddPage from "../../pages/product_management/products/add_product/index";
 import LocalProductBasicPage from "../../pages/product_management/products/LocalProductBasicPage";
 import LocalProductPriceInventoryPage from "../../pages/product_management/products/LocalProductPriceInventoryPage";
 import LocalProductAttributesPage from "../../pages/product_management/products/LocalProductAttributesPage";
-import LocalProductVariantsPage from "../../pages/product_management/products/LocalProductVariantsPage";
+import LocalProductVariantsPage from "../../pages/product_management/products/product_variants/index";
 import LocalProductImagesPage from "../../pages/product_management/products/LocalProductImagesPage";
 
 function ProtectedProductPage({ children }) {
@@ -213,6 +216,17 @@ export default function ProductManagementRoutes() {
           </ProtectedProductPage>
         }
       />
+
+            <Route
+        path="/product/local-products/view/:id"
+        element={
+          <ProtectedProductPage>
+            <LocalProductViewPage  />
+          </ProtectedProductPage>
+        }
+      />
+
+
     </>
   );
 }

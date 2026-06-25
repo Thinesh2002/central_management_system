@@ -56,7 +56,7 @@ const staticMenu = [
     section: "PRODUCTS",
     page_key: "add_product",
     page_name: "Add Product",
-    path: "/products/add",
+    path: "/product/local-products/create",
     icon: "FilePlus2",
     exact: true,
   },
