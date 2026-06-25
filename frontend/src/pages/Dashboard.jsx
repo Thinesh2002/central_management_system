@@ -209,7 +209,7 @@ export default function Dashboard() {
               <span className="font-semibold text-slate-200">
                 {currentUser?.user_uid || currentUser?.name || "User"}
               </span>
-              . Manage users, page access and login security.
+              Manage users, page access and login security.
             </p>
           </div>
 

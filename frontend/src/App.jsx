@@ -1,8 +1,8 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Login from "./pages/login";
+import Dashboard from "./pages/dashboard";
 import UsersPage from "./pages/users/UsersPage";
 import AccessControlPage from "./pages/access/AccessControlPage";
 import LogsPage from "./pages/logs/LogsPage";
