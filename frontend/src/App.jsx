@@ -1,148 +1,104 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
-import Layout from "./pages/compnents/Layout";
-import Login from "./pages/login";
-import Dashboard from "./pages/dasboard";
-import User from "./pages/user/user_dashboard";
-import AddProduct from "./pages/product/AddProducr";
-import EditProduct from "./pages/product/edit_product";
-import Inventory from "./pages/inventory/inventory_dashboard";
-import { ManageAllInventoryAmazon } from "./pages/enterprise/EnterprisePages";
-import BlogPage from "./pages/Blog";
-import AddBlockPAge from "./pages/Blog/Add_Block_Page";
-import EditProductPage from "./pages/Blog/Edit_Blog";
-import PricingRoute from "./Routes/price/daraz_price_calculations/index"
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import UsersPage from "./pages/users/UsersPage";
+import AccessControlPage from "./pages/access/AccessControlPage";
+import LogsPage from "./pages/logs/LogsPage";
+import ProductManagementRoutes from "./routes/product_management/index";
+import MarketplaceManagementRoutes from "./routes/marketplace_management/index";
+import DarazProductRoute from "./routes/Daraz/product_management/index";
+import DarazOrderRoute from "./routes/Daraz/orders/index";
+import WooProductsRoutes from "./routes/woo/product_management/index";
+import ManualOrderRoute from "./routes/order_management/orderManagementRoutes";
+
+import Layout from "./components/Layout";
 import ProtectedRoute from "./config/ProtectedRoute";
-import Colours_Route from "./Routes/colours_route/index"
-import FinanceRoutes from "./Routes/Finance/finance_route";
-import Product_Route from "./Routes/Product_Route/product_route";
-import Order from "./Routes/Order_Routes/order_route";
-import CateogoryRoute from "./Routes/Category_Route";
-import DarazRoute from "./Routes/daraz_route/index";
-import DarazCallback from "./pages/Daraz/auth/DarazCallback";
-import SuppliersRoute from "./Routes/Suppliers_Route/index";
-import EnterpriseRoutes from "./Routes/enterprise_routes";
+
+function ProtectedLayout({ children }) {
+  return (
+    <ProtectedRoute>
+      <Layout>{children}</Layout>
+    </ProtectedRoute>
+  );
+}
+
+function NotFoundPage() {
+  return (
+    <div className="flex min-h-[calc(100vh-180px)] items-center justify-center">
+      <h1 className="text-center text-3xl font-bold text-red-500 sm:text-4xl">
+        404 Page Not Found
+      </h1>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
-      {/* PUBLIC */}
       <Route path="/login" element={<Login />} />
-      <Route path="/daraz/callback" element={<DarazCallback />} />
 
-      {/* PROTECTED */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <Dashboard />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <Dashboard />
+          </ProtectedLayout>
         }
       />
 
       <Route
-        path="/user-dashboard"
+        path="/users"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <User />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <UsersPage />
+          </ProtectedLayout>
         }
       />
 
       <Route
-        path="/add-product"
+        path="/access-control"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <AddProduct />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <AccessControlPage />
+          </ProtectedLayout>
         }
       />
 
       <Route
-        path="/edit-product/:id"
+        path="/logs"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <EditProduct />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <LogsPage />
+          </ProtectedLayout>
         }
       />
 
+      {/* Product Management Routes */}
+      {ProductManagementRoutes()}
 
+        {/* Marketplace Management Routes */}
+      {MarketplaceManagementRoutes()} 
+
+      {DarazProductRoute()}
+
+      {DarazOrderRoute()}
+      {WooProductsRoutes()}
+      {ManualOrderRoute()}
+
+      
+      {/* Unknown pages */}
       <Route
-        path="/manage-all-inventory"
+        path="*"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <ManageAllInventoryAmazon />
-            </Layout>
-          </ProtectedRoute>
+          <ProtectedLayout>
+            <NotFoundPage />
+          </ProtectedLayout>
         }
       />
-
-      <Route
-        path="/inventory"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Inventory />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/blog"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <BlogPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/add-blog"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <AddBlockPAge />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/edit-blog/:id"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <EditProductPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* OTHER ROUTES */}
-      {FinanceRoutes}
-      {Product_Route}
-      {Order}
-      {CateogoryRoute}
-      {DarazRoute}
-      {PricingRoute}
-      {Colours_Route}
-      {SuppliersRoute}
-      {EnterpriseRoutes}
-      {/* FALLBACK */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

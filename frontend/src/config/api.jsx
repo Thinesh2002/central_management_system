@@ -1,35 +1,29 @@
 import axios from "axios";
-import { clearAuth } from "./auth";
+import { getToken, logout } from "./auth";
 
-const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://backend.teckvora.com/api";
-const normalizedBaseUrl = rawBaseUrl.replace(/\/$/, "");
-
-export const API_BASE_URL = normalizedBaseUrl.replace(/\/api$/, "");
-
-const API = axios.create({
-  baseURL: normalizedBaseUrl,
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT_MS || 45000)
+const api = axios.create({
+  baseURL:"http://localhost:5000/api",
+  timeout: 15000,
 });
 
-API.interceptors.request.use((cfg) => {
-  const token = localStorage.getItem("token");
-  if (token) cfg.headers.Authorization = `Bearer ${token}`;
-  cfg.headers.Accept = "application/json";
-  return cfg;
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
-API.interceptors.response.use(
+api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const status = error?.response?.status;
-    if (status === 401) {
-      clearAuth();
-      if (!window.location.pathname.includes("/login")) {
-        window.dispatchEvent(new CustomEvent("app_error", { detail: "Your session has expired. Please sign in again." }));
-      }
+    if (error.response?.status === 401) {
+      logout();
     }
     return Promise.reject(error);
   }
 );
 
-export default API;
+export function getApiError(error, fallback = "Something went wrong. Please try again.") {
+  return error.response?.data?.message || error.message || fallback;
+}
+
+export default api;

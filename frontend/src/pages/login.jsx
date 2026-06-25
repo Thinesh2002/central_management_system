@@ -1,140 +1,184 @@
 import React, { useState } from "react";
-import API from "../config/api";
-import { storeAuth } from "../config/auth";
-import { useNavigate, Link } from "react-router-dom";
-import { Lock, Mail, ArrowRight, Zap, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  Lock,
+  UserRound,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  Sparkles,
+} from "lucide-react";
 
-export default function Login({ onAuth }) {
-  const [login, setLogin] = useState("");
-  const [password, setPassword] = useState("");
-  const [msg, setMsg] = useState(null);
-  const [loading, setLoading] = useState(false);
+import api, { getApiError } from "../config/api";
+import { saveAuth } from "../config/auth";
 
+export default function Login() {
   const navigate = useNavigate();
 
-  const submit = async (e) => {
-    e.preventDefault();
-    setMsg(null);
+  const [form, setForm] = useState({
+    identifier: "Thinesh",
+    password: "Admin@123",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Password show / hide state
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (event) => {
+    setForm((prev) => ({
+      ...prev,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
     setLoading(true);
 
     try {
-      const res = await API.post("/user/login", { login, password });
-      const { token, user } = res.data;
+      const { data } = await api.post("/auth/login", form);
 
-      storeAuth(user, token);
-      if (onAuth) onAuth(user);
+      saveAuth(data.token, data.user, data.menu || []);
 
-      navigate("/dashboard"); 
+      navigate("/dashboard", { replace: true });
     } catch (err) {
-      setMsg(err.response?.data?.message || "Authentication failed. Please check your credentials.");
+      setError(getApiError(err, "Login failed."));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] px-4 relative overflow-hidden">
-      
-      {/* BACKGROUND DECORATION */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-10 text-slate-100">
+      {/* Background effect */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#13233f_0%,#020617_45%,#020617_100%)]" />
+      <div className="absolute left-[-120px] top-[-120px] h-80 w-80 rounded-full bg-blue-600/20 blur-3xl" />
+      <div className="absolute bottom-[-120px] right-[-120px] h-80 w-80 rounded-full bg-slate-700/30 blur-3xl" />
 
-      <div className="w-full max-w-4xl bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-2 animate-in fade-in zoom-in duration-700">
-
-        {/* LEFT PANEL: Branding & Visual */}
-        <div className="hidden md:flex flex-col justify-between bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-12 relative overflow-hidden">
-          <div className="z-10">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-8 border border-white/20">
-              <Zap size={24} className="fill-white" />
+      <div className="relative z-10 grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/80 shadow-2xl shadow-black/50 backdrop-blur-xl lg:grid-cols-2">
+        {/* Left panel */}
+        <div className="hidden border-r border-slate-800 bg-[#07111f] p-10 lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-white shadow-lg">
+              <ShieldCheck size={28} />
             </div>
-            <h1 className="text-4xl font-black tracking-tighter mb-4 leading-tight">
-              Central <br /> Management <br /> <span className="text-blue-200 italic">System</span>
+
+            <h1 className="text-3xl font-bold leading-tight text-white">
+              Central Management System
             </h1>
-            <p className="text-blue-100 text-sm leading-relaxed max-w-xs opacity-80 font-medium">
-              Enterprise-grade inventory and administration control at your fingertips.
+
+            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-400">
+              Secure user access control system for dashboard, users,
+              permissions, logs, and management tools.
             </p>
           </div>
 
-  
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <Sparkles size={16} className="text-[#FFD400]" />
+              Individual Access Control
+            </div>
 
-          {/* Abstract decoration */}
-          <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+            <p className="text-xs leading-5 text-slate-400">
+              Every user can access only the pages and actions allowed by the
+              master admin.
+            </p>
+          </div>
         </div>
 
-        {/* RIGHT PANEL: Login Form */}
-        <div className="p-8 md:p-12 flex flex-col justify-center bg-[#020617]/40">
-          <div className="mb-10">
-            <h2 className="text-3xl font-black text-white tracking-tighter">
-              Welcome <span className="text-blue-500 italic">Back</span>
-            </h2>
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">Enter your secure credentials</p>
+        {/* Right login form */}
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="mb-8 text-center lg:text-left">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-[#07111f] text-white shadow-lg lg:mx-0">
+              <ShieldCheck size={28} />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white">Welcome Back</h2>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Login using Email or User ID.
+            </p>
           </div>
 
-          {msg && (
-            <div className="mb-6 flex items-center gap-3 text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-2xl animate-in slide-in-from-top-2">
-              <AlertCircle size={16} />
-              {msg}
-            </div>
-          )}
-
-          <form onSubmit={submit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Identity</label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={18} />
-                <input
-                  type="text"
-                  placeholder="Email or Username"
-                  value={login}
-                  onChange={(e) => setLogin(e.target.value)}
-                  required
-                  className="w-full bg-white/[0.03] border border-white/10 px-12 py-4 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-slate-600"
-                />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-300">
+                {error}
               </div>
-            </div>
+            )}
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Security Key</label>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={18} />
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full bg-white/[0.03] border border-white/10 px-12 py-4 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-slate-600"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center text-[11px] font-bold">
-              <label className="flex items-center gap-2 text-slate-400 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-white/5 accent-blue-500" />
-                <span className="group-hover:text-slate-300 transition-colors">Remember instance</span>
+            {/* Email / User ID */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">
+                Email / User ID
               </label>
-              <Link to="/forgot-password" size={14} className="text-blue-500 hover:text-blue-400 transition-colors tracking-tight">
-                Recovery Access?
-              </Link>
+
+              <div className="relative">
+                <UserRound
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  size={18}
+                />
+
+                <input
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950/70 py-3 pl-10 pr-4 text-sm font-medium text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  type="text"
+                  name="identifier"
+                  value={form.identifier}
+                  onChange={handleChange}
+                  placeholder="Example: Thinesh or master@admin.com"
+                  required
+                />
+              </div>
             </div>
 
+            {/* Password */}
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">
+                Password
+              </label>
+
+              <div className="relative">
+                <Lock
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  size={18}
+                />
+
+                <input
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950/70 py-3 pl-10 pr-11 text-sm font-medium text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 flex -translate-y-1/2 cursor-pointer items-center justify-center rounded-md p-1 text-slate-500 transition hover:bg-slate-800 hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Login button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 shadow-xl shadow-blue-900/20 active:scale-[0.98] flex items-center justify-center gap-2 group"
+              className="flex w-full cursor-pointer items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Authenticating..." : (
-                <>
-                  Login
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
+              {loading ? "Logging in..." : "Login"}
             </button>
 
 
           </form>
         </div>
-
       </div>
     </div>
   );

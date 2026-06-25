@@ -1,16 +1,16 @@
-// utils/generateToken.js
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const jwt = require("jsonwebtoken");
 
-module.exports = (userOrId) => {
-  // accept either an object { id, email, user_id } or a plain id
-  const id = userOrId && typeof userOrId === 'object' ? userOrId.id : userOrId;
-  if (!id) {
-    // defensive fallback: do not throw — return null so controller can handle
-    console.warn('generateToken called without valid id/user:', userOrId);
-    return null;
-  }
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      user_uid: user.user_uid,
+      email: user.email,
+      role: user.role,
+    },
+    process.env.JWT_SECRET || "change_this_secret_key",
+    { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
+  );
+}
 
-  const payload = { id };
-  return jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
-};
+module.exports = generateToken;
