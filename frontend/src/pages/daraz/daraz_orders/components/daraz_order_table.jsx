@@ -1,4 +1,6 @@
-import { Eye, Package, Truck } from "lucide-react";
+import { useState } from "react";
+import { Eye, MoreVertical, Package, Truck } from "lucide-react";
+import { DARAZ_STATUS_CHANGE_OPTIONS } from "../constants/daraz_order_constants";
 import {
   formatDate,
   getAccountCode,
@@ -20,11 +22,34 @@ import {
   normalizeStatusKey,
 } from "../utils/daraz_order_utils";
 
-export default function DarazOrderTable({ orders, accountsByCode, loading, onOpenImage, onOpenDetail }) {
+export default function DarazOrderTable({
+  orders,
+  accountsByCode,
+  loading,
+  selectedOrderIds = [],
+  onToggleOrder,
+  onToggleAll,
+  onOpenImage,
+  onOpenDetail,
+  onChangeStatus,
+}) {
+  const [openMenuId, setOpenMenuId] = useState("");
+  const currentIds = orders.map((order) => order._route_id || getOrderRouteId(order)).filter(Boolean).map(String);
+  const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedOrderIds.includes(id));
+
+  function toggleMenu(order) {
+    const routeId = String(order._route_id || getOrderRouteId(order) || "");
+    setOpenMenuId((prev) => (prev === routeId ? "" : routeId));
+  }
+
+  function closeMenu() {
+    setOpenMenuId("");
+  }
+
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[1200px]">
-        <TableHeader />
+      <div className="min-w-[1120px]">
+        <TableHeader checked={allSelected} disabled={!currentIds.length} onToggleAll={onToggleAll} />
 
         {!loading && orders.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
@@ -34,24 +59,42 @@ export default function DarazOrderTable({ orders, accountsByCode, loading, onOpe
           </div>
         )}
 
-        {orders.map((order, index) => (
-          <OrderRow
-            key={`${order._group_key || getOrderNumber(order)}-${index}`}
-            order={order}
-            accountsByCode={accountsByCode}
-            onOpenImage={onOpenImage}
-            onOpenDetail={onOpenDetail}
-          />
-        ))}
+        {orders.map((order, index) => {
+          const routeId = String(order._route_id || getOrderRouteId(order) || "");
+
+          return (
+            <OrderRow
+              key={`${order._group_key || getOrderNumber(order)}-${index}`}
+              order={order}
+              accountsByCode={accountsByCode}
+              checked={routeId ? selectedOrderIds.includes(routeId) : false}
+              menuOpen={openMenuId === routeId}
+              onToggleMenu={() => toggleMenu(order)}
+              onCloseMenu={closeMenu}
+              onToggleOrder={() => onToggleOrder?.(routeId)}
+              onOpenImage={onOpenImage}
+              onOpenDetail={onOpenDetail}
+              onChangeStatus={onChangeStatus}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function TableHeader() {
+function TableHeader({ checked, disabled, onToggleAll }) {
   return (
-    <div className="grid grid-cols-[36px_minmax(470px,1.8fr)_130px_170px_115px_145px_105px_74px_52px] gap-3 border-b border-white/[0.05] bg-[#111927] px-4 py-2.5 text-[11px] font-semibold text-slate-500">
-      <div></div>
+    <div className="grid grid-cols-[34px_minmax(390px,1.8fr)_120px_150px_105px_135px_98px_78px_58px] gap-2 border-b border-white/[0.05] bg-[#111927] px-3 py-2 text-[11px] font-semibold text-slate-500">
+      <div>
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={disabled}
+          onChange={onToggleAll}
+          className="h-4 w-4 cursor-pointer rounded border-slate-600 bg-transparent accent-orange-500 disabled:cursor-not-allowed disabled:opacity-40"
+        />
+      </div>
       <div>Order ID / SKU / Product / Image</div>
       <div>Account</div>
       <div>Customer</div>
@@ -59,12 +102,23 @@ function TableHeader() {
       <div>Shipping</div>
       <div>Date</div>
       <div>Status</div>
-      <div className="text-right">View</div>
+      <div className="text-right">Action</div>
     </div>
   );
 }
 
-function OrderRow({ order, accountsByCode, onOpenImage, onOpenDetail }) {
+function OrderRow({
+  order,
+  accountsByCode,
+  checked,
+  menuOpen,
+  onToggleMenu,
+  onCloseMenu,
+  onToggleOrder,
+  onOpenImage,
+  onOpenDetail,
+  onChangeStatus,
+}) {
   const routeId = order._route_id || getOrderRouteId(order);
   const currency = getOrderCurrency(order);
   const accountCode = getAccountCode(order);
@@ -72,10 +126,19 @@ function OrderRow({ order, accountsByCode, onOpenImage, onOpenDetail }) {
   const dateParts = formatDate(getCreatedDate(order)).split(",");
 
   return (
-    <article onDoubleClick={() => onOpenDetail(order)} className="min-w-[1200px] border-b border-white/[0.04] bg-[#0b111b] transition hover:bg-[#101827]">
-      <div className="grid grid-cols-[36px_minmax(470px,1.8fr)_130px_170px_115px_145px_105px_74px_52px] gap-3 px-4 py-3">
+    <article onDoubleClick={() => onOpenDetail(order)} className="min-w-[1120px] border-b border-white/[0.04] bg-[#0b111b] transition hover:bg-[#101827]">
+      <div className="grid grid-cols-[34px_minmax(390px,1.8fr)_120px_150px_105px_135px_98px_78px_58px] gap-2 px-3 py-2">
         <div className="pt-1">
-          <input type="checkbox" className="h-4 w-4 cursor-pointer rounded border-slate-600 bg-transparent accent-orange-500" onClick={(event) => event.stopPropagation()} />
+          <input
+            type="checkbox"
+            checked={checked}
+            className="h-4 w-4 cursor-pointer rounded border-slate-600 bg-transparent accent-orange-500"
+            onChange={(event) => {
+              event.stopPropagation();
+              onToggleOrder?.();
+            }}
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
 
         <ProductSummary order={order} onOpenImage={onOpenImage} />
@@ -105,19 +168,68 @@ function OrderRow({ order, accountsByCode, onOpenImage, onOpenDetail }) {
 
         <div className="pt-1"><StatusBadge status={getOrderStatus(order)} /></div>
 
-        <div className="flex items-start justify-end pt-0.5">
+        <div className="relative flex items-start justify-end pt-0.5">
           <button
             type="button"
-            onClick={() => onOpenDetail(order)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleMenu?.();
+            }}
             disabled={!routeId}
-            title="View order"
+            title="Order actions"
             className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md bg-[#111927] text-slate-300 transition hover:bg-orange-500/15 hover:text-orange-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Eye size={14} />
+            <MoreVertical size={15} />
           </button>
+
+          {menuOpen && (
+            <ActionMenu
+              order={order}
+              onClose={onCloseMenu}
+              onOpenDetail={onOpenDetail}
+              onChangeStatus={onChangeStatus}
+            />
+          )}
         </div>
       </div>
     </article>
+  );
+}
+
+function ActionMenu({ order, onClose, onOpenDetail, onChangeStatus }) {
+  return (
+    <div className="absolute right-0 top-8 z-30 w-44 overflow-hidden rounded-lg bg-[#111927] text-left shadow-xl shadow-black/40 ring-1 ring-white/10">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose?.();
+          onOpenDetail?.(order);
+        }}
+        className="flex w-full items-center gap-2 px-3 py-2 text-[11px] font-bold text-slate-200 hover:bg-white/[0.06]"
+      >
+        <Eye size={13} /> View Order
+      </button>
+
+      <div className="border-t border-white/[0.06] px-3 py-1.5 text-[10px] font-black uppercase text-slate-500">
+        Change Status
+      </div>
+
+      {DARAZ_STATUS_CHANGE_OPTIONS.map((option) => (
+        <button
+          key={option.key}
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onClose?.();
+            onChangeStatus?.(order, option.key, option.label);
+          }}
+          className="block w-full px-3 py-2 text-left text-[11px] font-bold text-slate-300 hover:bg-orange-500/10 hover:text-orange-200"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -127,7 +239,9 @@ function ProductSummary({ order, onOpenImage }) {
   const title = firstItem.title || getItemTitle(order, order) || "-";
   const isMultiLine = Boolean(order._is_multiline);
   const extraCount = Math.max(0, items.length - 1);
-  const hasSku = items.some((item) => item?.sku);
+  const skuItems = items.filter((item) => item?.sku);
+  const visibleSkuItems = skuItems.slice(0, 3);
+  const hiddenSkuCount = Math.max(0, skuItems.length - visibleSkuItems.length);
 
   return (
     <div className="min-w-0">
@@ -136,10 +250,17 @@ function ProductSummary({ order, onOpenImage }) {
       </p>
 
       <div className="mt-1 flex flex-wrap items-center gap-1.5">
-        {hasSku ? items.map((item, index) => <SkuBadge key={`${item.rowId || item.sku || index}`} sku={item.sku} quantity={item.quantity} />) : <span className="rounded bg-[#16202d] px-1.5 py-[2px] text-[9px] font-semibold text-slate-500 ring-1 ring-white/[0.05]">SKU -</span>}
+        {visibleSkuItems.length > 0 ? (
+          <>
+            {visibleSkuItems.map((item, index) => <SkuBadge key={`${item.rowId || item.sku || index}`} sku={item.sku} quantity={item.quantity} />)}
+            {hiddenSkuCount > 0 && <span className="rounded bg-[#16202d] px-1.5 py-[2px] text-[9px] font-semibold text-slate-400 ring-1 ring-white/[0.05]">+{hiddenSkuCount}</span>}
+          </>
+        ) : (
+          <span className="rounded bg-[#16202d] px-1.5 py-[2px] text-[9px] font-semibold text-slate-500 ring-1 ring-white/[0.05]">SKU -</span>
+        )}
       </div>
 
-      <p className={`mt-1 max-w-[620px] truncate text-[12px] ${isMultiLine ? "font-semibold text-slate-200" : "font-medium text-slate-300"}`}>
+      <p className={`mt-1 max-w-[560px] truncate text-[12px] ${isMultiLine ? "font-semibold text-slate-200" : "font-medium text-slate-300"}`}>
         {isMultiLine ? `Multi Orders${extraCount > 0 ? ` +${extraCount}` : ""}` : title}
       </p>
 
@@ -151,7 +272,7 @@ function ProductSummary({ order, onOpenImage }) {
 function SkuBadge({ sku, quantity }) {
   if (!sku) return null;
   return (
-    <span className="inline-flex max-w-[160px] items-center gap-1 rounded bg-orange-500/10 px-1.5 py-[2px] text-[9px] font-semibold leading-none text-orange-200 ring-1 ring-orange-400/15">
+    <span className="inline-flex max-w-[150px] items-center gap-1 rounded bg-orange-500/10 px-1.5 py-[2px] text-[9px] font-semibold leading-none text-orange-200 ring-1 ring-orange-400/15">
       <span className="shrink-0 text-orange-400">SKU</span>
       <span className="truncate tracking-normal">{sku}</span>
       <span className="text-orange-300/70">x{quantity || 1}</span>
@@ -160,15 +281,18 @@ function SkuBadge({ sku, quantity }) {
 }
 
 function ProductImages({ items, order, onOpenImage }) {
-  const visibleItems = items.filter((item) => item.image).slice(0, 6);
+  const imageItems = items.filter((item) => item.image);
+  const visibleItems = imageItems.slice(0, 3);
+  const hiddenImageCount = Math.max(0, imageItems.length - visibleItems.length);
 
   if (visibleItems.length === 0) {
-    return <div className="mt-2 flex h-11 w-32 items-center justify-center rounded-lg bg-[#0f1621] text-[11px] font-semibold text-slate-500"><Package size={14} className="mr-1" /> No image</div>;
+    return <div className="mt-2 flex h-9 w-28 items-center justify-center rounded-lg bg-[#0f1621] text-[11px] font-semibold text-slate-500"><Package size={14} className="mr-1" /> No image</div>;
   }
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
       {visibleItems.map((item, index) => <ItemImage key={`${item.image}-${item.lineIndex || index}`} item={item} order={order} onOpenImage={onOpenImage} />)}
+      {hiddenImageCount > 0 && <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#0f1621] text-[10px] font-black text-slate-400 ring-1 ring-white/10">+{hiddenImageCount}</span>}
     </div>
   );
 }
@@ -182,7 +306,7 @@ function ItemImage({ item, order, onOpenImage }) {
         event.stopPropagation();
         onOpenImage?.({ src: item.image, title: item.title, orderId: getOrderNumber(order), darazId: item.darazId, sku: item.sku });
       }}
-      className="group/image flex h-11 w-11 shrink-0 cursor-zoom-in items-center justify-center overflow-hidden rounded-lg bg-white/[0.04] ring-1 ring-white/10 transition hover:ring-orange-400/60"
+      className="group/image flex h-9 w-9 shrink-0 cursor-zoom-in items-center justify-center overflow-hidden rounded-lg bg-white/[0.04] ring-1 ring-white/10 transition hover:ring-orange-400/60"
     >
       <img src={item.image} alt={item.title || "Product"} className="h-full w-full object-cover transition duration-300 group-hover/image:scale-110" loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} />
     </button>
@@ -193,8 +317,8 @@ function MarketplaceBadge({ accountName, accountCode }) {
   return (
     <div className="min-w-0 pt-1">
       <p className="text-[14px] font-black leading-none text-[#ff6a00]">daraz</p>
-      <p className="mt-1 max-w-[110px] truncate text-[12px] font-semibold text-slate-300">{accountName}</p>
-      <p className="mt-0.5 max-w-[110px] truncate text-[11px] font-medium text-slate-500">{accountCode || "-"}</p>
+      <p className="mt-1 max-w-[105px] truncate text-[12px] font-semibold text-slate-300">{accountName}</p>
+      <p className="mt-0.5 max-w-[105px] truncate text-[11px] font-medium text-slate-500">{accountCode || "-"}</p>
     </div>
   );
 }

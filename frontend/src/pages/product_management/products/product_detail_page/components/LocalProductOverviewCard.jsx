@@ -1,97 +1,116 @@
-import { BadgeDollarSign, Boxes, Hash, Image as ImageIcon, Layers, Package, Tag } from "lucide-react";
-import LocalProductInfoCard, { Badge, DetailItem } from "./LocalProductInfoCard";
+import { ImageIcon } from "lucide-react";
 import {
-  formatMoney,
-  getCategoryName,
-  getMainImage,
-  getModelName,
-  getStatus,
-  getSubCategoryName,
+  formatNumber,
+  getProductTitle,
   valueOf,
-  yesNo,
 } from "../utils/localProductViewHelpers";
+import {
+  EMPTY_IMAGE,
+  getMainProductImage,
+  handleImageError,
+} from "../utils/localProductViewImageHelpers";
 
-function ProductImageBox({ product }) {
-  const imageUrl = getMainImage(product);
-
+function InfoItem({ label, value }) {
   return (
-    <div className="flex h-full min-h-[260px] items-center justify-center overflow-hidden rounded-2xl border border-slate-800 bg-[#070b16]">
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={valueOf(product, ["title", "name"], "Product image")}
-          className="h-full max-h-[320px] w-full object-contain p-4"
-        />
-      ) : (
-        <div className="flex flex-col items-center gap-2 text-center text-slate-500">
-          <ImageIcon size={42} />
-          <p className="text-sm font-bold">No image available</p>
-        </div>
-      )}
+    <div className="rounded-lg border border-slate-800 bg-[#070b16] p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-semibold text-slate-200">
+        {value || "-"}
+      </p>
     </div>
   );
 }
 
-export default function LocalProductOverviewCard({ product }) {
-  const currency = valueOf(product, ["currency"], "LKR");
-  const status = getStatus(product);
+export default function LocalProductOverviewCard({ product = {} }) {
+  const mainImage = getMainProductImage(product);
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr]">
-      <ProductImageBox product={product} />
+    <section className="rounded-xl border border-slate-800 bg-[#0b1019] p-4 shadow-xl shadow-black/20">
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+        <div className="rounded-xl border border-slate-800 bg-[#070b16] p-3">
+          <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-[#111827]">
+            <img
+              src={mainImage}
+              alt={getProductTitle(product)}
+              onError={handleImageError}
+              className="h-full w-full object-contain"
+            />
 
-      <LocalProductInfoCard title="Product Overview" icon={Package}>
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <Badge tone={String(status).toLowerCase() === "active" ? "green" : "slate"}>
-            {status}
-          </Badge>
-          <Badge tone={Number(product?.has_variants) === 1 ? "violet" : "orange"}>
-            {Number(product?.has_variants) === 1 ? "Variant Product" : "Single Product"}
-          </Badge>
+            {mainImage === EMPTY_IMAGE && (
+              <div className="absolute flex flex-col items-center gap-2 text-slate-500">
+                <ImageIcon size={28} />
+                <span className="text-xs font-semibold">No Image</span>
+              </div>
+            )}
+          </div>
+
+          <p className="mt-3 text-center text-xs font-medium text-slate-500">
+            Parent product main image only
+          </p>
         </div>
 
-        <h2 className="text-2xl font-black leading-tight text-white">
-          {valueOf(product, ["title", "name", "product_name"], "Untitled Product")}
-        </h2>
+        <div className="space-y-4">
+          <div>
+            <h1 className="line-clamp-2 text-lg font-semibold text-slate-100">
+              {getProductTitle(product)}
+            </h1>
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              SKU:{" "}
+              {valueOf(
+                product,
+                ["sku", "product_sku", "local_sku", "seller_sku"],
+                "-"
+              )}
+            </p>
+          </div>
 
-        <p className="mt-2 text-sm font-medium leading-6 text-slate-400">
-          {valueOf(product, ["short_description", "shortDescription"], "No short description added.")}
-        </p>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <InfoItem
+              label="Category"
+              value={valueOf(product, ["category_name", "category"], "-")}
+            />
 
-        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <DetailItem label="SKU" value={valueOf(product, ["sku", "product_sku"])} />
-          <DetailItem label="Slug" value={valueOf(product, ["slug"])} />
-          <DetailItem label="Category" value={getCategoryName(product)} />
-          <DetailItem label="Sub Category" value={getSubCategoryName(product)} />
-          <DetailItem label="Model" value={getModelName(product)} />
-          <DetailItem label="Product Type" value={valueOf(product, ["product_type"], "single")} />
-          <DetailItem label="Has Variants" value={yesNo(product?.has_variants)} />
-          <DetailItem label="Currency" value={currency} />
+            <InfoItem
+              label="Sub Category"
+              value={valueOf(
+                product,
+                ["sub_category_name", "subcategory_name", "subCategoryName"],
+                "-"
+              )}
+            />
+
+            <InfoItem
+              label="Product Model"
+              value={valueOf(
+                product,
+                ["product_model_name", "model_name", "model"],
+                "-"
+              )}
+            />
+
+            <InfoItem
+              label="Colour"
+              value={valueOf(
+                product,
+                ["colour_name", "color_name", "colour", "color"],
+                "-"
+              )}
+            />
+
+            <InfoItem
+              label="Available Stock"
+              value={formatNumber(valueOf(product, ["available_qty"], 0))}
+            />
+
+            <InfoItem
+              label="Stock Status"
+              value={valueOf(product, ["stock_status"], "-")}
+            />
+          </div>
         </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <DetailItem
-            label="Main Price"
-            value={formatMoney(valueOf(product, ["main_price"], 0), currency)}
-          />
-          <DetailItem
-            label="Cost Price"
-            value={formatMoney(valueOf(product, ["cost_price"], 0), currency)}
-          />
-          <DetailItem
-            label="Sale Price"
-            value={formatMoney(valueOf(product, ["sale_price"], 0), currency)}
-          />
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-bold text-slate-400 sm:grid-cols-4">
-          <div className="inline-flex items-center gap-2"><Hash size={14} /> SKU</div>
-          <div className="inline-flex items-center gap-2"><Tag size={14} /> Category</div>
-          <div className="inline-flex items-center gap-2"><Layers size={14} /> Model</div>
-          <div className="inline-flex items-center gap-2"><BadgeDollarSign size={14} /> Pricing</div>
-          <div className="inline-flex items-center gap-2"><Boxes size={14} /> Variants</div>
-        </div>
-      </LocalProductInfoCard>
-    </div>
+      </div>
+    </section>
   );
 }

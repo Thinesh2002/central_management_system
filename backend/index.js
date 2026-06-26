@@ -19,6 +19,10 @@ const productModelRoutes = require("./routes/product_management/product_model/pr
 const productColourRoutes = require("./routes/product_management/product_colour/product_colour_routes");
 const localProductManagementRoutes = require("./routes/product_management/product/product_management_routes");
 const productVariantRoutes = require("./routes/product_management/product/product_variants_routes");
+const productInventoryRoutes = require("./routes/product_management/product/product_inventory_routes");
+const productPricesRoutes = require("./routes/product_management/product/product_prices_routes");
+const productImagesRoutes = require("./routes/product_management/product/product_images_routes");
+const productsRoutes = require("./routes/product_management/product/products_routes");
 const productCategoryRoutes = require("./routes/product_management/category/category_route");
 const productSubCategoryRoutes = require("./routes/product_management/category/sub_category_route");
 
@@ -120,6 +124,10 @@ app.use("/api/product-management/models", productModelRoutes);
 app.use("/api/product-management/colours", productColourRoutes);
 app.use("/api/product-management", localProductManagementRoutes);
 app.use("/api/product/product-variants", productVariantRoutes);
+app.use("/api/product/product-inventory", productInventoryRoutes);
+app.use("/api/product/product-prices", productPricesRoutes);
+app.use("/api/product/product-images", productImagesRoutes);
+app.use("/api/product/products", productsRoutes);
 app.use("/api/product/categories", productCategoryRoutes);
 app.use("/api/product/sub-categories", productSubCategoryRoutes);
 app.use("/api/marketplace", marketplaceRoutes);

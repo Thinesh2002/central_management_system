@@ -57,6 +57,7 @@ export default function VariantModal({
               disabled={loading || saving}
             >
               <option value="">Select colour</option>
+
               {colours.map((item) => (
                 <option key={item.id} value={item.id}>
                   {getName(item)}
@@ -68,7 +69,7 @@ export default function VariantModal({
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <DarkInput
                 label="Variant SKU"
-                value={form.variant_sku}
+                value={form.variant_sku || ""}
                 onChange={(value) => onChange("variant_sku", value)}
                 required
                 placeholder="Auto SKU"
@@ -88,25 +89,25 @@ export default function VariantModal({
 
             <DarkInput
               label="Colour Name"
-              value={form.colour}
+              value={form.colour || ""}
               onChange={(value) => onChange("colour", value)}
             />
 
             <DarkInput
               label="Size"
-              value={form.size}
+              value={form.size || ""}
               onChange={(value) => onChange("size", value)}
             />
 
             <DarkInput
               label="Model Text"
-              value={form.model}
+              value={form.model || ""}
               onChange={(value) => onChange("model", value)}
             />
 
             <DarkInput
               label="Material"
-              value={form.material}
+              value={form.material || ""}
               onChange={(value) => onChange("material", value)}
             />
 
@@ -114,30 +115,15 @@ export default function VariantModal({
               label="Selling Price"
               type="number"
               step="0.01"
-              value={form.price}
-              onChange={(value) => onChange("price", value)}
-            />
-
-            <DarkInput
-              label="Cost Price"
-              type="number"
-              step="0.01"
-              value={form.cost_price}
-              onChange={(value) => onChange("cost_price", value)}
-            />
-
-            <DarkInput
-              label="Sale Price"
-              type="number"
-              step="0.01"
-              value={form.sale_price}
-              onChange={(value) => onChange("sale_price", value)}
+              value={form.selling_price ?? ""}
+              onChange={(value) => onChange("selling_price", value)}
+              placeholder="0.00"
             />
 
             <DarkInput
               label="Stock Qty"
               type="number"
-              value={form.stock_qty}
+              value={form.stock_qty ?? 0}
               onChange={(value) => onChange("stock_qty", value)}
             />
           </div>
@@ -163,6 +149,7 @@ export default function VariantModal({
             ) : (
               <Save size={16} />
             )}
+
             {saving ? "Saving..." : "Save Variant"}
           </button>
         </div>

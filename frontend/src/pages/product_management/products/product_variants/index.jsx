@@ -27,12 +27,154 @@ import {
   validateImage,
 } from "./utils/variantPageHelpers";
 
+const LKR = "LKR";
+
+const REMOVE_PRICE_FIELDS = [
+  "price",
+  "main_price",
+  "regular_price",
+  "cost_price",
+  "start_date",
+  "end_date",
+];
+
+function removeUnwantedPriceFields(data = {}) {
+  const cleaned = { ...data };
+
+  REMOVE_PRICE_FIELDS.forEach((field) => {
+    delete cleaned[field];
+  });
+
+  return cleaned;
+}
+
+function safeText(value, fallback = "-") {
+  if (value === null || value === undefined || value === "") return fallback;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => safeText(item, fallback)).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return safeText(
+      value.variant_sku ??
+        value.sku ??
+        value.product_sku ??
+        value.name ??
+        value.title ??
+        value.id,
+      fallback
+    );
+  }
+
+  return String(value);
+}
+
+function getVariantRecordId(row) {
+  return (
+    row?.id ??
+    row?.variant_id ??
+    row?.product_variant_id ??
+    row?.local_variant_id ??
+    row?.variantId ??
+    ""
+  );
+}
+
+function getVariantIdFromPrice(row) {
+  return (
+    row?.variant_id ??
+    row?.product_variant_id ??
+    row?.local_variant_id ??
+    row?.variantId ??
+    ""
+  );
+}
+
+function getPriceRowId(row) {
+  return row?.id ?? row?.price_id ?? row?.product_price_id ?? "";
+}
+
+function getPriceSku(row) {
+  return (
+    row?.variant_sku ??
+    row?.sku ??
+    row?.product_sku ??
+    row?.seller_sku ??
+    row?.local_sku ??
+    ""
+  );
+}
+
+function getSellingPrice(row) {
+  return (
+    row?.selling_price ??
+    row?.sale_price ??
+    row?.price ??
+    row?.main_price ??
+    row?.product_selling_price ??
+    row?.variant_selling_price ??
+    0
+  );
+}
+
+function findPriceForVariant(priceRows, variant) {
+  const variantId = getVariantRecordId(variant);
+  const variantSku = getVariantSku(variant) || getPriceSku(variant);
+
+  return (
+    priceRows.find(
+      (price) =>
+        String(getVariantIdFromPrice(price)) === String(variantId) &&
+        String(variantId)
+    ) ||
+    priceRows.find(
+      (price) =>
+        String(getPriceSku(price)).trim() &&
+        String(getPriceSku(price)).trim() === String(variantSku).trim()
+    ) ||
+    null
+  );
+}
+
+function mergeVariantWithSellingPrice(variant, priceRows) {
+  const priceRow = findPriceForVariant(priceRows, variant);
+  const sellingPrice =
+    getSellingPrice(variant) || getSellingPrice(priceRow) || "";
+
+  return removeUnwantedPriceFields({
+    ...variant,
+    selling_price: sellingPrice,
+    price_id: getPriceRowId(priceRow),
+  });
+}
+
+function extractCreatedId(response) {
+  const data = response?.data?.data ?? response?.data ?? response;
+
+  if (Array.isArray(data)) {
+    return data[0]?.id ?? data[0]?.insertId ?? "";
+  }
+
+  return data?.id ?? data?.insertId ?? data?.variant_id ?? "";
+}
+
+function getEmptyVariant(productId) {
+  return {
+    ...removeUnwantedPriceFields(EMPTY_VARIANT),
+    product_id: productId,
+    selling_price: "",
+    stock_qty: 0,
+  };
+}
+
 export default function LocalProductVariantsPage() {
   const { productId } = useParams();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingImages, setSavingImages] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [product, setProduct] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -40,14 +182,12 @@ export default function LocalProductVariantsPage() {
   const [models, setModels] = useState([]);
   const [colours, setColours] = useState([]);
   const [variants, setVariants] = useState([]);
+  const [priceRows, setPriceRows] = useState([]);
   const [images, setImages] = useState([]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [imagePopup, setImagePopup] = useState(null);
-  const [form, setForm] = useState({
-    ...EMPTY_VARIANT,
-    product_id: productId,
-  });
+  const [form, setForm] = useState(() => getEmptyVariant(productId));
 
   const selectedCategory = useMemo(() => {
     const categoryId = getCategoryId(product);
@@ -73,8 +213,17 @@ export default function LocalProductVariantsPage() {
 
   useEffect(() => {
     loadData();
+    resetForm();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
+
+  function showSuccessMessage(message) {
+    setSuccessMessage(message);
+
+    window.setTimeout(() => {
+      setSuccessMessage("");
+    }, 1800);
+  }
 
   async function loadData() {
     setLoading(true);
@@ -83,6 +232,7 @@ export default function LocalProductVariantsPage() {
       const [
         productRes,
         variantRes,
+        priceRes,
         imageRes,
         colourRes,
         categoryRes,
@@ -90,9 +240,15 @@ export default function LocalProductVariantsPage() {
         modelRes,
       ] = await Promise.all([
         localProductsApi.getProductById(productId),
+
         localProductsApi.getVariants({ product_id: productId }).catch(() => ({
           data: [],
         })),
+
+        localProductsApi.getPrices({ product_id: productId }).catch(() => ({
+          data: [],
+        })),
+
         localProductsApi.getImages().catch(() => ({ data: [] })),
         localProductsApi.getColours().catch(() => []),
         localProductsApi.getCategories().catch(() => []),
@@ -101,15 +257,22 @@ export default function LocalProductVariantsPage() {
       ]);
 
       const productData = unwrapOne(productRes);
-      const variantRows = normalizeList(variantRes).filter((item) =>
+
+      const rawPriceRows = normalizeList(priceRes).filter((item) =>
         rowBelongsToProduct(item, productId)
       );
+
+      const variantRows = normalizeList(variantRes)
+        .filter((item) => rowBelongsToProduct(item, productId))
+        .map((item) => mergeVariantWithSellingPrice(item, rawPriceRows));
+
       const imageRows = normalizeList(imageRes).filter(
         (item) => String(item.product_id) === String(productId)
       );
 
       setProduct(productData);
       setVariants(variantRows);
+      setPriceRows(rawPriceRows);
       setImages(imageRows);
       setColours(normalizeList(colourRes));
       setCategories(normalizeList(categoryRes));
@@ -123,10 +286,7 @@ export default function LocalProductVariantsPage() {
   }
 
   function resetForm() {
-    setForm({
-      ...EMPTY_VARIANT,
-      product_id: productId,
-    });
+    setForm(getEmptyVariant(productId));
   }
 
   function openAddForm() {
@@ -135,19 +295,18 @@ export default function LocalProductVariantsPage() {
   }
 
   function openEditForm(variant) {
+    const priceRow = findPriceForVariant(priceRows, variant);
+    const cleanVariant = removeUnwantedPriceFields(variant);
+
     setForm({
-      ...EMPTY_VARIANT,
-      ...variant,
+      ...getEmptyVariant(productId),
+      ...cleanVariant,
       product_id: productId,
       id: getRecordId(variant),
+      price_id: getPriceRowId(priceRow) || variant.price_id || "",
       colour_id: variant.colour_id || variant.product_colour_id || "",
-      colour: variant.colour || variant.color || "",
-      price:
-        variant.price ??
-        variant.main_price ??
-        variant.selling_price ??
-        variant.sale_price ??
-        0,
+      colour: safeText(variant.colour || variant.color || ""),
+      selling_price: getSellingPrice(variant) || getSellingPrice(priceRow) || "",
       stock_qty:
         variant.stock_qty ??
         variant.current_stock ??
@@ -160,7 +319,14 @@ export default function LocalProductVariantsPage() {
   }
 
   function updateField(name, value) {
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: value,
+      };
+
+      return removeUnwantedPriceFields(next);
+    });
   }
 
   function generateSkuForColour(colourId = form.colour_id) {
@@ -173,44 +339,73 @@ export default function LocalProductVariantsPage() {
       colour,
     });
 
-    setForm((prev) => ({
-      ...prev,
-      colour_id: colourId,
-      colour: getName(colour) || prev.colour,
-      variant_sku: sku,
-    }));
+    setForm((prev) =>
+      removeUnwantedPriceFields({
+        ...prev,
+        colour_id: colourId,
+        colour: getName(colour) || prev.colour,
+        variant_sku: sku,
+      })
+    );
   }
 
   function handleColourChange(value) {
     const colour = colours.find((item) => String(item.id) === String(value));
 
-    setForm((prev) => ({
-      ...prev,
-      colour_id: value,
-      colour: getName(colour),
-    }));
+    const sku = value
+      ? generateVariantSku({
+          category: selectedCategory,
+          subCategory: selectedSubCategory,
+          model: selectedModel,
+          colour,
+        })
+      : "";
 
-    if (value) {
-      const sku = generateVariantSku({
-        category: selectedCategory,
-        subCategory: selectedSubCategory,
-        model: selectedModel,
-        colour,
-      });
-
-      setForm((prev) => ({
+    setForm((prev) =>
+      removeUnwantedPriceFields({
         ...prev,
         colour_id: value,
         colour: getName(colour),
-        variant_sku: sku,
-      }));
+        variant_sku: sku || prev.variant_sku,
+      })
+    );
+  }
+
+  async function saveSellingPrice({
+    variantId,
+    variantSku,
+    sellingPrice,
+    priceId,
+  }) {
+    const cleanPrice = cleanNumber(sellingPrice);
+
+    const pricePayload = {
+      product_id: productId,
+      variant_id: variantId || null,
+      product_variant_id: variantId || null,
+      sku: variantSku,
+      selling_price: cleanPrice,
+      sale_price: cleanPrice,
+      currency: LKR,
+      status: "active",
+      created_by: 1,
+      updated_by: 1,
+    };
+
+    if (priceId) {
+      return localProductsApi.updatePrice(priceId, pricePayload);
     }
+
+    return localProductsApi.createPrice(pricePayload);
   }
 
   async function handleSave(event) {
     event.preventDefault();
 
-    if (!String(form.variant_sku || "").trim()) {
+    const safeForm = removeUnwantedPriceFields(form);
+    const variantSku = String(safeForm.variant_sku || "").trim();
+
+    if (!variantSku) {
       alert("Variant SKU is required.");
       return;
     }
@@ -218,27 +413,72 @@ export default function LocalProductVariantsPage() {
     setSaving(true);
 
     try {
-      const payload = {
-        ...form,
-        product_id: productId,
-        variant_sku: String(form.variant_sku || "").trim(),
-        colour_id: form.colour_id || null,
-        colour: form.colour || getName(selectedColour) || "",
-        price: cleanNumber(form.price),
-        main_price: cleanNumber(form.price),
-        selling_price: cleanNumber(form.price),
-        cost_price: cleanNumber(form.cost_price),
-        sale_price: cleanNumber(form.sale_price),
-        stock_qty: cleanNumber(form.stock_qty),
-        status: form.status || "active",
-        updated_by: 1,
-      };
+      const sellingPrice = cleanNumber(safeForm.selling_price);
+      const stockQty = cleanNumber(safeForm.stock_qty);
 
-      if (form.id) {
-        await localProductsApi.updateVariant(form.id, payload);
+      const payload = removeUnwantedPriceFields({
+        ...safeForm,
+        product_id: productId,
+        variant_sku: variantSku,
+        colour_id: safeForm.colour_id || null,
+        colour: safeForm.colour || getName(selectedColour) || "",
+        selling_price: sellingPrice,
+        stock_qty: stockQty,
+        status: safeForm.status || "active",
+        updated_by: 1,
+      });
+
+      let savedVariantId = safeForm.id;
+
+      if (safeForm.id) {
+        await localProductsApi.updateVariant(safeForm.id, payload);
       } else {
-        await localProductsApi.createVariant(payload);
+        const createdVariant = await localProductsApi.createVariant(payload);
+        savedVariantId = extractCreatedId(createdVariant) || safeForm.id;
       }
+
+      if (savedVariantId) {
+        await saveSellingPrice({
+          variantId: savedVariantId,
+          variantSku,
+          sellingPrice,
+          priceId: safeForm.price_id,
+        });
+      }
+
+      setVariants((prev) => {
+        const found = prev.some(
+          (item) => String(getRecordId(item)) === String(savedVariantId)
+        );
+
+        if (found) {
+          return prev.map((item) => {
+            if (String(getRecordId(item)) !== String(savedVariantId)) {
+              return item;
+            }
+
+            return {
+              ...item,
+              ...payload,
+              id: savedVariantId,
+              selling_price: sellingPrice,
+              sale_price: sellingPrice,
+              stock_qty: stockQty,
+            };
+          });
+        }
+
+        return [
+          ...prev,
+          {
+            ...payload,
+            id: savedVariantId,
+            selling_price: sellingPrice,
+            sale_price: sellingPrice,
+            stock_qty: stockQty,
+          },
+        ];
+      });
 
       await localProductsApi
         .updateProduct(productId, {
@@ -251,9 +491,10 @@ export default function LocalProductVariantsPage() {
 
       resetForm();
       setFormOpen(false);
+      showSuccessMessage("Selling price updated successfully.");
       await loadData();
     } catch (error) {
-      alert(getErrorMessage(error, "Unable to save variant."));
+      alert(getErrorMessage(error, "Unable to save variant selling price."));
     } finally {
       setSaving(false);
     }
@@ -267,6 +508,7 @@ export default function LocalProductVariantsPage() {
 
     try {
       await localProductsApi.deleteVariant(variantId);
+      showSuccessMessage("Variant deleted successfully.");
       await loadData();
     } catch (error) {
       alert(getErrorMessage(error, "Unable to delete variant."));
@@ -351,6 +593,7 @@ export default function LocalProductVariantsPage() {
       }
 
       setImagePopup(null);
+      showSuccessMessage("Variant images updated successfully.");
       await loadData();
     } catch (error) {
       alert(getErrorMessage(error, error.message || "Unable to save images."));
@@ -361,6 +604,12 @@ export default function LocalProductVariantsPage() {
 
   return (
     <ProductPageLayout productId={productId} active="variants" product={product}>
+      {successMessage ? (
+        <div className="fixed right-5 top-5 z-[9999] rounded-lg border border-emerald-500/40 bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-xl shadow-black/30">
+          {successMessage}
+        </div>
+      ) : null}
+
       <div className="border border-slate-800 bg-[#0b1220] text-slate-100">
         <div className="flex items-center justify-end border-b border-slate-800 bg-[#07101f] px-4 py-2">
           <button

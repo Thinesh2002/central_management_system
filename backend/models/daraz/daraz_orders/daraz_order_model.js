@@ -757,6 +757,40 @@ async function getOrderById(id) {
   return rows[0] || null;
 }
 
+
+async function getOrderItemsByOrderId(orderId) {
+  const [rows] = await db.query(
+    `
+    SELECT *
+    FROM daraz_order_items
+    WHERE order_id = ?
+    ORDER BY id ASC
+    `,
+    [orderId]
+  );
+
+  return rows;
+}
+
+async function updateOrderItemsStatus(orderId, data = {}) {
+  const darazStatus = data.daraz_status || data.item_status || data.status || null;
+  const localStatus = data.local_status || (darazStatus ? await findLocalStatus(darazStatus) : null);
+
+  await db.query(
+    `
+    UPDATE daraz_order_items
+    SET
+      item_status = COALESCE(?, item_status),
+      local_item_status = COALESCE(?, local_item_status),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE order_id = ?
+    `,
+    [darazStatus, localStatus, orderId]
+  );
+
+  return localStatus;
+}
+
 async function insertStatusHistory(data) {
   await db.query(
     `
@@ -918,6 +952,8 @@ module.exports = {
   listOrders,
   getOrderDetail,
   getOrderById,
+  getOrderItemsByOrderId,
+  updateOrderItemsStatus,
   insertStatusHistory,
   updateOrderStatus,
   markAwbGenerated,

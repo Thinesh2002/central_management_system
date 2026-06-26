@@ -3,6 +3,18 @@ const db = require("../../../config/product_management_db/product_management_db"
 const TABLE_NAME = "product_variants";
 let tableMetaCache = null;
 
+const REMOVED_PRICE_FIELDS = new Set([
+  "price",
+  "main_price",
+  "cost_price",
+  "sale_price",
+  "regular_price",
+  "selling_price",
+  "product_price",
+  "unit_price",
+  "currency",
+]);
+
 function qid(identifier) {
   return `\`${String(identifier).replace(/`/g, "``")}\``;
 }
@@ -51,6 +63,7 @@ function pickAllowedData(meta, payload = {}) {
     "created_at",
     "updated_at",
     "deleted_at",
+    ...REMOVED_PRICE_FIELDS,
   ]);
 
   const data = {};
@@ -59,6 +72,7 @@ function pickAllowedData(meta, payload = {}) {
     if (!meta.columnSet.has(key)) return;
     if (blocked.has(key)) return;
     if (value === undefined) return;
+
     data[key] = value;
   });
 
@@ -116,6 +130,7 @@ function buildWhere(meta, query = {}) {
       return;
     }
 
+    if (REMOVED_PRICE_FIELDS.has(key)) return;
     if (value === undefined || value === null || value === "") return;
     if (!meta.columnSet.has(key)) return;
 
@@ -128,13 +143,17 @@ function buildWhere(meta, query = {}) {
   ).trim();
 
   if (search && meta.searchableColumns.length) {
-    const columns = meta.searchableColumns.slice(0, 20);
+    const columns = meta.searchableColumns
+      .filter((column) => !REMOVED_PRICE_FIELDS.has(column))
+      .slice(0, 20);
 
-    where.push(
-      `(${columns.map((column) => `${qid(column)} LIKE ?`).join(" OR ")})`
-    );
+    if (columns.length) {
+      where.push(
+        `(${columns.map((column) => `${qid(column)} LIKE ?`).join(" OR ")})`
+      );
 
-    columns.forEach(() => values.push(`%${search}%`));
+      columns.forEach(() => values.push(`%${search}%`));
+    }
   }
 
   return {
@@ -144,7 +163,9 @@ function buildWhere(meta, query = {}) {
 }
 
 function coalesceColumn(meta, names = [], fallback = "NULL") {
-  const existing = names.filter((name) => hasColumn(meta, name));
+  const existing = names.filter(
+    (name) => hasColumn(meta, name) && !REMOVED_PRICE_FIELDS.has(name)
+  );
 
   if (!existing.length) return fallback;
 
@@ -169,14 +190,22 @@ async function list(params = {}) {
     String(params.sort_dir || "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC";
 
   const [rows] = await db.query(
-    `SELECT * FROM ${qid(TABLE_NAME)} ${where.clause} ORDER BY ${qid(
-      sortBy
-    )} ${sortDir} LIMIT ? OFFSET ?`,
+    `
+    SELECT *
+    FROM ${qid(TABLE_NAME)}
+    ${where.clause}
+    ORDER BY ${qid(sortBy)} ${sortDir}
+    LIMIT ? OFFSET ?
+    `,
     [...where.values, limit, offset]
   );
 
   const [countRows] = await db.query(
-    `SELECT COUNT(*) AS total FROM ${qid(TABLE_NAME)} ${where.clause}`,
+    `
+    SELECT COUNT(*) AS total
+    FROM ${qid(TABLE_NAME)}
+    ${where.clause}
+    `,
     where.values
   );
 
@@ -304,20 +333,6 @@ async function listForOrderPicker(params = {}) {
     "''"
   );
 
-  const priceExpr = coalesceColumn(
-    meta,
-    [
-      "selling_price",
-      "sale_price",
-      "product_price",
-      "price",
-      "unit_price",
-      "regular_price",
-      "cost_price",
-    ],
-    "0"
-  );
-
   const descriptionExpr = coalesceColumn(
     meta,
     ["description", "short_description", "variant_description"],
@@ -339,18 +354,17 @@ async function listForOrderPicker(params = {}) {
 
   const [rows] = await db.query(
     `
-      SELECT
-        *,
-        ${skuExpr} AS picker_sku,
-        ${nameExpr} AS picker_product_name,
-        ${imageExpr} AS picker_image_url,
-        ${priceExpr} AS picker_product_price,
-        ${descriptionExpr} AS picker_description,
-        ${stockExpr} AS picker_stock
-      FROM ${qid(TABLE_NAME)}
-      ${whereClause}
-      ORDER BY ${qid(sortBy)} DESC
-      LIMIT ? OFFSET ?
+    SELECT
+      *,
+      ${skuExpr} AS picker_sku,
+      ${nameExpr} AS picker_product_name,
+      ${imageExpr} AS picker_image_url,
+      ${descriptionExpr} AS picker_description,
+      ${stockExpr} AS picker_stock
+    FROM ${qid(TABLE_NAME)}
+    ${whereClause}
+    ORDER BY ${qid(sortBy)} DESC
+    LIMIT ? OFFSET ?
     `,
     [...values, limit, offset]
   );
@@ -371,14 +385,6 @@ async function listForOrderPicker(params = {}) {
       row.variant_image_url ||
       row.product_image_url ||
       "",
-    product_price:
-      row.picker_product_price ||
-      row.product_price ||
-      row.selling_price ||
-      row.sale_price ||
-      row.price ||
-      row.unit_price ||
-      0,
     description:
       row.picker_description ||
       row.description ||
@@ -390,9 +396,9 @@ async function listForOrderPicker(params = {}) {
 
   const [countRows] = await db.query(
     `
-      SELECT COUNT(*) AS total
-      FROM ${qid(TABLE_NAME)}
-      ${whereClause}
+    SELECT COUNT(*) AS total
+    FROM ${qid(TABLE_NAME)}
+    ${whereClause}
     `,
     values
   );
@@ -421,7 +427,12 @@ async function findById(id) {
   }
 
   const [rows] = await db.query(
-    `SELECT * FROM ${qid(TABLE_NAME)} WHERE ${where.join(" AND ")} LIMIT 1`,
+    `
+    SELECT *
+    FROM ${qid(TABLE_NAME)}
+    WHERE ${where.join(" AND ")}
+    LIMIT 1
+    `,
     values
   );
 
@@ -448,9 +459,11 @@ async function create(payload = {}, options = {}) {
   const values = Object.values(data);
 
   const [result] = await db.query(
-    `INSERT INTO ${qid(TABLE_NAME)} (${columns
-      .map(qid)
-      .join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
+    `
+    INSERT INTO ${qid(TABLE_NAME)}
+    (${columns.map(qid).join(", ")})
+    VALUES (${columns.map(() => "?").join(", ")})
+    `,
     values
   );
 
@@ -478,9 +491,11 @@ async function updateById(id, payload = {}, options = {}) {
     .join(", ");
 
   const [result] = await db.query(
-    `UPDATE ${qid(TABLE_NAME)} SET ${assignments} WHERE ${qid(
-      meta.primaryKey
-    )} = ?`,
+    `
+    UPDATE ${qid(TABLE_NAME)}
+    SET ${assignments}
+    WHERE ${qid(meta.primaryKey)} = ?
+    `,
     [...Object.values(data), id]
   );
 
@@ -507,14 +522,19 @@ async function removeById(id, options = {}) {
       .join(", ");
 
     await db.query(
-      `UPDATE ${qid(TABLE_NAME)} SET ${assignments} WHERE ${qid(
-        meta.primaryKey
-      )} = ?`,
+      `
+      UPDATE ${qid(TABLE_NAME)}
+      SET ${assignments}
+      WHERE ${qid(meta.primaryKey)} = ?
+      `,
       [...Object.values(data), id]
     );
   } else {
     await db.query(
-      `DELETE FROM ${qid(TABLE_NAME)} WHERE ${qid(meta.primaryKey)} = ?`,
+      `
+      DELETE FROM ${qid(TABLE_NAME)}
+      WHERE ${qid(meta.primaryKey)} = ?
+      `,
       [id]
     );
   }
@@ -532,9 +552,11 @@ async function insertMatching(payload = {}) {
   const values = Object.values(data);
 
   const [result] = await db.query(
-    `INSERT INTO ${qid(TABLE_NAME)} (${columns
-      .map(qid)
-      .join(", ")}) VALUES (${columns.map(() => "?").join(", ")})`,
+    `
+    INSERT INTO ${qid(TABLE_NAME)}
+    (${columns.map(qid).join(", ")})
+    VALUES (${columns.map(() => "?").join(", ")})
+    `,
     values
   );
 

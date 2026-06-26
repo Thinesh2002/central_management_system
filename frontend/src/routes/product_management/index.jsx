@@ -16,7 +16,7 @@ import LocalProductViewPage from "../../pages/product_management/products/produc
 import LocalProductsDashboard from "../../pages/product_management/products/product_dashboard/index";
 import LocalProductAddPage from "../../pages/product_management/products/add_product/index";
 import LocalProductBasicPage from "../../pages/product_management/products/LocalProductBasicPage";
-import LocalProductPriceInventoryPage from "../../pages/product_management/products/LocalProductPriceInventoryPage";
+import LocalProductPriceInventoryPage from "../../pages/product_management/products/LocalProductInventoryPage";
 import LocalProductAttributesPage from "../../pages/product_management/products/LocalProductAttributesPage";
 import LocalProductVariantsPage from "../../pages/product_management/products/product_variants/index";
 import LocalProductImagesPage from "../../pages/product_management/products/LocalProductImagesPage";
@@ -218,7 +218,7 @@ export default function ProductManagementRoutes() {
       />
 
             <Route
-        path="/product/local-products/view/:id"
+        path="/product/view/:id"
         element={
           <ProtectedProductPage>
             <LocalProductViewPage  />

@@ -34,7 +34,12 @@ const getOrders = asyncHandler(async (req, res) => {
     include_deleted: req.query.include_deleted === "true",
   });
 
-  return sendPaginated(res, result.data, result.pagination, "Orders loaded successfully");
+  return sendPaginated(
+    res,
+    result.data,
+    result.pagination,
+    "Orders loaded successfully"
+  );
 });
 
 const getOrderById = asyncHandler(async (req, res) => {
@@ -43,34 +48,80 @@ const getOrderById = asyncHandler(async (req, res) => {
   });
 
   if (!order) {
-    return res.status(404).json({ success: false, message: "Order not found" });
+    return res.status(404).json({
+      success: false,
+      message: "Order not found",
+    });
   }
 
   return sendSuccess(res, order, "Order loaded successfully");
 });
 
 const createOrder = asyncHandler(async (req, res) => {
-  const order = await orderModel.createOrder(req.body, getUserCode(req));
+  const payload = {
+    ...req.body,
+  };
+
+  /*
+    IMPORTANT:
+    order_id should not come from frontend.
+    Backend model will create:
+    BH001, BH002, BH003...
+  */
+  delete payload.order_id;
+
+  const order = await orderModel.createOrder(payload, getUserCode(req));
+
   return sendSuccess(res, order, "Order created successfully", 201);
 });
 
 const updateOrder = asyncHandler(async (req, res) => {
-  const order = await orderModel.updateOrder(req.params.orderId, req.body, getUserCode(req));
+  const payload = {
+    ...req.body,
+  };
+
+  /*
+    Do not allow order_id update.
+    Order ID must stay fixed after create.
+  */
+  delete payload.order_id;
+
+  const order = await orderModel.updateOrder(
+    req.params.orderId,
+    payload,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, order, "Order updated successfully");
 });
 
 const updateOrderStatus = asyncHandler(async (req, res) => {
-  const order = await orderModel.updateOrderStatus(req.params.orderId, req.body, getUserCode(req));
+  const order = await orderModel.updateOrderStatus(
+    req.params.orderId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, order, "Order status updated successfully");
 });
 
 const deleteOrder = asyncHandler(async (req, res) => {
-  const order = await orderModel.softDeleteOrder(req.params.orderId, req.body, getUserCode(req));
+  const order = await orderModel.softDeleteOrder(
+    req.params.orderId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, order, "Order deleted successfully");
 });
 
 const restoreOrder = asyncHandler(async (req, res) => {
-  const order = await orderModel.restoreOrder(req.params.orderId, req.body, getUserCode(req));
+  const order = await orderModel.restoreOrder(
+    req.params.orderId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, order, "Order restored successfully");
 });
 
@@ -78,26 +129,47 @@ const getOrderItems = asyncHandler(async (req, res) => {
   const items = await orderItemModel.listItemsByOrderId(req.params.orderId, {
     include_deleted: req.query.include_deleted === "true",
   });
+
   return sendSuccess(res, items, "Order items loaded successfully");
 });
 
 const addOrderItem = asyncHandler(async (req, res) => {
-  const item = await orderItemModel.createOrderItem(req.params.orderId, req.body, getUserCode(req));
+  const item = await orderItemModel.createOrderItem(
+    req.params.orderId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, item, "Order item added successfully", 201);
 });
 
 const updateOrderItem = asyncHandler(async (req, res) => {
-  const item = await orderItemModel.updateOrderItem(req.params.itemId, req.body, getUserCode(req));
+  const item = await orderItemModel.updateOrderItem(
+    req.params.itemId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, item, "Order item updated successfully");
 });
 
 const deleteOrderItem = asyncHandler(async (req, res) => {
-  const item = await orderItemModel.softDeleteOrderItem(req.params.itemId, req.body, getUserCode(req));
+  const item = await orderItemModel.softDeleteOrderItem(
+    req.params.itemId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, item, "Order item deleted successfully");
 });
 
 const restoreOrderItem = asyncHandler(async (req, res) => {
-  const item = await orderItemModel.restoreOrderItem(req.params.itemId, req.body, getUserCode(req));
+  const item = await orderItemModel.restoreOrderItem(
+    req.params.itemId,
+    req.body,
+    getUserCode(req)
+  );
+
   return sendSuccess(res, item, "Order item restored successfully");
 });
 
@@ -106,6 +178,7 @@ const getOrderLogs = asyncHandler(async (req, res) => {
     limit: req.query.limit,
     offset: req.query.offset,
   });
+
   return sendSuccess(res, logs, "Order logs loaded successfully");
 });
 

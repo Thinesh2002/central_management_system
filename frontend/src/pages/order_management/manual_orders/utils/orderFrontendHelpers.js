@@ -15,7 +15,11 @@ export const ORDER_STATUS_TABS = [
   { key: "Pending", label: "Pending", countKey: "pending_orders" },
   { key: "Processing", label: "Processing", countKey: "processing_orders" },
   { key: "Packed", label: "Packed", countKey: "packed_orders" },
-  { key: "Ready To Ship", label: "Ready To Ship", countKey: "ready_to_ship_orders" },
+  {
+    key: "Ready To Ship",
+    label: "Ready To Ship",
+    countKey: "ready_to_ship_orders",
+  },
   { key: "Shipped", label: "Shipped", countKey: "shipped_orders" },
   { key: "Delivered", label: "Delivered", countKey: "delivered_orders" },
   { key: "Cancelled", label: "Cancelled", countKey: "cancelled_orders" },
@@ -100,7 +104,9 @@ export function normalizeError(error, fallback = "Something went wrong") {
 
 export function money(value) {
   const numberValue = Number(value || 0);
+
   if (!Number.isFinite(numberValue)) return "0.00";
+
   return numberValue.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -109,21 +115,29 @@ export function money(value) {
 
 export function moneyNumber(value) {
   const numberValue = Number(value || 0);
+
   if (!Number.isFinite(numberValue)) return 0;
+
   return Number(numberValue.toFixed(2));
 }
 
 export function dateOnly(value) {
   if (!value) return "-";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+
   return date.toLocaleDateString();
 }
 
 export function dateTime(value) {
   if (!value) return "-";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return String(value);
+
   return date.toLocaleString();
 }
 
@@ -143,10 +157,14 @@ export function imageFromProduct(product = {}) {
 
   if (direct) return direct;
 
-  const imageList = product.images || product.product_images || product.image_urls;
+  const imageList =
+    product.images || product.product_images || product.image_urls;
+
   if (Array.isArray(imageList) && imageList.length) {
     const first = imageList[0];
+
     if (typeof first === "string") return first;
+
     return first?.image_url || first?.url || first?.src || "";
   }
 
@@ -211,6 +229,7 @@ export function normalizeProductForOrder(product = {}) {
 export function recalcItem(item = {}) {
   const quantity = Math.max(1, Number(item.quantity || 1));
   const unitPrice = moneyNumber(item.unit_price);
+
   return {
     ...item,
     quantity,
@@ -221,6 +240,7 @@ export function recalcItem(item = {}) {
 
 export function emptyOrderForm() {
   return {
+    order_id: "",
     order_type: "MANUAL",
     customer_code: "",
     customer_name: "",
@@ -260,6 +280,10 @@ export function buildOrderPayload(form = {}) {
     }));
 
   return {
+    // IMPORTANT:
+    // order_id frontend la send panna vendam.
+    // Backend model than BH001, BH002, BH003 auto create pannum.
+
     order_type: form.order_type || "MANUAL",
     customer_code: form.customer_code || null,
     customer_name: form.customer_name,
@@ -285,7 +309,10 @@ export function buildOrderPayload(form = {}) {
 
 export function buildOrderUpdatePayload(form = {}) {
   const payload = buildOrderPayload(form);
+
   delete payload.items;
+  delete payload.order_id;
+
   return payload;
 }
 

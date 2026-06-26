@@ -1,7 +1,11 @@
 import api from "../../api";
 
 export const unwrap = (response) =>
-  response?.data?.data ?? response?.data?.rows ?? response?.data?.items ?? response?.data ?? [];
+  response?.data?.data ??
+  response?.data?.rows ??
+  response?.data?.items ??
+  response?.data ??
+  [];
 
 async function tryGet(paths, params = {}) {
   let lastError = null;
@@ -13,7 +17,10 @@ async function tryGet(paths, params = {}) {
     } catch (error) {
       lastError = error;
       const status = error?.response?.status;
-      if (status && status !== 404) throw error;
+
+      if (status && status !== 404) {
+        throw error;
+      }
     }
   }
 
@@ -30,91 +37,299 @@ async function tryPost(paths, payload, config = {}) {
     } catch (error) {
       lastError = error;
       const status = error?.response?.status;
-      if (status && status !== 404) throw error;
+
+      if (status && status !== 404) {
+        throw error;
+      }
     }
   }
 
   throw lastError;
 }
 
+function safeValue(value) {
+  return encodeURIComponent(String(value || "").trim());
+}
+
 export const localProductsApi = {
-  // Masters. Fallback paths included because your older master APIs are mounted separately.
   getCategories: (params = {}) =>
-    tryGet(["/product/categories", "/product/categories", "/product/category"], params),
+    tryGet(["/product/categories", "/product/category"], params),
 
   getSubCategories: (params = {}) =>
-    tryGet(["/product/sub-categories", "/product/sub-categories", "/product/sub_categories"], params),
+    tryGet(["/product/sub-categories", "/product/sub_categories"], params),
 
   getProductModels: (params = {}) =>
-    tryGet(["/product-management/models", "/product/product-models", "/product/models"], params),
+    tryGet(
+      [
+        "/product-management/models",
+        "/product/product-models",
+        "/product/models",
+      ],
+      params
+    ),
 
   getColours: (params = {}) =>
-    tryGet(["/product-management/colours", "/product/product-colours", "/product/colours"], params),
+    tryGet(
+      [
+        "/product-management/colours",
+        "/product/product-colours",
+        "/product/colours",
+      ],
+      params
+    ),
 
   getAttributes: (params = {}) =>
     tryGet(["/product-management/attributes", "/product/attributes"], params),
 
   getAttributeValues: (params = {}) =>
-    tryGet(["/product-management/attribute-values", "/product/attribute-values"], params),
+    tryGet(
+      ["/product-management/attribute-values", "/product/attribute-values"],
+      params
+    ),
 
   createAttribute: (payload) =>
     tryPost(["/product-management/attributes", "/product/attributes"], payload),
 
   createAttributeValue: (payload) =>
-    tryPost(["/product-management/attribute-values", "/product/attribute-values"], payload),
+    tryPost(
+      ["/product-management/attribute-values", "/product/attribute-values"],
+      payload
+    ),
 
-  // Products
-  getProducts: (params = {}) => api.get("/product-management/products", { params }),
-  getProductById: (id) => api.get(`/product-management/products/${id}`),
-  createProduct: (payload) => api.post("/product-management/products", payload),
-  updateProduct: (id, payload) => api.put(`/product-management/products/${id}`, payload),
-  patchProduct: (id, payload) => api.patch(`/product-management/products/${id}`, payload),
-  deleteProduct: (id) => api.delete(`/product-management/products/${id}`),
+  getProducts: (params = {}) =>
+    api.get("/product-management/products", { params }),
 
-  // Variants
-  getVariants: (params = {}) => api.get("/product-management/product-variants", { params }),
-  getVariantById: (id) => api.get(`/product-management/product-variants/${id}`),
-  createVariant: (payload) => api.post("/product-management/product-variants", payload),
-  updateVariant: (id, payload) => api.put(`/product-management/product-variants/${id}`, payload),
-  deleteVariant: (id) => api.delete(`/product-management/product-variants/${id}`),
+  getProductById: (id) =>
+    api.get(`/product-management/products/${safeValue(id)}`),
 
-  // Inventory
-  getInventory: (params = {}) => api.get("/product-management/product-inventory", { params }),
-  createInventory: (payload) => api.post("/product-management/product-inventory", payload),
-  updateInventory: (id, payload) => api.put(`/product-management/product-inventory/${id}`, payload),
-  deleteInventory: (id) => api.delete(`/product-management/product-inventory/${id}`),
+  createProduct: (payload) =>
+    api.post("/product-management/products", payload),
 
-  // Prices
-  getPrices: (params = {}) => api.get("/product-management/product-prices", { params }),
-  createPrice: (payload) => api.post("/product-management/product-prices", payload),
-  updatePrice: (id, payload) => api.put(`/product-management/product-prices/${id}`, payload),
-  deletePrice: (id) => api.delete(`/product-management/product-prices/${id}`),
+  updateProduct: (id, payload) =>
+    api.put(`/product-management/products/${safeValue(id)}`, payload),
 
-  // Product attributes
+  patchProduct: (id, payload) =>
+    api.patch(`/product-management/products/${safeValue(id)}`, payload),
+
+  deleteProduct: (id) =>
+    api.delete(`/product-management/products/${safeValue(id)}`),
+
+  getVariants: (params = {}) =>
+    api.get("/product-management/product-variants", { params }),
+
+  getVariantById: (id) =>
+    api.get(`/product-management/product-variants/${safeValue(id)}`),
+
+  createVariant: (payload) =>
+    api.post("/product-management/product-variants", payload),
+
+  updateVariant: (id, payload) =>
+    api.put(
+      `/product-management/product-variants/${safeValue(id)}`,
+      payload
+    ),
+
+  patchVariant: (id, payload) =>
+    api.patch(
+      `/product-management/product-variants/${safeValue(id)}`,
+      payload
+    ),
+
+  deleteVariant: (id) =>
+    api.delete(
+      `/product-management/product-variants/${safeValue(id)}`
+    ),
+
+  getInventory: (params = {}) =>
+    api.get("/product-management/product-inventory", { params }),
+
+  getInventoryById: (id) =>
+    api.get(`/product-management/product-inventory/${safeValue(id)}`),
+
+  getInventoryBySku: (sku) =>
+    api.get(`/product-management/product-inventory/sku/${safeValue(sku)}`),
+
+  createInventory: (payload) =>
+    api.post("/product-management/product-inventory", payload),
+
+  updateInventory: (id, payload) =>
+    api.put(
+      `/product-management/product-inventory/${safeValue(id)}`,
+      payload
+    ),
+
+  patchInventory: (id, payload) =>
+    api.patch(
+      `/product-management/product-inventory/${safeValue(id)}`,
+      payload
+    ),
+
+  deleteInventory: (id) =>
+    api.delete(
+      `/product-management/product-inventory/${safeValue(id)}`
+    ),
+
+  updateInventoryBySku: (sku, payload) =>
+    api.put(
+      `/product-management/product-inventory/sku/${safeValue(sku)}`,
+      payload
+    ),
+
+  patchInventoryBySku: (sku, payload) =>
+    api.patch(
+      `/product-management/product-inventory/sku/${safeValue(sku)}`,
+      payload
+    ),
+
+  deleteInventoryBySku: (sku) =>
+    api.delete(
+      `/product-management/product-inventory/sku/${safeValue(sku)}`
+    ),
+
+  getPrices: (params = {}) =>
+    api.get("/product-management/product-prices", { params }),
+
+  getPriceById: (id) =>
+    api.get(`/product-management/product-prices/${safeValue(id)}`),
+
+  getPriceBySku: (sku) =>
+    api.get(
+      `/product-management/product-prices/sku/${safeValue(sku)}`
+    ),
+
+  createPrice: (payload) =>
+    api.post("/product-management/product-prices", payload),
+
+  updatePrice: (id, payload) =>
+    api.put(
+      `/product-management/product-prices/${safeValue(id)}`,
+      payload
+    ),
+
+  patchPrice: (id, payload) =>
+    api.patch(
+      `/product-management/product-prices/${safeValue(id)}`,
+      payload
+    ),
+
+  deletePrice: (id) =>
+    api.delete(
+      `/product-management/product-prices/${safeValue(id)}`
+    ),
+
+  updatePriceBySku: (sku, payload) =>
+    api.put(
+      `/product-management/product-prices/sku/${safeValue(sku)}`,
+      payload
+    ),
+
+  patchPriceBySku: (sku, payload) =>
+    api.patch(
+      `/product-management/product-prices/sku/${safeValue(sku)}`,
+      payload
+    ),
+
+  deletePriceBySku: (sku) =>
+    api.delete(
+      `/product-management/product-prices/sku/${safeValue(sku)}`
+    ),
+
+  getProductPrices: (params = {}) =>
+    api.get("/product-management/product-prices", { params }),
+
+  getProductPriceById: (id) =>
+    api.get(`/product-management/product-prices/${safeValue(id)}`),
+
+  getProductPriceBySku: (sku) =>
+    api.get(
+      `/product-management/product-prices/sku/${safeValue(sku)}`
+    ),
+
+  createProductPrice: (payload) =>
+    api.post("/product-management/product-prices", payload),
+
+  updateProductPrice: (id, payload) =>
+    api.put(
+      `/product-management/product-prices/${safeValue(id)}`,
+      payload
+    ),
+
+  patchProductPrice: (id, payload) =>
+    api.patch(
+      `/product-management/product-prices/${safeValue(id)}`,
+      payload
+    ),
+
+  deleteProductPrice: (id) =>
+    api.delete(
+      `/product-management/product-prices/${safeValue(id)}`
+    ),
+
+  updateProductPriceBySku: (sku, payload) =>
+    api.put(
+      `/product-management/product-prices/sku/${safeValue(sku)}`,
+      payload
+    ),
+
+  patchProductPriceBySku: (sku, payload) =>
+    api.patch(
+      `/product-management/product-prices/sku/${safeValue(sku)}`,
+      payload
+    ),
+
+  deleteProductPriceBySku: (sku) =>
+    api.delete(
+      `/product-management/product-prices/sku/${safeValue(sku)}`
+    ),
+
   getProductAttributeValues: (params = {}) =>
     api.get("/product-management/product-attribute-values", { params }),
+
   createProductAttributeValue: (payload) =>
     api.post("/product-management/product-attribute-values", payload),
-  updateProductAttributeValue: (id, payload) =>
-    api.put(`/product-management/product-attribute-values/${id}`, payload),
-  deleteProductAttributeValue: (id) =>
-    api.delete(`/product-management/product-attribute-values/${id}`),
 
-  // Images
-  getImages: (params = {}) => api.get("/product-management/product-images", { params }),
+  updateProductAttributeValue: (id, payload) =>
+    api.put(
+      `/product-management/product-attribute-values/${safeValue(id)}`,
+      payload
+    ),
+
+  patchProductAttributeValue: (id, payload) =>
+    api.patch(
+      `/product-management/product-attribute-values/${safeValue(id)}`,
+      payload
+    ),
+
+  deleteProductAttributeValue: (id) =>
+    api.delete(
+      `/product-management/product-attribute-values/${safeValue(id)}`
+    ),
+
+  getImages: (params = {}) =>
+    api.get("/product-management/product-images", { params }),
+
   uploadImage: (formData) =>
     api.post("/product-management/product-images", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
-  updateImage: (id, formData) =>
-    api.put(`/product-management/product-images/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
-  deleteImage: (id) => api.delete(`/product-management/product-images/${id}`),
 
-  // Logs
-  getProductLogs: (params = {}) => api.get("/product-management/product-logs", { params }),
-  getProductImageLogs: (params = {}) => api.get("/product-management/product-image-logs", { params }),
+  updateImage: (id, formData) =>
+    api.put(
+      `/product-management/product-images/${safeValue(id)}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    ),
+
+  deleteImage: (id) =>
+    api.delete(`/product-management/product-images/${safeValue(id)}`),
+
+  getProductLogs: (params = {}) =>
+    api.get("/product-management/product-logs", { params }),
+
+  getProductImageLogs: (params = {}) =>
+    api.get("/product-management/product-image-logs", { params }),
 };
 
 export default localProductsApi;

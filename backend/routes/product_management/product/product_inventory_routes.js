@@ -4,10 +4,11 @@ const controller = require("../../../controllers/product_management/product/prod
 const router = express.Router();
 
 router.get("/", controller.list);
-router.get("/:id", controller.getById);
 router.post("/", controller.create);
-router.put("/:id", controller.update);
-router.patch("/:id", controller.patch);
-router.delete("/:id", controller.remove);
+
+router.get("/sku/:sku", controller.getBySku);
+router.put("/sku/:sku", controller.updateBySku);
+router.patch("/sku/:sku", controller.patchBySku);
+router.delete("/sku/:sku", controller.removeBySku);
 
 module.exports = router;

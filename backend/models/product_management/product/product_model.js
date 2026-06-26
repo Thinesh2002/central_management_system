@@ -149,18 +149,6 @@ function normalizeProductPayload(meta, payload = {}) {
     normalized.has_variants = Number(payload.has_variants || 0) ? 1 : 0;
   }
 
-  if (hasColumn(meta, "main_price") && payload.main_price !== undefined) {
-    normalized.main_price = Number(payload.main_price || 0);
-  }
-
-  if (hasColumn(meta, "cost_price") && payload.cost_price !== undefined) {
-    normalized.cost_price = Number(payload.cost_price || 0);
-  }
-
-  if (hasColumn(meta, "sale_price") && payload.sale_price !== undefined) {
-    normalized.sale_price = Number(payload.sale_price || 0);
-  }
-
   return normalized;
 }
 
@@ -207,13 +195,23 @@ function pickAllowedData(meta, payload = {}) {
     "created_at",
     "updated_at",
     "deleted_at",
+
     "product_category_id",
     "product_sub_category_id",
     "product_model_id",
+
     "categoryId",
     "subCategoryId",
     "modelId",
     "productModelId",
+
+    // Price fields removed from products table.
+    // Product price should be maintained in product_prices table only.
+    "main_price",
+    "cost_price",
+    "sale_price",
+    "regular_price",
+    "currency",
   ]);
 
   const data = {};
@@ -222,6 +220,7 @@ function pickAllowedData(meta, payload = {}) {
     if (!meta.columnSet.has(key)) return;
     if (blocked.has(key)) return;
     if (value === undefined) return;
+
     data[key] = value;
   });
 
@@ -280,6 +279,19 @@ function buildWhere(meta, query = {}) {
     if (key === "product_category_id") columnKey = "category_id";
     if (key === "product_sub_category_id") columnKey = "sub_category_id";
     if (key === "product_model_id") columnKey = "model_id";
+
+    // Price filters removed from products table.
+    if (
+      [
+        "main_price",
+        "cost_price",
+        "sale_price",
+        "regular_price",
+        "currency",
+      ].includes(columnKey)
+    ) {
+      return;
+    }
 
     if (!meta.columnSet.has(columnKey)) return;
 
@@ -573,7 +585,9 @@ async function attachVariantsAndVariantImages(products = []) {
       FROM ${qid(variantMeta.tableName)}
       WHERE ${qid("product_id")} IN (${placeholders})
         ${buildDeletedWhere(variantMeta)}
-      ORDER BY ${qid("product_id")} ASC, ${qid(variantSortColumn || variantMeta.primaryKey)} ASC
+      ORDER BY ${qid("product_id")} ASC, ${qid(
+        variantSortColumn || variantMeta.primaryKey
+      )} ASC
       `,
       productIds
     );
@@ -676,14 +690,24 @@ async function list(params = {}) {
     String(params.sort_dir || "DESC").toUpperCase() === "ASC" ? "ASC" : "DESC";
 
   const [rows] = await db.query(
-    `SELECT * FROM ${qid(TABLE_NAME)} ${where.clause} ORDER BY ${qid(sortBy)} ${sortDir} LIMIT ? OFFSET ?`,
+    `
+    SELECT *
+    FROM ${qid(TABLE_NAME)}
+    ${where.clause}
+    ORDER BY ${qid(sortBy)} ${sortDir}
+    LIMIT ? OFFSET ?
+    `,
     [...where.values, limit, offset]
   );
 
   const rowsWithRelations = await attachRelations(rows);
 
   const [countRows] = await db.query(
-    `SELECT COUNT(*) AS total FROM ${qid(TABLE_NAME)} ${where.clause}`,
+    `
+    SELECT COUNT(*) AS total
+    FROM ${qid(TABLE_NAME)}
+    ${where.clause}
+    `,
     where.values
   );
 
@@ -709,7 +733,12 @@ async function findById(id) {
   if (hasColumn(meta, "deleted_at")) where.push(`${qid("deleted_at")} IS NULL`);
 
   const [rows] = await db.query(
-    `SELECT * FROM ${qid(TABLE_NAME)} WHERE ${where.join(" AND ")} LIMIT 1`,
+    `
+    SELECT *
+    FROM ${qid(TABLE_NAME)}
+    WHERE ${where.join(" AND ")}
+    LIMIT 1
+    `,
     values
   );
 
@@ -743,9 +772,11 @@ async function create(payload = {}, options = {}) {
   const values = Object.values(data);
 
   const [result] = await db.query(
-    `INSERT INTO ${qid(TABLE_NAME)} (${columns.map(qid).join(", ")}) VALUES (${columns
-      .map(() => "?")
-      .join(", ")})`,
+    `
+    INSERT INTO ${qid(TABLE_NAME)}
+    (${columns.map(qid).join(", ")})
+    VALUES (${columns.map(() => "?").join(", ")})
+    `,
     values
   );
 
@@ -774,7 +805,11 @@ async function updateById(id, payload = {}, options = {}) {
     .join(", ");
 
   const [result] = await db.query(
-    `UPDATE ${qid(TABLE_NAME)} SET ${assignments} WHERE ${qid(meta.primaryKey)} = ?`,
+    `
+    UPDATE ${qid(TABLE_NAME)}
+    SET ${assignments}
+    WHERE ${qid(meta.primaryKey)} = ?
+    `,
     [...Object.values(data), id]
   );
 
@@ -801,13 +836,21 @@ async function removeById(id, options = {}) {
       .join(", ");
 
     await db.query(
-      `UPDATE ${qid(TABLE_NAME)} SET ${assignments} WHERE ${qid(meta.primaryKey)} = ?`,
+      `
+      UPDATE ${qid(TABLE_NAME)}
+      SET ${assignments}
+      WHERE ${qid(meta.primaryKey)} = ?
+      `,
       [...Object.values(data), id]
     );
   } else {
-    await db.query(`DELETE FROM ${qid(TABLE_NAME)} WHERE ${qid(meta.primaryKey)} = ?`, [
-      id,
-    ]);
+    await db.query(
+      `
+      DELETE FROM ${qid(TABLE_NAME)}
+      WHERE ${qid(meta.primaryKey)} = ?
+      `,
+      [id]
+    );
   }
 
   return existing;
@@ -824,9 +867,11 @@ async function insertMatching(payload = {}) {
   const values = Object.values(data);
 
   const [result] = await db.query(
-    `INSERT INTO ${qid(TABLE_NAME)} (${columns.map(qid).join(", ")}) VALUES (${columns
-      .map(() => "?")
-      .join(", ")})`,
+    `
+    INSERT INTO ${qid(TABLE_NAME)}
+    (${columns.map(qid).join(", ")})
+    VALUES (${columns.map(() => "?").join(", ")})
+    `,
     values
   );
 

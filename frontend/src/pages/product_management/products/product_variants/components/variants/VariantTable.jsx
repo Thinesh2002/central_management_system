@@ -2,12 +2,52 @@ import { Edit, RefreshCw, Trash2 } from "lucide-react";
 import {
   getRecordId,
   getVariantName,
-  getVariantPrice,
   getVariantSku,
   getVariantStock,
 } from "../../utils/variantPageHelpers";
 import RowImagePreview from "./RowImagePreview";
 import SubImagesCell from "./SubImagesCell";
+
+function safeText(value, fallback = "-") {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => safeText(item, fallback)).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return safeText(
+      value.variant_sku ??
+        value.sku ??
+        value.product_sku ??
+        value.name ??
+        value.title ??
+        value.id,
+      fallback
+    );
+  }
+
+  return String(value);
+}
+
+function getSellingPrice(variant = {}) {
+  const value =
+    variant.selling_price ??
+    variant.sale_price ??
+    variant.product_selling_price ??
+    variant.variant_selling_price ??
+    0;
+
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return "0.00";
+  }
+
+  return numberValue.toFixed(2);
+}
 
 export default function VariantTable({
   loading,
@@ -36,7 +76,7 @@ export default function VariantTable({
             <th className="w-[220px] px-3 py-3">SKU</th>
             <th className="w-[190px] px-3 py-3">Main Image</th>
             <th className="w-[270px] px-3 py-3">Sub Images</th>
-            <th className="w-[130px] px-3 py-3">Price</th>
+            <th className="w-[150px] px-3 py-3">Selling Price</th>
             <th className="w-[110px] px-3 py-3">Stock</th>
             <th className="w-[160px] px-3 py-3 text-right">Actions</th>
           </tr>
@@ -63,18 +103,21 @@ export default function VariantTable({
 
                   <td className="px-3 py-3">
                     <span className="border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-bold text-slate-300">
-                      {getVariantName(variant)}
+                      {safeText(getVariantName(variant))}
                     </span>
                   </td>
 
                   <td className="px-3 py-3">
                     <p className="font-bold text-slate-100">
-                      {getVariantSku(variant)}
+                      {safeText(getVariantSku(variant))}
                     </p>
 
                     {variant.size || variant.material ? (
                       <p className="mt-1 text-xs font-semibold text-slate-500">
-                        {[variant.size, variant.material].filter(Boolean).join(" • ")}
+                        {[variant.size, variant.material]
+                          .filter(Boolean)
+                          .map((item) => safeText(item))
+                          .join(" • ")}
                       </p>
                     ) : null}
                   </td>
@@ -85,7 +128,7 @@ export default function VariantTable({
                       onOpen={() =>
                         onOpenImagePopup({
                           mode: "main",
-                          title: getVariantSku(variant),
+                          title: safeText(getVariantSku(variant)),
                           variantId,
                           imageSet,
                         })
@@ -99,7 +142,7 @@ export default function VariantTable({
                       onOpen={() =>
                         onOpenImagePopup({
                           mode: "sub",
-                          title: getVariantSku(variant),
+                          title: safeText(getVariantSku(variant)),
                           variantId,
                           imageSet,
                         })
@@ -107,12 +150,12 @@ export default function VariantTable({
                     />
                   </td>
 
-                  <td className="px-3 py-3 font-bold text-slate-200">
-                    LKR {getVariantPrice(variant)}
+                  <td className="px-3 py-3 font-bold text-emerald-300">
+                    LKR {getSellingPrice(variant)}
                   </td>
 
                   <td className="px-3 py-3 font-bold text-slate-300">
-                    {getVariantStock(variant)}
+                    {safeText(getVariantStock(variant), "0")}
                   </td>
 
                   <td className="px-3 py-3">

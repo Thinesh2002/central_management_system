@@ -128,7 +128,7 @@ export default function ProductRow({
 
   function handleViewProduct() {
     setActionOpen(false);
-    openNewTab(`/product/local-products/view/${productId}`);
+    openNewTab(`/product/view/${productId}`);
   }
 
   function handleEditProduct() {

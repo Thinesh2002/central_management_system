@@ -18,6 +18,98 @@ function toNumber(value) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function clean(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeRows(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.rows)) return value.rows;
+  if (Array.isArray(value?.items)) return value.items;
+  return [];
+}
+
+function sameSku(left, right) {
+  const leftValue = clean(left).toLowerCase();
+  const rightValue = clean(right).toLowerCase();
+  return Boolean(leftValue && rightValue && leftValue === rightValue);
+}
+
+function getProductSku(product = {}) {
+  return clean(
+    product.sku ||
+      product.product_sku ||
+      product.local_sku ||
+      product.seller_sku ||
+      product.parent_sku ||
+      product.main_sku ||
+      ""
+  );
+}
+
+function getVariantSku(row = {}) {
+  return clean(
+    row.sku ||
+      row.variant_sku ||
+      row.product_sku ||
+      row.local_sku ||
+      row.seller_sku ||
+      ""
+  );
+}
+
+function getInventorySku(row = {}) {
+  return clean(
+    row.sku ||
+      row.product_sku ||
+      row.local_sku ||
+      row.seller_sku ||
+      row.variant_sku ||
+      ""
+  );
+}
+
+function getProductVariants(product = {}) {
+  return normalizeRows(
+    product.variants ||
+      product.product_variants ||
+      product.variant_rows ||
+      product.variations ||
+      product.product_variations ||
+      product.variation_rows
+  );
+}
+
+function getProductInventorySkus(product = {}) {
+  const skus = [
+    getProductSku(product),
+    ...getProductVariants(product).map((variant) => getVariantSku(variant)),
+  ];
+
+  return new Set(
+    skus
+      .map((sku) => clean(sku).toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function uniqueRows(rows = []) {
+  const map = new Map();
+
+  rows.forEach((row, index) => {
+    const id = clean(row.id || row.inventory_id);
+    const sku = getInventorySku(row).toLowerCase();
+    const key = id || `${sku}-${index}`;
+
+    if (!key) return;
+
+    map.set(key, row);
+  });
+
+  return Array.from(map.values());
+}
+
 function getProductPrice(product = {}) {
   return toNumber(
     product.main_price ??
@@ -62,6 +154,102 @@ function getLatestSortValue(product = {}) {
   if (dateTime) return dateTime;
 
   return Number(product.id || product.product_id || product.local_product_id || 0);
+}
+
+function getInventorySummary(rows = []) {
+  const inventoryRows = uniqueRows(rows);
+  const hasInventory = inventoryRows.length > 0;
+
+  if (!hasInventory) {
+    return {
+      has_inventory: false,
+      stock_qty: "-",
+      reserved_qty: "-",
+      available_qty: "-",
+      low_stock_alert_qty: "-",
+      stock_status: "-",
+      is_out_of_stock: false,
+      is_low_stock: false,
+    };
+  }
+
+  const stockQty = inventoryRows.reduce(
+    (sum, row) => sum + toNumber(row.stock_qty),
+    0
+  );
+
+  const reservedQty = inventoryRows.reduce(
+    (sum, row) => sum + toNumber(row.reserved_qty),
+    0
+  );
+
+  const availableQty = inventoryRows.reduce((sum, row) => {
+    if (row.available_qty !== undefined && row.available_qty !== null) {
+      return sum + toNumber(row.available_qty);
+    }
+
+    return sum + Math.max(toNumber(row.stock_qty) - toNumber(row.reserved_qty), 0);
+  }, 0);
+
+  const lowStockAlertQty = inventoryRows.reduce((max, row) => {
+    const value = toNumber(row.low_stock_alert_qty);
+    return value > max ? value : max;
+  }, 0);
+
+  const isOutOfStock = stockQty <= 0;
+  const isLowStock =
+    !isOutOfStock && lowStockAlertQty > 0 && stockQty <= lowStockAlertQty;
+
+  return {
+    has_inventory: true,
+    stock_qty: stockQty,
+    reserved_qty: reservedQty,
+    available_qty: availableQty,
+    low_stock_alert_qty: lowStockAlertQty,
+    stock_status: isOutOfStock ? "out_of_stock" : isLowStock ? "low_stock" : "in_stock",
+    is_out_of_stock: isOutOfStock,
+    is_low_stock: isLowStock,
+  };
+}
+
+function mergeProductsWithInventory(products = [], inventoryRows = []) {
+  const cleanInventoryRows = uniqueRows(inventoryRows);
+
+  return products.map((product) => {
+    const productSku = getProductSku(product);
+    const productInventorySkus = getProductInventorySkus(product);
+
+    const matchedInventoryRows = cleanInventoryRows.filter((row) => {
+      const inventorySku = getInventorySku(row).toLowerCase();
+      return inventorySku && productInventorySkus.has(inventorySku);
+    });
+
+    const productOnlyInventoryRows = cleanInventoryRows.filter((row) =>
+      sameSku(getInventorySku(row), productSku)
+    );
+
+    const summaryRows =
+      matchedInventoryRows.length > 0 ? matchedInventoryRows : productOnlyInventoryRows;
+
+    const summary = getInventorySummary(summaryRows);
+
+    return {
+      ...product,
+      sku: product.sku || productSku,
+      all_inventory_rows: cleanInventoryRows,
+      inventory_rows: matchedInventoryRows,
+      product_inventory: cleanInventoryRows,
+      matched_product_inventory: matchedInventoryRows,
+      inventory_summary: summary,
+      stock_qty: summary.stock_qty,
+      reserved_qty: summary.reserved_qty,
+      available_qty: summary.available_qty,
+      low_stock_alert_qty: summary.low_stock_alert_qty,
+      stock_status: summary.stock_status,
+      is_out_of_stock: summary.is_out_of_stock,
+      is_low_stock: summary.is_low_stock,
+    };
+  });
 }
 
 function isInsideDateRange(product = {}, dateRange = "all") {
@@ -183,16 +371,27 @@ export default function LocalProductsDashboard() {
     setLoading(true);
 
     try {
-      const [productRes, imageRes, categoryRes, subCategoryRes, modelRes] =
-        await Promise.all([
-          localProductsApi.getProducts(),
-          localProductsApi.getImages().catch(() => ({ data: [] })),
-          localProductsApi.getCategories().catch(() => []),
-          localProductsApi.getSubCategories().catch(() => []),
-          localProductsApi.getProductModels().catch(() => []),
-        ]);
+      const [
+        productRes,
+        imageRes,
+        inventoryRes,
+        categoryRes,
+        subCategoryRes,
+        modelRes,
+      ] = await Promise.all([
+        localProductsApi.getProducts(),
+        localProductsApi.getImages().catch(() => ({ data: [] })),
+        localProductsApi.getInventory({ limit: 500 }).catch(() => ({ data: [] })),
+        localProductsApi.getCategories().catch(() => []),
+        localProductsApi.getSubCategories().catch(() => []),
+        localProductsApi.getProductModels().catch(() => []),
+      ]);
 
-      setProducts(sortLatestProductsFirst(normalizeProductList(productRes)));
+      const productRows = normalizeProductList(productRes);
+      const inventoryRows = normalizeList(inventoryRes);
+      const productsWithInventory = mergeProductsWithInventory(productRows, inventoryRows);
+
+      setProducts(sortLatestProductsFirst(productsWithInventory));
       setProductImages(normalizeList(imageRes));
       setCategories(normalizeList(categoryRes));
       setSubCategories(normalizeList(subCategoryRes));

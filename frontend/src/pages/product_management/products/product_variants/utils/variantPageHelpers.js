@@ -1,7 +1,7 @@
 import { ALLOWED_IMAGE_TYPES, MAX_EXTRA_IMAGES } from "../constants/variantImageConstants";
 
 const RAW_API_BASE_URL = String(
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"
+  import.meta.env.VITE_API_BASE_URL
 ).replace(/\/$/, "");
 
 const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api$/, "");

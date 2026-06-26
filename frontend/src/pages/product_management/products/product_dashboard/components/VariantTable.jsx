@@ -5,7 +5,6 @@ import {
 } from "../utils/localProductsImageHelpers";
 import {
   getStableVariantKey,
-  getStockValue,
   getVariantId,
   getVariantName,
   getVariantSku,
@@ -15,6 +14,116 @@ function pickFirstValue(...values) {
   return values.find(
     (value) => value !== undefined && value !== null && String(value).trim() !== ""
   );
+}
+
+function clean(value) {
+  return String(value ?? "").trim();
+}
+
+function sameSku(left, right) {
+  const leftValue = clean(left).toLowerCase();
+  const rightValue = clean(right).toLowerCase();
+  return Boolean(leftValue && rightValue && leftValue === rightValue);
+}
+
+function toNumber(value) {
+  const number = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function toArray(value) {
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value?.data)) return value.data;
+  if (Array.isArray(value?.rows)) return value.rows;
+  if (Array.isArray(value?.items)) return value.items;
+  return [];
+}
+
+function getInventorySku(row = {}) {
+  return clean(
+    row.sku ||
+      row.variant_sku ||
+      row.product_sku ||
+      row.local_sku ||
+      row.seller_sku ||
+      ""
+  );
+}
+
+function getInventoryRows(product = {}, variant = {}) {
+  const variantSku = getVariantSku(variant);
+
+  const rows = [
+    ...toArray(product.inventory_rows),
+    ...toArray(product.product_inventory),
+    ...toArray(product.inventory),
+    ...toArray(product.inventoryRows),
+    ...toArray(variant.inventory_rows),
+    ...toArray(variant.product_inventory),
+    ...toArray(variant.inventory),
+    ...toArray(variant.inventoryRows),
+  ];
+
+  const matchedRows = rows.filter((row) =>
+    sameSku(getInventorySku(row), variantSku)
+  );
+
+  const uniqueMap = new Map();
+
+  matchedRows.forEach((row, index) => {
+    const key = row.id || row.inventory_id || `${getInventorySku(row)}-${index}`;
+    uniqueMap.set(String(key), row);
+  });
+
+  return Array.from(uniqueMap.values());
+}
+
+function getStockText(product = {}, variant = {}) {
+  const inventoryRows = getInventoryRows(product, variant);
+
+  if (inventoryRows.length > 0) {
+    const stockQty = inventoryRows.reduce(
+      (sum, row) => sum + toNumber(row.stock_qty),
+      0
+    );
+
+    return stockQty;
+  }
+
+  const fallbackStock = pickFirstValue(
+    variant.stock_qty,
+    variant.stock,
+    variant.quantity,
+    variant.qty,
+    variant.available_qty,
+    product.stock_qty,
+    product.stock,
+    product.quantity,
+    product.qty,
+    product.available_qty
+  );
+
+  if (fallbackStock === undefined || fallbackStock === null || String(fallbackStock).trim() === "") {
+    return "-";
+  }
+
+  return fallbackStock;
+}
+
+function getStockStatus(product = {}, variant = {}) {
+  const inventoryRows = getInventoryRows(product, variant);
+
+  if (inventoryRows.length > 0) {
+    const stockQty = inventoryRows.reduce(
+      (sum, row) => sum + toNumber(row.stock_qty),
+      0
+    );
+
+    if (stockQty <= 0) return "Out of Stock";
+    return "In Stock";
+  }
+
+  return variant.status || variant.active_status || product.status || "-";
 }
 
 function getPriceText(record = {}) {
@@ -88,8 +197,8 @@ export default function VariantTable({
               const variantId = getVariantId(variant);
               const variantName = getVariantName(variant);
               const variantSku = getVariantSku(variant);
-              const stock = getStockValue(variant);
-              const status = variant.status || variant.active_status || "-";
+              const stock = getStockText(product, variant);
+              const status = getStockStatus(product, variant);
 
               const variantRows = getVariantImageRows(
                 productImages,
@@ -147,7 +256,7 @@ export default function VariantTable({
                       className="block truncate text-[11px] font-normal text-slate-200"
                       title={variantSku}
                     >
-                      {variantSku}
+                      {variantSku || "-"}
                     </span>
                   </td>
 

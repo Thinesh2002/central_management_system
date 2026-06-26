@@ -1,7 +1,6 @@
 const db = require("../../config/order_management_db/cm_order_management");
 const orderLogModel = require("./order_log_model");
 const {
-  generateOrderId,
   toMoney,
   toInt,
   cleanString,
@@ -104,11 +103,48 @@ function removeImageFields(item = {}) {
   return safeItem;
 }
 
+/**
+ * Order ID format:
+ * BH001
+ * BH002
+ * BH003
+ */
+function formatBhOrderId(number) {
+  return `BH${String(Number(number || 1)).padStart(3, "0")}`;
+}
+
+/**
+ * Finds latest BH order id from existing orders table
+ * and creates next id.
+ *
+ * Example:
+ * No order     -> BH001
+ * Last BH001   -> BH002
+ * Last BH009   -> BH010
+ * Last BH099   -> BH100
+ */
+async function getNextBhOrderId(connection = db) {
+  const [rows] = await connection.query(
+    `
+      SELECT order_id
+      FROM orders
+      WHERE order_id REGEXP '^BH[0-9]+$'
+      ORDER BY CAST(SUBSTRING(order_id, 3) AS UNSIGNED) DESC
+      LIMIT 1
+    `
+  );
+
+  const lastOrderId = rows[0]?.order_id || "";
+  const lastNumber = Number(String(lastOrderId).replace(/^BH/i, "")) || 0;
+
+  return formatBhOrderId(lastNumber + 1);
+}
+
 function normalizeOrderPayload(payload = {}, userCode = null, isCreate = true) {
   const orderType = cleanString(payload.order_type) || "MANUAL";
 
   const normalized = {
-    order_id: cleanString(payload.order_id) || generateOrderId(orderType),
+    order_id: cleanString(payload.order_id),
     order_type: orderType,
 
     customer_code:
@@ -478,6 +514,11 @@ async function createOrder(payload = {}, userCode = null) {
     await connection.beginTransaction();
 
     const orderData = normalizeOrderPayload(payload, userCode, true);
+
+    if (!orderData.order_id) {
+      orderData.order_id = await getNextBhOrderId(connection);
+    }
+
     const items = Array.isArray(payload.items) ? payload.items : [];
 
     if (!items.length) {

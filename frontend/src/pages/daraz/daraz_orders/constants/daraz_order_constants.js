@@ -30,3 +30,10 @@ export const EMPTY_FILTERS = {
   page: 1,
   limit: 25,
 };
+
+
+export const DARAZ_STATUS_CHANGE_OPTIONS = [
+  { key: "packed", label: "Packed" },
+  { key: "ready_to_ship", label: "Ready To Ship" },
+  { key: "canceled", label: "Cancelled" },
+];

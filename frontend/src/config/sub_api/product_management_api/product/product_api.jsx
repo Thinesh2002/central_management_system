@@ -17,6 +17,10 @@ export const productApi = {
     return api.put(`/product/products/${id}`, data);
   },
 
+  patch(id, data) {
+    return api.patch(`/product/products/${id}`, data);
+  },
+
   delete(id) {
     return api.delete(`/product/products/${id}`);
   },
