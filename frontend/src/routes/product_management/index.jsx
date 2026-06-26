@@ -77,6 +77,17 @@ export default function ProductManagementRoutes() {
         }
       />
 
+
+
+      <Route
+        path="/product/models"
+        element={
+          <ProtectedProductPage>
+            <CategoryPage />
+          </ProtectedProductPage>
+        }
+      />
+
       <Route
         path="/colours"
         element={

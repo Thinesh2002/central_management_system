@@ -1,4 +1,5 @@
 const darazFinanceService = require("../../../services/daraz/daraz_finance/daraz_finance_api_service");
+const darazFinanceModel = require("../../../models/daraz/daraz_finance/daraz_finance_model");
 const db = require("../../../config/marketplace_management_db/cm_marketplace_management");
 const accountModel = require("../../../models/marketplace/account_model");
 
@@ -290,7 +291,13 @@ async function getPayoutStatus(req, res) {
       created_after,
     });
 
-    return sendSuccess(res, "Daraz payout status loaded successfully.", data);
+    data.database = await darazFinanceModel.savePayouts({
+      account,
+      created_after,
+      rows: data.rows || [],
+    });
+
+    return sendSuccess(res, "Daraz payout status loaded and saved successfully.", data);
   } catch (error) {
     return sendError(res, error);
   }
@@ -324,9 +331,16 @@ async function getTransactionDetails(req, res) {
         req.query.trade_order_line_id || req.body?.trade_order_line_id,
     });
 
+    data.database = await darazFinanceModel.saveTransactions({
+      account,
+      start_time,
+      end_time,
+      rows: data.rows || [],
+    });
+
     return sendSuccess(
       res,
-      "Daraz transaction details loaded successfully.",
+      "Daraz transaction details loaded and saved successfully.",
       data
     );
   } catch (error) {
@@ -361,7 +375,14 @@ async function getFinanceSummary(req, res) {
       max_pages: safeMaxPages(req.query.max_pages || req.body?.max_pages),
     });
 
-    return sendSuccess(res, "Daraz finance summary loaded successfully.", data);
+    data.database = await darazFinanceModel.saveTransactions({
+      account,
+      start_time,
+      end_time,
+      rows: (data.raw_lines || []).map((row) => row.raw || row),
+    });
+
+    return sendSuccess(res, "Daraz finance summary loaded and saved successfully.", data);
   } catch (error) {
     return sendError(res, error);
   }
@@ -404,9 +425,16 @@ async function getOrderFinanceDetails(req, res) {
       max_pages: 2,
     });
 
+    data.database = await darazFinanceModel.saveTransactions({
+      account,
+      start_time,
+      end_time,
+      rows: (data.raw_lines || []).map((row) => row.raw || row),
+    });
+
     return sendSuccess(
       res,
-      "Daraz order finance details loaded successfully.",
+      "Daraz order finance details loaded and saved successfully.",
       data
     );
   } catch (error) {

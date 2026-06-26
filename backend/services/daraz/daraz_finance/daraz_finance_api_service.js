@@ -3,7 +3,7 @@ const {
 } = require("../../marketplace/daraz_api_service");
 
 const PAYOUT_STATUS_PATH = "/finance/payout/status/get";
-const TRANSACTION_DETAIL_PATH = "/finance/transaction/detail/get";
+const TRANSACTION_DETAIL_PATH = "/finance/transaction/details/get";
 
 function previewJson(value, maxLength = 4000) {
   try {
@@ -70,7 +70,7 @@ function throwDarazApiError(response) {
   if (payload.code === "InsufficientPermission") {
     statusCode = 403;
     message =
-      "Daraz Finance API permission is blocked for this app/seller token. Product APIs can work separately. Test the same endpoint in Daraz API Explorer; if it fails there too, Daraz must enable Finance API access for this app/seller.";
+      "Daraz Finance API permission is blocked for this app/seller token. Product APIs can work separately. Re-authorize seller account after enabling Finance permission.";
   }
 
   if (
@@ -111,6 +111,7 @@ function extractArrayFromObject(objectValue) {
 
 function getPayoutRows(response) {
   const candidates = [
+    response?.data?.data,
     response?.data?.payouts,
     response?.data?.Payouts,
     response?.data?.statements,
@@ -119,7 +120,6 @@ function getPayoutRows(response) {
     response?.data?.Statement,
     response?.data?.list,
     response?.data?.items,
-    response?.data?.data,
     response?.data?.result,
     response?.result?.payouts,
     response?.result?.statements,
@@ -151,6 +151,7 @@ function getPayoutRows(response) {
 
 function getTransactionRows(response) {
   const candidates = [
+    response?.data?.data,
     response?.data?.transactions,
     response?.data?.Transactions,
     response?.data?.transaction,
@@ -162,7 +163,6 @@ function getTransactionRows(response) {
     response?.data?.Details,
     response?.data?.list,
     response?.data?.items,
-    response?.data?.data,
     response?.data?.result,
 
     response?.result?.transactions,
@@ -455,7 +455,9 @@ async function getPayoutStatus({ account, credentials, created_after }) {
   if (!account?.id) throw new Error("Daraz account missing");
   if (!credentials?.access_token) throw new Error("Daraz access token missing");
 
-  const query = { created_after };
+  const query = {
+    created_after: String(created_after),
+  };
 
   const response = await callDarazApi({
     account,
@@ -490,7 +492,7 @@ async function getTransactionDetails({
   end_time,
   limit = 500,
   offset = 0,
-  trans_type = -1,
+  trans_type,
   trade_order_id,
   trade_order_line_id,
 }) {
@@ -498,22 +500,25 @@ async function getTransactionDetails({
   if (!credentials?.access_token) throw new Error("Daraz access token missing");
 
   const query = {
-    start_time,
-    end_time,
-    limit,
-    offset,
-    trans_type,
+    start_time: String(start_time),
+    end_time: String(end_time),
+    limit: String(limit || 500),
+    offset: String(offset || 0),
   };
 
-  if (trade_order_id) query.trade_order_id = trade_order_id;
-  if (trade_order_line_id) query.trade_order_line_id = trade_order_line_id;
+  if (trans_type !== undefined && trans_type !== null && trans_type !== "") {
+    query.trans_type = String(trans_type);
+  }
+
+  if (trade_order_id) query.trade_order_id = String(trade_order_id);
+  if (trade_order_line_id) query.trade_order_line_id = String(trade_order_line_id);
 
   const response = await callDarazApi({
     account,
     credentials,
     apiPath: TRANSACTION_DETAIL_PATH,
     method: "GET",
-    requestType: "daraz_finance_transaction_detail_get",
+    requestType: "daraz_finance_transaction_details_get",
     query,
   });
 
@@ -539,7 +544,7 @@ async function getAllTransactionDetails({
   credentials,
   start_time,
   end_time,
-  trans_type = -1,
+  trans_type,
   trade_order_id,
   trade_order_line_id,
   max_pages = 20,
@@ -601,7 +606,7 @@ async function getFinanceSummary({
   credentials,
   start_time,
   end_time,
-  trans_type = -1,
+  trans_type,
   trade_order_id,
   trade_order_line_id,
   max_pages = 20,
@@ -634,9 +639,8 @@ async function checkFinancePermission({ account, credentials }) {
   const query = {
     start_time: "2026-06-01",
     end_time: "2026-06-02",
-    limit: 1,
-    offset: 0,
-    trans_type: -1,
+    limit: "1",
+    offset: "0",
   };
 
   const response = await callDarazApi({
@@ -660,7 +664,7 @@ async function checkFinancePermission({ account, credentials }) {
       code: payload.code,
       message:
         payload.code === "InsufficientPermission"
-          ? "Daraz Finance API permission is blocked for this app/seller token. Product APIs can work separately."
+          ? "Daraz Finance API permission is blocked for this app/seller token. Re-authorize seller account after enabling Finance permission."
           : payload.message,
       daraz_error: payload,
     };

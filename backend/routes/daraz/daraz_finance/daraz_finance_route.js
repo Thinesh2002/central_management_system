@@ -4,14 +4,84 @@ const financeController = require("../../../controllers/daraz/daraz_finance/dara
 
 const router = express.Router();
 
-router.get("/check-permission", financeController.checkFinancePermission);
+function handler(...names) {
+  for (const name of names) {
+    if (typeof financeController[name] === "function") {
+      return financeController[name];
+    }
+  }
 
-router.get("/payout/status", financeController.getPayoutStatus);
+  return function missingFinanceHandler(req, res) {
+    return res.status(500).json({
+      success: false,
+      message: `Daraz finance controller handler missing: ${names.join(" or ")}`,
+    });
+  };
+}
 
-router.get("/transactions", financeController.getTransactionDetails);
+const checkFinancePermission = handler(
+  "checkFinancePermission",
+  "checkPermission"
+);
 
-router.get("/summary", financeController.getFinanceSummary);
+const getPayoutStatus = handler(
+  "getPayoutStatus",
+  "getPayouts",
+  "syncPayoutStatus"
+);
 
-router.get("/orders/:order_no", financeController.getOrderFinanceDetails);
+const getTransactionDetails = handler(
+  "getTransactionDetails",
+  "getTransactions",
+  "syncTransactions",
+  "syncFinanceTransactions"
+);
+
+const getAllTransactionDetails = handler(
+  "getAllTransactionDetails",
+  "getAllTransactions",
+  "syncAllTransactions",
+  "getTransactionDetails",
+  "getTransactions"
+);
+
+const getFinanceSummary = handler(
+  "getFinanceSummary",
+  "getSummary",
+  "syncSummary"
+);
+
+const getOrderFinanceDetails = handler(
+  "getOrderFinanceDetails",
+  "getOrderDetails",
+  "getOrderFinance"
+);
+
+router.get("/check-permission", checkFinancePermission);
+router.post("/check-permission", checkFinancePermission);
+
+router.get("/payout/status", getPayoutStatus);
+router.post("/payout/status", getPayoutStatus);
+
+router.get("/transactions", getTransactionDetails);
+router.post("/transactions", getTransactionDetails);
+
+router.get("/transactions/all", getAllTransactionDetails);
+router.post("/transactions/all", getAllTransactionDetails);
+
+router.get("/transactions/sync", getTransactionDetails);
+router.post("/transactions/sync", getTransactionDetails);
+
+router.get("/sync/transactions", getTransactionDetails);
+router.post("/sync/transactions", getTransactionDetails);
+
+router.get("/summary", getFinanceSummary);
+router.post("/summary", getFinanceSummary);
+
+router.get("/summary/sync", getFinanceSummary);
+router.post("/summary/sync", getFinanceSummary);
+
+router.get("/orders/:order_no", getOrderFinanceDetails);
+router.post("/orders/:order_no", getOrderFinanceDetails);
 
 module.exports = router;

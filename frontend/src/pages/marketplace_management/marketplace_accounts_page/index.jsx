@@ -197,11 +197,7 @@ export default function MarketplaceAccountsPage() {
       }
 
       const res = await marketplaceApi.getDarazReauthUrl(accountId);
-      const authUrl =
-        res?.data?.auth_url ||
-        res?.data?.authorization_url ||
-        res?.data?.data?.authorization_url ||
-        res?.data?.data?.auth_url;
+      const authUrl = res?.data?.auth_url;
 
       if (!authUrl) {
         throw new Error("Daraz authorization URL not received from backend.");

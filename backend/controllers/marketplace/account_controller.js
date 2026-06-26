@@ -257,17 +257,12 @@ async function getDarazReauthUrl(req, res) {
       });
     }
 
-    const result = await darazOAuthService.buildDarazReauthUrl(accountId);
-    const authUrl = result?.authorization_url || result?.auth_url || result?.url || result;
+    const auth_url = await darazOAuthService.buildDarazReauthUrl(accountId);
 
     return res.json({
       success: true,
       message: "Daraz reauthorization URL generated.",
-      auth_url: authUrl,
-      authorization_url: authUrl,
-      redirect_uri: result?.redirect_uri || null,
-      account: result?.account || null,
-      data: result,
+      auth_url,
     });
   } catch (error) {
     console.error("[DARAZ_REAUTH_URL_ERROR]:", error);
@@ -283,22 +278,16 @@ async function handleDarazOAuthCallback(req, res) {
   try {
     const { code, state } = req.query;
 
-    const result = await darazOAuthService.handleDarazOAuthCallback({
+    const account = await darazOAuthService.handleDarazOAuthCallback({
       code,
       state,
     });
 
-    const account = result?.account || result || {};
-    const accountId = account.id || account.account_id;
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
-    if (accountId) {
-      return res.redirect(
-        `${frontendUrl}/marketplace/accounts/${accountId}?reauth=success`
-      );
-    }
-
-    return res.redirect(`${frontendUrl}/marketplace/accounts?reauth=success`);
+    return res.redirect(
+      `${frontendUrl}/marketplace/accounts/${account.id}?reauth=success`
+    );
   } catch (error) {
     console.error("[DARAZ_OAUTH_CALLBACK_ERROR]:", error);
 

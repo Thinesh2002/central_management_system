@@ -1,7 +1,10 @@
 const express = require("express");
 const controller = require("../../../controllers/product_management/category/sub_category_controller");
+const { protect } = require("../../../middleware/auth");
 
 const router = express.Router();
+
+router.use(protect);
 
 router.get("/", controller.getAll);
 router.get("/:id", controller.getById);

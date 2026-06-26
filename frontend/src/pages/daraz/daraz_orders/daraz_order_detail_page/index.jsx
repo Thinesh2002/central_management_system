@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { darazOrdersApi } from "../../../../config/sub_api/daraz_api/daraz_orders_api";
+import darazOrderStatusApi from "../../../../config/sub_api/daraz_api/daraz_order_status_api";
 
 function valueOf(obj, keys, fallback = "-") {
   for (const key of keys) {
@@ -111,6 +112,7 @@ export default function DarazOrderDetail() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const currency = useMemo(() => valueOf(order, ["currency"], "LKR"), [order]);
 
@@ -144,42 +146,61 @@ export default function DarazOrderDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-  async function handleSyncTracking() {
-    setActionLoading("tracking");
+  async function runOrderAction(actionKey, label, action) {
+    setActionLoading(actionKey);
     setError("");
+    setSuccessMessage("");
 
     try {
-      await darazOrdersApi.syncTracking(orderId);
+      const response = await action();
+      setSuccessMessage(response?.data?.message || `${label} completed successfully.`);
       await loadOrder();
     } catch (err) {
       setError(
         err?.response?.data?.message ||
           err?.friendlyMessage ||
           err?.message ||
-          "Tracking sync failed."
+          `${label} failed.`
       );
     } finally {
       setActionLoading("");
     }
   }
 
-  async function handleGenerateAwb() {
-    setActionLoading("awb");
-    setError("");
+  function handlePackOrder() {
+    runOrderAction("pack", "Pack order", () => darazOrderStatusApi.pack(orderNumber));
+  }
 
-    try {
-      await darazOrdersApi.generateAwb(orderId);
-      await loadOrder();
-    } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          err?.friendlyMessage ||
-          err?.message ||
-          "AWB generation failed."
-      );
-    } finally {
-      setActionLoading("");
-    }
+  function handleReadyToShip() {
+    runOrderAction("ready", "Ready to ship", () => darazOrderStatusApi.readyToShip(orderNumber));
+  }
+
+  function handleCancelOrder() {
+    const reason = window.prompt("Cancel reason / note");
+    if (reason === null) return;
+    runOrderAction("cancel", "Cancel order", () => darazOrderStatusApi.cancel(orderNumber, { reason_detail: reason }));
+  }
+
+  function handleSyncTracking() {
+    runOrderAction("tracking", "Sync tracking", () => darazOrderStatusApi.syncTracking(orderNumber));
+  }
+
+  function handleSyncStatus() {
+    runOrderAction("status", "Sync Daraz status", () => darazOrderStatusApi.syncStatus(orderNumber));
+  }
+
+  function handleGenerateAwb() {
+    runOrderAction("awb", "Print AWB", () => darazOrderStatusApi.printAwb(orderNumber));
+  }
+
+  function handlePrintInvoice() {
+    runOrderAction("invoice", "Print invoice", () => darazOrderStatusApi.printInvoice(orderNumber));
+  }
+
+  function handleSetInvoiceNumber() {
+    const invoiceNumber = window.prompt("Enter invoice number");
+    if (!invoiceNumber) return;
+    runOrderAction("invoice-number", "Set invoice number", () => darazOrderStatusApi.setInvoiceNumber(orderNumber, invoiceNumber));
   }
 
   if (loading && !order) {
@@ -195,6 +216,16 @@ export default function DarazOrderDetail() {
 
   const status = valueOf(order, ["local_status", "daraz_status", "status"], "unknown");
   const orderNumber = valueOf(order, ["order_number", "order_id", "daraz_order_id"], orderId);
+  const normalizedStatus = String(status || "").toLowerCase();
+  const isFinalStatus = ["cancel", "deliver", "return", "failed"].some((word) => normalizedStatus.includes(word));
+  const canPack =
+    !isFinalStatus &&
+    (normalizedStatus.includes("pending") ||
+      normalizedStatus.includes("to pack") ||
+      normalizedStatus === "pack" ||
+      normalizedStatus === "to_pack");
+  const canReadyToShip = !isFinalStatus && normalizedStatus.includes("packed");
+  const canPrintDocs = !isFinalStatus && (normalizedStatus.includes("ready") || normalizedStatus.includes("ship"));
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
@@ -232,6 +263,73 @@ export default function DarazOrderDetail() {
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                 Refresh
               </button>
+
+              {canPack && (
+                <button
+                  type="button"
+                  onClick={handlePackOrder}
+                  disabled={!!actionLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Package size={16} className={actionLoading === "pack" ? "animate-pulse" : ""} />
+                  Pack Order
+                </button>
+              )}
+
+              {canReadyToShip && (
+                <button
+                  type="button"
+                  onClick={handleReadyToShip}
+                  disabled={!!actionLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Truck size={16} className={actionLoading === "ready" ? "animate-pulse" : ""} />
+                  Ready To Ship
+                </button>
+              )}
+
+              {!isFinalStatus && (
+                <button
+                  type="button"
+                  onClick={handleCancelOrder}
+                  disabled={!!actionLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel Order
+                </button>
+              )}
+
+              {canPrintDocs && (
+                <button
+                  type="button"
+                  onClick={handlePrintInvoice}
+                  disabled={!!actionLoading}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Download size={16} className={actionLoading === "invoice" ? "animate-pulse" : ""} />
+                  Print Invoice
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSetInvoiceNumber}
+                disabled={!!actionLoading}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Set Invoice Number
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSyncStatus}
+                disabled={!!actionLoading}
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw size={16} className={actionLoading === "status" ? "animate-spin" : ""} />
+                Sync Daraz Status
+              </button>
+
               <button
                 type="button"
                 onClick={handleSyncTracking}
@@ -248,7 +346,7 @@ export default function DarazOrderDetail() {
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Download size={16} className={actionLoading === "awb" ? "animate-pulse" : ""} />
-                Generate AWB
+                Print AWB
               </button>
             </div>
           </div>
@@ -258,6 +356,12 @@ export default function DarazOrderDetail() {
           <div className="flex items-start gap-3 rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
+            {successMessage}
           </div>
         )}
 

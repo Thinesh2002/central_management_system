@@ -1298,205 +1298,19 @@ async function syncOrdersForAccount(account, options = {}) {
   }
 }
 
-
-function normalizeStatusAction(status) {
-  const key = String(status || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, "_");
-
-  if (["packed", "pack", "processing", "in_progress"].includes(key)) {
-    return {
-      key: "packed",
-      darazStatus: "packed",
-      localStatus: "packed",
-      apiPath: process.env.DARAZ_ORDER_PACK_ENDPOINT || "/order/pack",
-      requestType: "daraz_order_pack",
-      label: "Packed",
-    };
-  }
-
-  if (["ready_to_ship", "readytoship", "ready_to_ship_pending", "rts", "ready"].includes(key)) {
-    return {
-      key: "ready_to_ship",
-      darazStatus: "ready_to_ship",
-      localStatus: "ready_to_ship",
-      apiPath: process.env.DARAZ_ORDER_RTS_ENDPOINT || "/order/rts",
-      requestType: "daraz_order_ready_to_ship",
-      label: "Ready To Ship",
-    };
-  }
-
-  if (["cancel", "cancelled", "canceled", "cancelled_order", "canceled_order"].includes(key)) {
-    return {
-      key: "canceled",
-      darazStatus: "canceled",
-      localStatus: "canceled",
-      apiPath: process.env.DARAZ_ORDER_CANCEL_ENDPOINT || "/order/cancel",
-      requestType: "daraz_order_cancel",
-      label: "Cancelled",
-    };
-  }
-
-  const error = new Error(
-    "Unsupported Daraz status. Allowed: packed, ready_to_ship, canceled."
-  );
-  error.statusCode = 400;
-  error.code = "UNSUPPORTED_DARAZ_STATUS";
-  throw error;
-}
-
-function extractItemIds(items = []) {
-  return [...new Set(
-    asArray(items)
-      .map((item) => item?.order_item_id || item?.daraz_order_item_id || item?.item_id)
-      .filter(hasValue)
-      .map((id) => String(id).trim())
-      .filter(Boolean)
-  )];
-}
-
-function extractPackageIds(order = {}, items = []) {
-  return [...new Set([
-    order.package_id,
-    ...asArray(items).map((item) => item?.package_id),
-  ]
-    .filter(hasValue)
-    .map((id) => String(id).trim())
-    .filter(Boolean))];
-}
-
-function getPreferredShippingProvider(order = {}, options = {}, items = []) {
-  return firstNonEmpty(
-    options.shipping_provider,
-    options.shipment_provider,
-    options.logistics_provider,
-    order.shipment_provider,
-    firstItemValue(items, ["shipment_provider", "shipping_provider", "ShipmentProvider"])
-  );
-}
-
-function getPreferredDeliveryType(order = {}, options = {}) {
-  return firstNonEmpty(
-    options.delivery_type,
-    options.deliveryType,
-    options.shipment_type,
-    order.shipment_type,
-    order.shipping_type,
-    order.delivery_type
-  );
-}
-
-function buildStatusPayload(action, order, orderItems, options = {}) {
-  const itemIds = extractItemIds(orderItems);
-  const packageIds = extractPackageIds(order, orderItems);
-  const shippingProvider = getPreferredShippingProvider(order, options, orderItems);
-  const deliveryType = getPreferredDeliveryType(order, options);
-  const trackingNumber = firstNonEmpty(
-    options.tracking_number,
-    options.trackingNumber,
-    order.tracking_number
-  );
-
-  const common = {
-    order_id: order.order_id,
-  };
-
-  if (action.key === "packed") {
-    if (!itemIds.length) {
-      const error = new Error("Daraz order_item_id missing. Sync order items before packing.");
-      error.statusCode = 400;
-      error.code = "DARAZ_ORDER_ITEM_IDS_MISSING";
-      throw error;
-    }
-
-    return cleanQuery({
-      ...common,
-      order_item_ids: itemIds,
-      shipping_provider: shippingProvider,
-      shipment_provider: shippingProvider,
-      delivery_type: deliveryType,
-    });
-  }
-
-  if (action.key === "ready_to_ship") {
-    if (!packageIds.length && !itemIds.length) {
-      const error = new Error(
-        "Daraz package_id/order_item_id missing. Pack/sync order before Ready To Ship."
-      );
-      error.statusCode = 400;
-      error.code = "DARAZ_RTS_IDS_MISSING";
-      throw error;
-    }
-
-    const packages = packageIds.map((packageId) => ({ package_id: packageId }));
-
-    return cleanQuery({
-      ...common,
-      package_id: packageIds[0],
-      package_ids: packageIds,
-      packages: packages.length ? packages : undefined,
-      order_item_ids: itemIds,
-      shipping_provider: shippingProvider,
-      shipment_provider: shippingProvider,
-      delivery_type: deliveryType,
-      tracking_number: trackingNumber,
-    });
-  }
-
-  if (action.key === "canceled") {
-    if (!itemIds.length) {
-      const error = new Error("Daraz order_item_id missing. Sync order items before cancelling.");
-      error.statusCode = 400;
-      error.code = "DARAZ_CANCEL_ITEM_IDS_MISSING";
-      throw error;
-    }
-
-    return cleanQuery({
-      ...common,
-      order_item_id: itemIds[0],
-      order_item_ids: itemIds,
-      reason_id: options.reason_id || options.reasonId || process.env.DARAZ_CANCEL_REASON_ID,
-      reason_detail:
-        options.reason_detail ||
-        options.reason ||
-        options.cancel_reason ||
-        process.env.DARAZ_CANCEL_REASON_DETAIL ||
-        "Seller cancelled from Central Management",
-    });
-  }
-
-  return common;
-}
-
-function summarizeStatusResult(order, action, apiResponse, payload, localStatus) {
-  return {
-    success: true,
-    order_id: order.id,
-    daraz_order_id: order.order_id,
-    status: action.key,
-    daraz_status: action.darazStatus,
-    local_status: localStatus,
-    api_path: action.apiPath,
-    request_payload: payload,
-    api_response: apiResponse,
-  };
-}
-
-async function changeStatus(orderId, newStatus, userId, options = {}) {
+async function changeStatus(orderId, newStatus, userId) {
   const order = await orderModel.getOrderById(orderId);
 
   if (!order) {
     throw new Error("Order not found");
   }
 
-  const action = normalizeStatusAction(newStatus);
-  const orderItems =
-    typeof orderModel.getOrderItemsByOrderId === "function"
-      ? await orderModel.getOrderItemsByOrderId(order.id)
-      : [];
+  const apiPath = process.env.DARAZ_ORDER_STATUS_UPDATE_ENDPOINT || "/order/status/update";
 
-  const payload = buildStatusPayload(action, order, orderItems, options);
+  const payload = {
+    order_id: order.order_id,
+    status: newStatus,
+  };
 
   let apiResponse;
   let success = false;
@@ -1504,14 +1318,14 @@ async function changeStatus(orderId, newStatus, userId, options = {}) {
   try {
     apiResponse = await callDarazApi({
       account_code: order.account_code,
-      apiPath: action.apiPath,
-      endpoint: action.apiPath,
+      apiPath,
+      endpoint: apiPath,
       method: "POST",
       query: payload,
       params: payload,
       body: payload,
-      requestType: action.requestType,
-      request_type: action.requestType,
+      requestType: "daraz_order_status_update",
+      request_type: "daraz_order_status_update",
     });
 
     success = true;
@@ -1521,15 +1335,14 @@ async function changeStatus(orderId, newStatus, userId, options = {}) {
       account_code: order.account_code,
       daraz_order_id: order.order_id,
       old_daraz_status: order.daraz_status,
-      new_daraz_status: action.darazStatus,
+      new_daraz_status: newStatus,
       old_local_status: order.local_status,
       new_local_status: null,
       change_source: "user_action",
       daraz_api_called: true,
       daraz_api_success: false,
       request_payload: payload,
-      response_payload: error?.daraz || error?.raw || {},
-      error_code: error?.code || null,
+      response_payload: {},
       error_message: error.message,
       changed_by: userId || null,
     });
@@ -1538,22 +1351,15 @@ async function changeStatus(orderId, newStatus, userId, options = {}) {
   }
 
   const newLocalStatus = await orderModel.updateOrderStatus(order.id, {
-    daraz_status: action.darazStatus,
+    daraz_status: newStatus,
   });
-
-  if (typeof orderModel.updateOrderItemsStatus === "function") {
-    await orderModel.updateOrderItemsStatus(order.id, {
-      daraz_status: action.darazStatus,
-      local_status: newLocalStatus,
-    });
-  }
 
   await orderModel.insertStatusHistory({
     order_id: order.id,
     account_code: order.account_code,
     daraz_order_id: order.order_id,
     old_daraz_status: order.daraz_status,
-    new_daraz_status: action.darazStatus,
+    new_daraz_status: newStatus,
     old_local_status: order.local_status,
     new_local_status: newLocalStatus,
     change_source: "user_action",
@@ -1564,7 +1370,13 @@ async function changeStatus(orderId, newStatus, userId, options = {}) {
     changed_by: userId || null,
   });
 
-  return summarizeStatusResult(order, action, apiResponse, payload, newLocalStatus);
+  return {
+    success: true,
+    order_id: order.id,
+    daraz_status: newStatus,
+    local_status: newLocalStatus,
+    api_response: apiResponse,
+  };
 }
 
 async function generateAwb(orderId, userId) {

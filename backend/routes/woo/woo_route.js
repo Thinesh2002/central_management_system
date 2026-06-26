@@ -2,8 +2,11 @@ const express = require("express");
 
 const wooAccountController = require("../../controllers/marketplace/woo/woo_controller");
 const wooProductController = require("../../controllers/woo/product/woo_product_controller");
+const { protect } = require("../../middleware/auth");
 
 const router = express.Router();
+
+router.use(protect);
 
 function requireHandler(handler, name) {
   if (typeof handler !== "function") {

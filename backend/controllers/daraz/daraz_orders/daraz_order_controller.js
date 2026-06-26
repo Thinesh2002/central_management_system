@@ -502,8 +502,7 @@ const changeStatus = asyncHandler(async (req, res) => {
   const result = await orderService.changeStatus(
     req.params.id,
     status,
-    req.user?.id || req.user?.user_id || null,
-    req.body || {}
+    req.user?.id || req.user?.user_id || null
   );
 
   return res.json(result);
@@ -581,8 +580,7 @@ const bulkStatus = asyncHandler(async (req, res) => {
         ...(await orderService.changeStatus(
           id,
           status,
-          req.user?.id || req.user?.user_id || null,
-          req.body || {}
+          req.user?.id || req.user?.user_id || null
         )),
       });
     } catch (error) {

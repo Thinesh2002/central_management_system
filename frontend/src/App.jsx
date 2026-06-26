@@ -12,6 +12,11 @@ import DarazProductRoute from "./routes/Daraz/product_management/index";
 import DarazOrderRoute from "./routes/Daraz/orders/index";
 import WooProductsRoutes from "./routes/woo/product_management/index";
 import ManualOrderRoute from "./routes/order_management/orderManagementRoutes";
+import InventoryRoutes from "./routes/inventory/index";
+import FinanceRoutes from "./routes/finance/index";
+import WooOrderRoutes from "./routes/woo/orders/index";
+import DarazFinanceRoutes from "./routes/Daraz/finance/index";
+
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./config/ProtectedRoute";
@@ -88,6 +93,10 @@ export default function App() {
       {DarazOrderRoute()}
       {WooProductsRoutes()}
       {ManualOrderRoute()}
+      {InventoryRoutes()}
+      {FinanceRoutes()}
+      {WooOrderRoutes()}
+      {DarazFinanceRoutes()}
 
       
       {/* Unknown pages */}

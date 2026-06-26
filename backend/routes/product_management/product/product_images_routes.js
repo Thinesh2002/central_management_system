@@ -5,7 +5,10 @@ const {
   validateImageMegapixels,
 } = require("../../../middleware/product_image_upload_middleware");
 
+const { protect } = require("../../../middleware/auth");
+
 const router = express.Router();
+router.use(protect);
 
 router.get("/", productImageController.list);
 

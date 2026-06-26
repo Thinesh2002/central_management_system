@@ -1,7 +1,10 @@
 const express = require("express");
 const controller = require("../../../controllers/daraz/daraz_orders/daraz_order_controller");
+const { protect } = require("../../../middleware/auth");
 
 const router = express.Router();
+
+router.use(protect);
 
 router.get("/health", controller.health);
 router.get("/logs/api", controller.getApiLogs);

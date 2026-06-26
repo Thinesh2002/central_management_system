@@ -1,7 +1,10 @@
 const express = require("express");
 const controller = require("../../../controllers/product_management/product/product_variant_controller");
 
+const { protect } = require("../../../middleware/auth");
+
 const router = express.Router();
+router.use(protect);
 
 router.get("/order-picker", controller.listForOrderPicker);
 

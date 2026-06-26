@@ -19,10 +19,6 @@ const productModelRoutes = require("./routes/product_management/product_model/pr
 const productColourRoutes = require("./routes/product_management/product_colour/product_colour_routes");
 const localProductManagementRoutes = require("./routes/product_management/product/product_management_routes");
 const productVariantRoutes = require("./routes/product_management/product/product_variants_routes");
-const productInventoryRoutes = require("./routes/product_management/product/product_inventory_routes");
-const productPricesRoutes = require("./routes/product_management/product/product_prices_routes");
-const productImagesRoutes = require("./routes/product_management/product/product_images_routes");
-const productsRoutes = require("./routes/product_management/product/products_routes");
 const productCategoryRoutes = require("./routes/product_management/category/category_route");
 const productSubCategoryRoutes = require("./routes/product_management/category/sub_category_route");
 
@@ -32,6 +28,14 @@ const wooRoutes = require("./routes/woo/woo_route");
 const darazFinanceRoutes = require("./routes/daraz/daraz_finance/daraz_finance_route");
 const darazOrderRoutes = require("./routes/daraz/order_management/daraz_order_routes");
 const manualOrderRoutes = require("./routes/order_management/order_routes");
+const inventoryRoutes = require("./routes/inventory/inventory_routes");
+const financeRoutes = require("./routes/finance/finance_routes");
+const wooOrderRoutes = require("./routes/woo/woo_orders_routes");
+const darazOrderStatusRoutes = require("./routes/daraz/order_management/daraz_order_status_routes");
+const marketplaceSkuMappingRoutes = require("./routes/marketplace/sku_mapping_routes");
+const productInventoryRoutes = require("./routes/product_management/product/product_inventory_routes");
+const productImageRoutes = require("./routes/product_management/product/product_images_routes");
+
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -124,10 +128,6 @@ app.use("/api/product-management/models", productModelRoutes);
 app.use("/api/product-management/colours", productColourRoutes);
 app.use("/api/product-management", localProductManagementRoutes);
 app.use("/api/product/product-variants", productVariantRoutes);
-app.use("/api/product/product-inventory", productInventoryRoutes);
-app.use("/api/product/product-prices", productPricesRoutes);
-app.use("/api/product/product-images", productImagesRoutes);
-app.use("/api/product/products", productsRoutes);
 app.use("/api/product/categories", productCategoryRoutes);
 app.use("/api/product/sub-categories", productSubCategoryRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
@@ -136,6 +136,16 @@ app.use("/api/marketplace/woo", wooRoutes);
 app.use("/api/marketplace/daraz/finance", darazFinanceRoutes);
 app.use("/api/daraz/orders", darazOrderRoutes);
 app.use("/api/orders", manualOrderRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/finance", financeRoutes);
+app.use("/api/woo", wooOrderRoutes);
+app.use("/api/daraz/order-status", darazOrderStatusRoutes);
+app.use("/api/marketplace/sku-mappings", marketplaceSkuMappingRoutes);
+
+// Backward-compatible direct product API mounts used by current frontend files.
+app.use("/api/product/product-inventory", productInventoryRoutes);
+app.use("/api/product/product-images", productImageRoutes);
+
 
 app.use(notFound);
 app.use(errorHandler);

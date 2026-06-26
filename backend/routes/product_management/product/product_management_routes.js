@@ -1,6 +1,9 @@
 const express = require("express");
 
+const { protect } = require("../../../middleware/auth");
+
 const router = express.Router();
+router.use(protect);
 
 router.use("/products", require("./products_routes"));
 router.use("/product-variants", require("./product_variants_routes"));

@@ -44,116 +44,33 @@ const iconMap = {
 };
 
 const staticMenu = [
-  {
-    section: "PRODUCTS",
-    page_key: "products",
-    page_name: "Products",
-    path: "/product/local-products",
-    icon: "BarChart3",
-    exact: true,
-  },
-  {
-    section: "PRODUCTS",
-    page_key: "add_product",
-    page_name: "Add Product",
-    path: "/product/local-products/create",
-    icon: "FilePlus2",
-    exact: true,
-  },
-  {
-    section: "PRODUCTS",
-    page_key: "Categorys",
-    page_name: "Categorys",
-    path: "/product/categories",
-    icon: "Grid3X3",
-    exact: true,
-  },
+  { section: "Products", page_key: "local_products", page_name: "Local Products", path: "/product/local-products", icon: "Boxes", exact: true },
+  { section: "Products", page_key: "add_product", page_name: "Add Product", path: "/product/local-products/create", icon: "FilePlus2", exact: true },
+  { section: "Products", page_key: "categories", page_name: "Categories", path: "/product/categories", icon: "Grid3X3", exact: true },
+  { section: "Products", page_key: "colours", page_name: "Colours", path: "/colours", icon: "SlidersHorizontal", exact: true },
+  { section: "Products", page_key: "models", page_name: "Models", path: "/product/models", icon: "Settings2", exact: true },
 
-  {
-    section: "MARKET PLACES",
-    page_key: "Daraz_products",
-    page_name: "Daraz Products",
-    path: "/Daraz/products",
-    icon: "ShoppingBag",
-    exact: true,
-  },
-  {
-    section: "MARKET PLACES",
-    page_key: "woo_products",
-    page_name: "WooCommerce Products",
-    path: "/woo-products",
-    icon: "ShoppingBag",
-    exact: true,
-  },
+  { section: "Inventory", page_key: "inventory_dashboard", page_name: "Inventory Dashboard", path: "/inventory", icon: "ClipboardList", exact: true },
+  { section: "Inventory", page_key: "stock_movements", page_name: "Stock Movements", path: "/inventory/stock-ledger", icon: "ListChecks", exact: true },
+  { section: "Inventory", page_key: "stock_adjustment", page_name: "Stock Adjustment", path: "/inventory/stock-adjustment", icon: "FilePlus2", exact: true },
+  { section: "Inventory", page_key: "low_stock", page_name: "Low Stock", path: "/inventory/low-stock", icon: "PackageSearch", exact: true },
+  { section: "Inventory", page_key: "out_of_stock", page_name: "Out of Stock", path: "/inventory/out-of-stock", icon: "PackageSearch", exact: true },
 
-    {
-    section: "Orders",
-    page_key: "Manual_orders",
-    page_name: "Manual Orders",
-    path: "/manual/orders",
-    icon: "ShoppingBag",
-    exact: true,
-  },
+  { section: "Orders", page_key: "manual_orders", page_name: "Manual Orders", path: "/manual/orders", icon: "ShoppingBag", exact: true },
+  { section: "Orders", page_key: "daraz_orders", page_name: "Daraz Orders", path: "/daraz/orders", icon: "ShoppingBag", exact: true },
+  { section: "Orders", page_key: "woo_orders", page_name: "WooCommerce Orders", path: "/woo/orders", icon: "ShoppingBag", exact: true },
 
-  {
-    section: "Orders",
-    page_key: "Daraz_orders",
-    page_name: "Daraz Orders",
-    path: "/daraz/orders",
-    icon: "ShoppingBag",
-    exact: true,
-  },
+  { section: "Marketplaces", page_key: "marketplace_accounts", page_name: "Marketplace Accounts", path: "/marketplace/accounts", icon: "Store", exact: true },
+  { section: "Marketplaces", page_key: "daraz_products", page_name: "Daraz Products", path: "/daraz/products", icon: "ShoppingBag", exact: true },
+  { section: "Marketplaces", page_key: "woo_products", page_name: "WooCommerce Products", path: "/woo-products", icon: "ShoppingBag", exact: true },
 
-    {
-    section: "Orders",
-    page_key: "Woo_orders",
-    page_name: "WooCommerce Orders",
-    path: "/woo/orders",
-    icon: "ShoppingBag",
-    exact: true,
-  },
+  { section: "Finance", page_key: "net_sales", page_name: "Net Sales", path: "/finance/net-sales", icon: "BarChart3", exact: true },
+  { section: "Finance", page_key: "daraz_finance", page_name: "Daraz Finance", path: "/daraz/finance", icon: "FileSpreadsheet", exact: true },
+  { section: "Finance", page_key: "woo_finance", page_name: "Woo Finance", path: "/woo/finance", icon: "FileSpreadsheet", exact: true },
+  { section: "Finance", page_key: "expenses", page_name: "Expenses", path: "/finance/expenses", icon: "FilePlus2", exact: true },
 
-  
-
-  {
-    section: "INVENTORY",
-    page_key: "inventory",
-    page_name: "Inventory",
-    path: "/inventory",
-    icon: "ClipboardList",
-    exact: true,
-  },
-
-
-    {
-    section: "Logs",
-    page_key: "daraz_synce_logs",
-    page_name: "Logs",
-    path: "/daraz-products/logs",
-    icon: "ScrollText",
-    exact: true,
-  },
-
-      {
-    section: "Logs",
-    page_key: "System Logs",
-    page_name: "System Logs",
-    path: "/logs",
-    icon: "ScrollText",
-    exact: true,
-  },
-
-  {
-    section: "configuration",
-    page_key: "marketplace/accounts",
-    page_name: "Marketplace Accounts",
-    path: "/marketplace/accounts",
-    icon: "Store",
-    exact: true,
-  },
-
-
-
+  { section: "Logs", page_key: "sync_logs", page_name: "Sync Logs", path: "/daraz-products/logs", icon: "ScrollText", exact: true },
+  { section: "Logs", page_key: "system_logs", page_name: "System Logs", path: "/logs", icon: "ScrollText", exact: true },
 ];
 
 function groupMenu(menuItems) {
@@ -185,7 +102,7 @@ export default function Sidebar({ open, onClose }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-58flex-col overflow-hidden border-r border-[#1d2940] bg-[#0f172a] text-slate-100 shadow-2xl shadow-black/40 transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-64 flex-col overflow-hidden border-r border-[#1d2940] bg-[#0f172a] text-slate-100 shadow-2xl shadow-black/40 transition-transform duration-300 lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >

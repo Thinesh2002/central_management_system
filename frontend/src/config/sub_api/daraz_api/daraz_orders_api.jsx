@@ -151,20 +151,20 @@ export const darazOrdersApi = {
     return unwrapFinal(response, ["results", "result"]);
   },
 
-  changeStatus: async (orderId, status, payload = {}) => {
+  changeStatus: async (orderId, status) => {
     if (!status) {
       throw new Error("status is required");
     }
 
     const response = await api.post(
       `${BASE_PATH}/${safeId(orderId, "orderId")}/status`,
-      { ...payload, status }
+      { status }
     );
 
     return unwrapFinal(response, ["order", "result"]);
   },
 
-  bulkChangeStatus: async (orderIds = [], status, payload = {}) => {
+  bulkChangeStatus: async (orderIds = [], status) => {
     if (!Array.isArray(orderIds) || orderIds.length === 0) {
       throw new Error("orderIds array is required");
     }
@@ -174,7 +174,6 @@ export const darazOrdersApi = {
     }
 
     const response = await api.post(`${BASE_PATH}/bulk/status`, {
-      ...payload,
       order_ids: orderIds,
       status,
     });

@@ -179,55 +179,6 @@ export default function useDarazOrders() {
     fetchOrders(cleared, [], true);
   }
 
-  async function changeOrderStatus(orderId, status, payload = {}) {
-    if (!orderId) {
-      setError("Order ID missing for status change.");
-      return null;
-    }
-
-    setError("");
-    setSuccessMessage("");
-
-    try {
-      const result = await darazOrdersApi.changeStatus(orderId, status, payload);
-      setSuccessMessage("Daraz order status updated successfully.");
-      await fetchOrders({ ...filters }, selectedAccountCodes, true);
-      return result;
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.friendlyMessage || err?.message || "Daraz status change failed.");
-      return null;
-    }
-  }
-
-  async function bulkChangeOrderStatus(orderIds = [], status, payload = {}) {
-    const cleanIds = asArray(orderIds).map((id) => String(id || "").trim()).filter(Boolean);
-
-    if (cleanIds.length === 0) {
-      setError("Please select at least one order for bulk status change.");
-      return null;
-    }
-
-    setError("");
-    setSuccessMessage("");
-
-    try {
-      const result = await darazOrdersApi.bulkChangeStatus(cleanIds, status, payload);
-      const failedCount = asArray(result).filter((row) => row?.success === false).length;
-
-      if (failedCount > 0) {
-        setError(`${failedCount} selected orders failed. Other orders may be updated.`);
-      } else {
-        setSuccessMessage(`${cleanIds.length} Daraz orders updated successfully.`);
-      }
-
-      await fetchOrders({ ...filters }, selectedAccountCodes, true);
-      return result;
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.friendlyMessage || err?.message || "Bulk Daraz status change failed.");
-      return null;
-    }
-  }
-
   async function syncAccounts(accountCodes = selectedAccountCodes) {
     const cleanAccountCodes = asArray(accountCodes).filter(Boolean);
     if (cleanAccountCodes.length === 0) {
@@ -279,7 +230,5 @@ export default function useDarazOrders() {
     applyAdvancedFilters,
     clearFilters,
     syncAccounts,
-    changeOrderStatus,
-    bulkChangeOrderStatus,
   };
 }

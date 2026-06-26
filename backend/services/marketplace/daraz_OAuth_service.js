@@ -37,16 +37,11 @@ function addSeconds(seconds) {
 }
 
 function getRedirectUri() {
-  if (process.env.DARAZ_REAUTH_CALLBACK_URL) return process.env.DARAZ_REAUTH_CALLBACK_URL;
-  if (process.env.DARAZ_REDIRECT_URI) return process.env.DARAZ_REDIRECT_URI;
-
-  const publicApiBaseUrl =
-    process.env.BACKEND_PUBLIC_URL ||
-    process.env.API_PUBLIC_URL ||
-    process.env.PUBLIC_API_BASE_URL ||
-    "http://localhost:5000";
-
-  return `${String(publicApiBaseUrl).replace(/\/$/, "")}/api/marketplace/daraz/oauth/callback`;
+  return (
+    process.env.DARAZ_REAUTH_CALLBACK_URL ||
+    process.env.DARAZ_REDIRECT_URI ||
+    "https://www.system.teckvora.com/daraz/callback"
+  );
 }
 
 async function getAccountByIdSafe(accountId) {

@@ -4,13 +4,21 @@ const orderService = require("../../../services/daraz/daraz_orders/daraz_order_s
 const accountModel = require("../../../models/marketplace/account_model");
 
 let isRunning = false;
+let historicalSyncCompleted = false;
+
+const HISTORY_START_DATE = "2020-01-01T00:00:00.000Z";
+const CHUNK_DAYS = 30;
 
 async function getDarazAccounts() {
   if (typeof accountModel.getAllAccounts !== "function") return [];
+
   const accounts = await accountModel.getAllAccounts();
-  return accounts.filter((a) => {
-    const platform = String(a.platform_code || a.platform || "DARAZ").toUpperCase();
-    return platform === "DARAZ" && String(a.status || "active").toLowerCase() !== "inactive";
+
+  return accounts.filter((account) => {
+    const platform = String(account.platform_code || account.platform || "").toUpperCase();
+    const status = String(account.status || account.active_status || "active").toLowerCase();
+
+    return platform === "DARAZ" && status !== "inactive" && status !== "deleted";
   });
 }
 
@@ -18,49 +26,152 @@ function isoMinutesAgo(minutes) {
   return new Date(Date.now() - minutes * 60 * 1000).toISOString();
 }
 
-function startDarazOrderSyncJob() {
-  cron.schedule("*/10 * * * *", async () => {
-    if (isRunning) {
-      console.log("[DARAZ_ORDER_SYNC_JOB]: Previous job still running. Skipping.");
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function isAutoSyncEnabled(settings) {
+  if (!settings) return true;
+
+  if (settings.auto_sync_enabled !== undefined && settings.auto_sync_enabled !== null) {
+    return Number(settings.auto_sync_enabled) === 1;
+  }
+
+  if (settings.sync_enabled !== undefined && settings.sync_enabled !== null) {
+    return Number(settings.sync_enabled) === 1;
+  }
+
+  return true;
+}
+
+function getDaysBack(settings) {
+  const value = Number(settings?.default_order_days_back || 7);
+
+  if (!Number.isFinite(value)) return 7;
+
+  return Math.min(Math.max(value, 1), 30);
+}
+
+function getLimit(settings) {
+  const value = Number(settings?.max_orders_per_sync || 100);
+
+  if (!Number.isFinite(value)) return 100;
+
+  return Math.min(Math.max(value, 1), 500);
+}
+
+async function syncAccountRange(account, dateFrom, dateTo, limit, triggeredBy) {
+  return orderService.syncOrdersForAccount(account, {
+    date_from: dateFrom,
+    date_to: dateTo,
+    limit,
+    sync_items: true,
+    triggered_by: triggeredBy,
+  });
+}
+
+async function syncAccountHistory(account, limit) {
+  let cursor = new Date(HISTORY_START_DATE);
+  const now = new Date();
+
+  while (cursor < now) {
+    const chunkStart = new Date(cursor);
+    const chunkEnd = addDays(chunkStart, CHUNK_DAYS);
+    const finalEnd = chunkEnd > now ? now : chunkEnd;
+
+    try {
+      await syncAccountRange(
+        account,
+        chunkStart.toISOString(),
+        finalEnd.toISOString(),
+        limit,
+        "history_2020"
+      );
+
+      console.log(
+        "[DARAZ_ORDER_SYNC_JOB_HISTORY_SUCCESS]:",
+        account.account_code,
+        chunkStart.toISOString(),
+        finalEnd.toISOString()
+      );
+    } catch (error) {
+      console.error(
+        "[DARAZ_ORDER_SYNC_JOB_HISTORY_ERROR]:",
+        account.account_code,
+        chunkStart.toISOString(),
+        finalEnd.toISOString(),
+        error.message
+      );
+    }
+
+    cursor = finalEnd;
+  }
+}
+
+async function runDarazOrderSync() {
+  if (isRunning) {
+    console.log("[DARAZ_ORDER_SYNC_JOB]: Previous job still running. Skipping.");
+    return;
+  }
+
+  isRunning = true;
+
+  try {
+    const settings = await orderModel.getSyncSettings();
+
+    if (!isAutoSyncEnabled(settings)) {
+      console.log("[DARAZ_ORDER_SYNC_JOB]: Auto sync disabled.");
       return;
     }
 
-    isRunning = true;
-    try {
-      const settings = await orderModel.getSyncSettings();
-      if (settings && Number(settings.auto_sync_enabled) !== 1) {
-        console.log("[DARAZ_ORDER_SYNC_JOB]: Auto sync disabled.");
-        return;
-      }
+    const accounts = await getDarazAccounts();
 
-      const accounts = await getDarazAccounts();
-      if (!accounts.length) {
-        console.log("[DARAZ_ORDER_SYNC_JOB]: No Daraz accounts found.");
-        return;
-      }
-
-      const daysBack = Number(settings?.default_order_days_back || 7);
-      const limit = Number(settings?.max_orders_per_sync || 100);
-
-      for (const account of accounts) {
-        try {
-          await orderService.syncOrdersForAccount(account, {
-            date_from: isoMinutesAgo(daysBack * 24 * 60),
-            date_to: new Date().toISOString(),
-            limit,
-            sync_items: true,
-            triggered_by: "system",
-          });
-        } catch (error) {
-          console.error("[DARAZ_ORDER_SYNC_JOB_ACCOUNT_ERROR]:", account.account_code, error.message);
-        }
-      }
-    } catch (error) {
-      console.error("[DARAZ_ORDER_SYNC_JOB_ERROR]:", error.message);
-    } finally {
-      isRunning = false;
+    if (!accounts.length) {
+      console.log("[DARAZ_ORDER_SYNC_JOB]: No Daraz accounts found.");
+      return;
     }
-  });
+
+    const daysBack = getDaysBack(settings);
+    const limit = getLimit(settings);
+
+    if (!historicalSyncCompleted) {
+      for (const account of accounts) {
+        await syncAccountHistory(account, limit);
+      }
+
+      historicalSyncCompleted = true;
+    }
+
+    for (const account of accounts) {
+      try {
+        await syncAccountRange(
+          account,
+          isoMinutesAgo(daysBack * 24 * 60),
+          new Date().toISOString(),
+          limit,
+          "system"
+        );
+      } catch (error) {
+        console.error(
+          "[DARAZ_ORDER_SYNC_JOB_ACCOUNT_ERROR]:",
+          account.account_code,
+          error.message
+        );
+      }
+    }
+  } catch (error) {
+    console.error("[DARAZ_ORDER_SYNC_JOB_ERROR]:", error.message);
+  } finally {
+    isRunning = false;
+  }
+}
+
+function startDarazOrderSyncJob() {
+  runDarazOrderSync();
+
+  cron.schedule("*/10 * * * *", runDarazOrderSync);
 
   console.log("[DARAZ_ORDER_SYNC_JOB]: Started. Runs every 10 minutes.");
 }
