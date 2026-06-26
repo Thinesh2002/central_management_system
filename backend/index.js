@@ -56,7 +56,7 @@ const PORT = Number(process.env.PORT || 5000);
 
 app.set("trust proxy", 1);
 
-const allowedOrigins = String(process.env.CORS_ORIGIN || "")
+const allowedOrigins = String(process.env.CORS_ORIGIN)
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
