@@ -12,7 +12,7 @@ import {
 import { Link } from "react-router-dom";
 import { wooProductApi } from "../../../config/sub_api/woo_api/woo_product_api";
 
-const DETAIL_BASE_PATH = "/marketplace/woo-products";
+const DETAIL_BASE_PATH = "/woo-products";
 
 function extractAccounts(res) {
   const payload = res?.data;

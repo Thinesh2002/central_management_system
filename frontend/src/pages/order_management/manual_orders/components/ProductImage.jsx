@@ -175,6 +175,10 @@ export default function ProductImage({
       onError={() => {
         setFailed(true);
 
+        console.log("[IMAGE_LOAD_ERROR]", {
+          original: src,
+          normalized: imageUrl,
+        });
       }}
     />
   );

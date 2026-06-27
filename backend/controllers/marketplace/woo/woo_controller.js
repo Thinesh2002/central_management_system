@@ -1,7 +1,5 @@
 const wooModel = require("../../../models/marketplace/woo/woo_model");
 const wooApi = require("../../../services/marketplace/woo/woo_api_service");
-const productTransferService = require("../../../services/marketplace/product_transfer_service");
-const skuMappingModel = require("../../../models/marketplace/sku_mapping_model");
 
 async function connectWooAccount(req, res) {
   const startedAt = new Date();
@@ -289,122 +287,6 @@ async function getWooCategories(req, res) {
   }
 }
 
-
-async function getWooAttributes(req, res) {
-  const startedAt = new Date();
-  const accountId = req.params.accountId;
-
-  try {
-    const credentials = await wooModel.getWooCredentials(accountId);
-    const result = await wooApi.getAttributes(credentials, req.query);
-
-    await wooModel.logApiRequest({
-      account_id: accountId,
-      endpoint: "/products/attributes",
-      http_method: "GET",
-      request_type: "products",
-      response_status_code: 200,
-      api_status: "success",
-      request_summary: req.query,
-      response_summary: { total: result.total, total_pages: result.total_pages },
-      request_time: startedAt,
-      response_time: new Date(),
-      duration_ms: new Date() - startedAt,
-    });
-
-    return res.json({ success: true, total: result.total, total_pages: result.total_pages, data: result.data });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: "Failed to load WooCommerce attributes.", error: error.message });
-  }
-}
-
-async function createWooProduct(req, res) {
-  const startedAt = new Date();
-  const accountId = req.params.accountId;
-
-  try {
-    const credentials = await wooModel.getWooCredentials(accountId);
-    const result = await wooApi.createProduct(credentials, req.body || {});
-
-    if (Array.isArray(req.body?.mappings)) {
-      for (const mapping of req.body.mappings) {
-        await skuMappingModel.upsert({ ...mapping, platform: "WOO", account_id: accountId, status: mapping.status || "ACTIVE" });
-      }
-    }
-
-    await wooModel.logApiRequest({
-      account_id: accountId,
-      endpoint: "/products",
-      http_method: "POST",
-      request_type: "products",
-      response_status_code: result.status_code || 201,
-      api_status: "success",
-      request_summary: req.body,
-      response_summary: result.data,
-      request_time: startedAt,
-      response_time: new Date(),
-      duration_ms: new Date() - startedAt,
-    });
-
-    return res.status(201).json({ success: true, message: "WooCommerce product created.", data: result.data });
-  } catch (error) {
-    await wooModel.logApiRequest({ account_id: accountId, endpoint: "/products", http_method: "POST", request_type: "products", api_status: "failed", error_message: error.message, request_summary: req.body, request_time: startedAt, response_time: new Date(), duration_ms: new Date() - startedAt });
-    return res.status(500).json({ success: false, message: "Failed to create WooCommerce product.", error: error.message });
-  }
-}
-
-async function updateWooProduct(req, res) {
-  const startedAt = new Date();
-  const accountId = req.params.accountId;
-  const wooProductId = req.params.wooProductId;
-
-  try {
-    const credentials = await wooModel.getWooCredentials(accountId);
-    const result = req.method === "PATCH"
-      ? await wooApi.patchProduct(credentials, wooProductId, req.body || {})
-      : await wooApi.updateProduct(credentials, wooProductId, req.body || {});
-
-    if (Array.isArray(req.body?.mappings)) {
-      for (const mapping of req.body.mappings) {
-        await skuMappingModel.upsert({ ...mapping, platform: "WOO", account_id: accountId, marketplace_product_id: wooProductId, status: mapping.status || "ACTIVE" });
-      }
-    }
-
-    await wooModel.logApiRequest({
-      account_id: accountId,
-      endpoint: `/products/${wooProductId}`,
-      http_method: req.method,
-      request_type: "products",
-      response_status_code: result.status_code || 200,
-      api_status: "success",
-      request_summary: req.body,
-      response_summary: result.data,
-      request_time: startedAt,
-      response_time: new Date(),
-      duration_ms: new Date() - startedAt,
-    });
-
-    return res.json({ success: true, message: "WooCommerce product updated.", data: result.data });
-  } catch (error) {
-    await wooModel.logApiRequest({ account_id: accountId, endpoint: `/products/${wooProductId}`, http_method: req.method, request_type: "products", api_status: "failed", error_message: error.message, request_summary: req.body, request_time: startedAt, response_time: new Date(), duration_ms: new Date() - startedAt });
-    return res.status(500).json({ success: false, message: "Failed to update WooCommerce product.", error: error.message });
-  }
-}
-
-async function transferLocalToWoo(req, res) {
-  try {
-    const data = await productTransferService.transferLocalToWoo({
-      productId: req.params.productId,
-      payload: req.body || {},
-      userId: req.user?.id || null,
-    });
-
-    return res.status(201).json({ success: true, message: "Local product transferred to WooCommerce.", data });
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message || "WooCommerce transfer failed.", error: error.message });
-  }
-}
-
 module.exports = {
   connectWooAccount,
   listWooAccounts,
@@ -412,8 +294,4 @@ module.exports = {
   getWooProducts,
   getWooOrders,
   getWooCategories,
-  getWooAttributes,
-  createWooProduct,
-  updateWooProduct,
-  transferLocalToWoo,
 };

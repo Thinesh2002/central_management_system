@@ -17,9 +17,11 @@ function sendSuccess(res, message, data) {
 }
 
 function sendError(res, error) {
+  console.error("[DARAZ_FINANCE_CONTROLLER_ERROR]:", error);
+
   return res.status(error.statusCode || 500).json({
     success: false,
-    message: error.message || "Daraz finance API request failed.",
+    message: cleanDarazPermissionMessage(error),
     daraz_error: error.daraz || null,
   });
 }
@@ -27,6 +29,40 @@ function sendError(res, error) {
 /* =====================================================
    PLAIN TEXT CREDENTIAL HELPERS
 ===================================================== */
+
+
+function padDateTime(value, endOfDay = false) {
+  if (!value) return value;
+  const text = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return `${text} ${endOfDay ? "23:59:59" : "00:00:00"}`;
+  }
+  return text;
+}
+
+function defaultFinanceRange(req) {
+  const body = req.body || {};
+  const rawStart = req.query.start_time || body.start_time || req.query.date_from || body.date_from;
+  const rawEnd = req.query.end_time || body.end_time || req.query.date_to || body.date_to;
+
+  const endDate = new Date();
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const start = rawStart || startDate.toISOString().slice(0, 10);
+  const end = rawEnd || endDate.toISOString().slice(0, 10);
+
+  return {
+    start_time: padDateTime(start, false),
+    end_time: padDateTime(end, true),
+  };
+}
+
+function cleanDarazPermissionMessage(error) {
+  const text = String(error?.message || error?.daraz?.message || error?.code || "").toLowerCase();
+  if (text.includes("access") || text.includes("permission") || text.includes("isv") || text.includes("unauthorized")) {
+    return "This Daraz account/app does not have permission for this API. Please enable the permission in Daraz App Console and re-authorize this account.";
+  }
+  return error.message || "Daraz finance API request failed.";
+}
 
 function safePlain(value) {
   if (value === undefined || value === null || value === "") return null;
@@ -219,22 +255,10 @@ function validateCreatedAfter(created_after) {
   return null;
 }
 
-function defaultDateOnly(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function resolveDateRange(req) {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - 30);
-
-  return {
-    start_time: req.query.start_time || req.query.date_from || req.body?.start_time || req.body?.date_from || defaultDateOnly(start),
-    end_time: req.query.end_time || req.query.date_to || req.body?.end_time || req.body?.date_to || defaultDateOnly(end),
-  };
-}
-
 function validateDateRange(start_time, end_time) {
+  if (!start_time || !end_time) {
+    return "start_time and end_time are required.";
+  }
 
   const startDate = new Date(start_time);
   const endDate = new Date(end_time);
@@ -315,7 +339,7 @@ async function getPayoutStatus(req, res) {
 
 async function getTransactionDetails(req, res) {
   try {
-    const { start_time, end_time } = resolveDateRange(req);
+    const { start_time, end_time } = defaultFinanceRange(req);
 
     const dateError = validateDateRange(start_time, end_time);
     if (dateError) {
@@ -359,7 +383,7 @@ async function getTransactionDetails(req, res) {
 
 async function getFinanceSummary(req, res) {
   try {
-    const { start_time, end_time } = resolveDateRange(req);
+    const { start_time, end_time } = defaultFinanceRange(req);
 
     const dateError = validateDateRange(start_time, end_time);
     if (dateError) {
@@ -404,7 +428,7 @@ async function getOrderFinanceDetails(req, res) {
       req.query.trade_order_id ||
       req.body?.trade_order_id;
 
-    const { start_time, end_time } = resolveDateRange(req);
+    const { start_time, end_time } = defaultFinanceRange(req);
 
     if (!trade_order_id) {
       return res.status(400).json({

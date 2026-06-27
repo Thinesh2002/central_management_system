@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
+import api from "../../../config/api";
 import ProductPageLayout from "./components/ProductPageLayout";
 import { getErrorMessage, normalizeList } from "./utils/productSku";
 
@@ -20,10 +21,14 @@ const ALLOWED_TYPES = [
 ];
 
 const RAW_API_BASE_URL = String(
-  import.meta.env.VITE_API_BASE_URL 
+  import.meta.env.VITE_IMAGE_BASE_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    api.defaults?.baseURL ||
+    window.location.origin
 ).replace(/\/$/, "");
 
-const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api$/, "");
+const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/?$/, "");
 
 function buildImageUrl(value) {
   if (!value) return "";

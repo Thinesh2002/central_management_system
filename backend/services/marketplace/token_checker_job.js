@@ -127,6 +127,7 @@ async function checkMarketplaceTokens() {
 
       await safeUpdateAccountStatus(account.id, "active", "connected", null);
 
+      // Keep terminal clean. Full per-account details are saved in marketplace health/log tables.
     } catch (error) {
       failed += 1;
 
@@ -170,15 +171,16 @@ async function checkMarketplaceTokens() {
 function startMarketplaceTokenCheckerJob() {
   cron.schedule("*/15 * * * *", async () => {
     if (isRunning) {
+      console.log("[MARKETPLACE_TOKEN_JOB]: Previous job still running. Skipping.");
       return;
     }
 
     isRunning = true;
 
     try {
-
       const summary = await checkMarketplaceTokens();
 
+      console.log(`[MARKETPLACE_TOKEN_JOB] Success: ${summary.valid + summary.refreshed} | Failed: ${summary.failed} | Checked: ${summary.checked} | Skipped: ${summary.skipped}`);
     } catch (error) {
       console.error("[MARKETPLACE_TOKEN_JOB_ERROR]:", {
         message: error?.message || "Marketplace token checker failed.",
@@ -191,6 +193,7 @@ function startMarketplaceTokenCheckerJob() {
     }
   });
 
+  console.log("[MARKETPLACE_TOKEN_JOB]: Scheduler started. Runs every 15 minutes.");
 }
 
 module.exports = {

@@ -6,13 +6,6 @@ const router = express.Router();
 
 router.use(protect);
 
-router.get("/categories/:accountId", darazProductSyncController.getCategoryTree);
-router.get("/category-attributes/:accountId", darazProductSyncController.getCategoryAttributes);
-router.get("/category-attributes/:accountId/:categoryId", darazProductSyncController.getCategoryAttributes);
-router.post("/create/:accountId", darazProductSyncController.createDarazProduct);
-router.post("/update/:accountId", darazProductSyncController.updateDarazProduct);
-router.put("/update/:accountId", darazProductSyncController.updateDarazProduct);
-router.post("/transfer-local/:productId", darazProductSyncController.transferLocalToDaraz);
 router.post("/sync/:accountId", darazProductSyncController.manualSync);
 router.get("/preview", darazProductSyncController.previewProducts);
 router.get("/runs", darazProductSyncController.syncRuns);

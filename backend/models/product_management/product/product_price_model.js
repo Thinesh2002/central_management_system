@@ -136,26 +136,8 @@ function normalizePricePayload(meta, payload = {}, mode = "create") {
       data.cost_price = 0;
     }
 
-    if (hasColumn(meta, "profit_percentage") && data.profit_percentage === undefined) {
-      data.profit_percentage = 50;
-    }
-
-    const autoSellingPrice = toMoney(Number(data.cost_price || 0) + Number(data.cost_price || 0) * (Number(data.profit_percentage || 50) / 100));
-
-    if (hasColumn(meta, "selling_price") && data.selling_price === undefined) {
-      data.selling_price = autoSellingPrice;
-    }
-
     if (hasColumn(meta, "sale_price") && data.sale_price === undefined) {
-      data.sale_price = data.selling_price ?? autoSellingPrice;
-    }
-
-    if (hasColumn(meta, "daraz_price") && data.daraz_price === undefined) {
-      data.daraz_price = data.selling_price ?? autoSellingPrice;
-    }
-
-    if (hasColumn(meta, "woo_price") && data.woo_price === undefined) {
-      data.woo_price = data.selling_price ?? autoSellingPrice;
+      data.sale_price = 0;
     }
   }
 
@@ -377,6 +359,12 @@ async function updateById(id, payload = {}, options = {}) {
     values
   );
 
+  console.log("[PRODUCT_PRICE_UPDATE_BY_ID]", {
+    id,
+    data,
+    affectedRows: result.affectedRows,
+    changedRows: result.changedRows,
+  });
 
   if (!result.affectedRows) {
     return null;
@@ -436,6 +424,12 @@ async function updateBySku(sku, payload = {}, options = {}) {
     values
   );
 
+  console.log("[PRODUCT_PRICE_UPDATE_BY_SKU]", {
+    sku: cleanSku,
+    data,
+    affectedRows: result.affectedRows,
+    changedRows: result.changedRows,
+  });
 
   if (!result.affectedRows) {
     return null;

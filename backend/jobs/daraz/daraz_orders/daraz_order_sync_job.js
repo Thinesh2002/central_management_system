@@ -90,6 +90,12 @@ async function syncAccountHistory(account, limit) {
         "history_2020"
       );
 
+      console.log(
+        "[DARAZ_ORDER_SYNC_JOB_HISTORY_SUCCESS]:",
+        account.account_code,
+        chunkStart.toISOString(),
+        finalEnd.toISOString()
+      );
     } catch (error) {
       console.error(
         "[DARAZ_ORDER_SYNC_JOB_HISTORY_ERROR]:",
@@ -106,6 +112,7 @@ async function syncAccountHistory(account, limit) {
 
 async function runDarazOrderSync() {
   if (isRunning) {
+    console.log("[DARAZ_ORDER_SYNC_JOB]: Previous job still running. Skipping.");
     return;
   }
 
@@ -115,12 +122,14 @@ async function runDarazOrderSync() {
     const settings = await orderModel.getSyncSettings();
 
     if (!isAutoSyncEnabled(settings)) {
+      console.log("[DARAZ_ORDER_SYNC_JOB]: Auto sync disabled.");
       return;
     }
 
     const accounts = await getDarazAccounts();
 
     if (!accounts.length) {
+      console.log("[DARAZ_ORDER_SYNC_JOB]: No Daraz accounts found.");
       return;
     }
 
@@ -164,6 +173,7 @@ function startDarazOrderSyncJob() {
 
   cron.schedule("*/10 * * * *", runDarazOrderSync);
 
+  console.log("[DARAZ_ORDER_SYNC_JOB]: Started. Runs every 10 minutes.");
 }
 
 module.exports = {

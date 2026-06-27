@@ -71,23 +71,23 @@ function formatDate(value) {
 function statusClass(status) {
   const normal = String(status || "").toLowerCase();
 
-  if (normal.includes("deliver")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-  if (normal.includes("cancel")) return "bg-rose-50 text-rose-700 border-rose-200";
-  if (normal.includes("ship")) return "bg-blue-50 text-blue-700 border-blue-200";
-  if (normal.includes("pack") || normal.includes("ready")) return "bg-amber-50 text-amber-700 border-amber-200";
-  if (normal.includes("pending")) return "bg-slate-50 text-slate-700 border-slate-200";
+  if (normal.includes("deliver")) return "bg-emerald-400/10 text-emerald-200 border-emerald-400/20";
+  if (normal.includes("cancel")) return "bg-rose-400/10 text-rose-200 border-rose-400/20";
+  if (normal.includes("ship")) return "bg-sky-400/10 text-sky-200 border-sky-400/20";
+  if (normal.includes("pack") || normal.includes("ready")) return "bg-orange-400/10 text-orange-200 border-orange-400/20";
+  if (normal.includes("pending")) return "bg-slate-400/10 text-slate-200 border-slate-600";
 
-  return "bg-slate-50 text-slate-700 border-slate-200";
+  return "bg-slate-400/10 text-slate-200 border-slate-600";
 }
 
 function InfoCard({ icon: Icon, title, children }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-[#3b2632] bg-[#111827] p-4 shadow-sm shadow-black/20">
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-700">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-orange-400/20 bg-orange-500/10 text-orange-200">
           <Icon size={20} />
         </div>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">{title}</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-200">{title}</h2>
       </div>
       {children}
     </div>
@@ -97,8 +97,8 @@ function InfoCard({ icon: Icon, title, children }) {
 function Field({ label, value }) {
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-slate-800">{value || "-"}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-slate-100">{value || "-"}</p>
     </div>
   );
 }
@@ -205,8 +205,8 @@ export default function DarazOrderDetail() {
 
   if (loading && !order) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-        <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-600 shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-[#070b16] p-6 text-slate-100">
+        <div className="flex items-center gap-3 rounded-3xl border border-[#26334a] bg-[#111827] px-5 py-4 text-sm font-semibold text-slate-600 shadow-sm">
           <RefreshCw size={18} className="animate-spin" />
           Loading order details...
         </div>
@@ -228,21 +228,21 @@ export default function DarazOrderDetail() {
   const canPrintDocs = !isFinalStatus && (normalizedStatus.includes("ready") || normalizedStatus.includes("ship"));
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-[#070b16] p-4 text-slate-100 sm:p-6">
       <div className="mx-auto max-w-[1600px] space-y-4">
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-[#3b2632] bg-[#111827] p-4 shadow-sm shadow-black/20">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 hover:bg-slate-50"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#26334a] text-slate-200 hover:bg-[#070b16]"
               >
                 <ArrowLeft size={20} />
               </button>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-bold text-slate-900">Order #{orderNumber}</h1>
+                  <h1 className="text-xl font-bold text-slate-100">Order #{orderNumber}</h1>
                   <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClass(status)}`}>
                     {status}
                   </span>
@@ -258,7 +258,7 @@ export default function DarazOrderDetail() {
                 type="button"
                 onClick={loadOrder}
                 disabled={loading}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#26334a] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#070b16] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                 Refresh
@@ -293,7 +293,7 @@ export default function DarazOrderDetail() {
                   type="button"
                   onClick={handleCancelOrder}
                   disabled={!!actionLoading}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-[#111827] px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel Order
                 </button>
@@ -304,7 +304,7 @@ export default function DarazOrderDetail() {
                   type="button"
                   onClick={handlePrintInvoice}
                   disabled={!!actionLoading}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[#26334a] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#070b16] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Download size={16} className={actionLoading === "invoice" ? "animate-pulse" : ""} />
                   Print Invoice
@@ -315,7 +315,7 @@ export default function DarazOrderDetail() {
                 type="button"
                 onClick={handleSetInvoiceNumber}
                 disabled={!!actionLoading}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#26334a] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#070b16] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Set Invoice Number
               </button>
@@ -324,7 +324,7 @@ export default function DarazOrderDetail() {
                 type="button"
                 onClick={handleSyncStatus}
                 disabled={!!actionLoading}
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#26334a] bg-[#111827] px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#070b16] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCw size={16} className={actionLoading === "status" ? "animate-spin" : ""} />
                 Sync Daraz Status
@@ -408,14 +408,14 @@ export default function DarazOrderDetail() {
           </InfoCard>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-4">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Order Items</h2>
+        <div className="overflow-hidden rounded-2xl border border-[#3b2632] bg-[#111827] shadow-sm shadow-black/20">
+          <div className="border-b border-[#26334a] p-4">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-200">Order Items</h2>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100 text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <table className="min-w-full divide-y divide-[#26334a] text-sm">
+              <thead className="bg-[#1b2a3a] text-xs uppercase tracking-wide text-orange-300">
                 <tr>
                   <th className="px-4 py-3 text-left">Product</th>
                   <th className="px-4 py-3 text-left">SKU</th>
@@ -426,7 +426,7 @@ export default function DarazOrderDetail() {
                   <th className="px-4 py-3 text-right">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-[#26334a] bg-[#111827]">
                 {items.length === 0 && (
                   <tr>
                     <td colSpan="7" className="px-4 py-10 text-center text-slate-500">
@@ -441,27 +441,27 @@ export default function DarazOrderDetail() {
                   const itemCurrency = valueOf(item, ["currency"], currency);
 
                   return (
-                    <tr key={`${valueOf(item, ["id", "order_item_id"], index)}-${index}`} className="hover:bg-slate-50">
+                    <tr key={`${valueOf(item, ["id", "order_item_id"], index)}-${index}`} className="hover:bg-[#16233a]">
                       <td className="min-w-[320px] px-4 py-3 align-top">
                         <div className="flex items-start gap-3">
-                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#26334a] bg-white">
                             {image ? (
                               <img src={image} alt="Product" className="h-full w-full object-cover" />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center text-slate-400">
+                              <div className="flex h-full w-full items-center justify-center text-slate-500">
                                 <Package size={20} />
                               </div>
                             )}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900">{valueOf(item, ["product_name", "name", "item_name"], "-")}</p>
+                            <p className="font-bold text-slate-100">{valueOf(item, ["product_name", "name", "item_name"], "-")}</p>
                             <p className="mt-1 text-xs text-slate-500">Item ID: {valueOf(item, ["order_item_id"], "-")}</p>
                             <p className="text-xs text-slate-500">Variation: {valueOf(item, ["variation"], "-")}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <p className="font-semibold text-slate-800">{valueOf(item, ["seller_sku", "sku"], "-")}</p>
+                        <p className="font-semibold text-slate-100">{valueOf(item, ["seller_sku", "sku"], "-")}</p>
                         <p className="text-xs text-slate-500">Shop SKU: {valueOf(item, ["shop_sku"], "-")}</p>
                       </td>
                       <td className="px-4 py-3 align-top">
@@ -470,12 +470,12 @@ export default function DarazOrderDetail() {
                         </span>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <p className="font-semibold text-slate-800">{valueOf(item, ["tracking_number"], "-")}</p>
+                        <p className="font-semibold text-slate-100">{valueOf(item, ["tracking_number"], "-")}</p>
                         <p className="text-xs text-slate-500">{valueOf(item, ["shipment_provider"], "-")}</p>
                       </td>
-                      <td className="px-4 py-3 text-right align-top font-semibold text-slate-800">{valueOf(item, ["quantity"], 1)}</td>
-                      <td className="px-4 py-3 text-right align-top font-semibold text-slate-800">{money(valueOf(item, ["paid_price", "unit_price", "price"], 0), itemCurrency)}</td>
-                      <td className="px-4 py-3 text-right align-top font-bold text-slate-900">{money(valueOf(item, ["total_amount", "paid_price"], 0), itemCurrency)}</td>
+                      <td className="px-4 py-3 text-right align-top font-semibold text-slate-100">{valueOf(item, ["quantity"], 1)}</td>
+                      <td className="px-4 py-3 text-right align-top font-semibold text-slate-100">{money(valueOf(item, ["paid_price", "unit_price", "price"], 0), itemCurrency)}</td>
+                      <td className="px-4 py-3 text-right align-top font-bold text-slate-100">{money(valueOf(item, ["total_amount", "paid_price"], 0), itemCurrency)}</td>
                     </tr>
                   );
                 })}
@@ -484,8 +484,8 @@ export default function DarazOrderDetail() {
           </div>
         </div>
 
-        <details className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <summary className="cursor-pointer text-sm font-bold text-slate-700">Raw Order JSON</summary>
+        <details className="rounded-2xl border border-[#3b2632] bg-[#111827] p-4 shadow-sm shadow-black/20">
+          <summary className="cursor-pointer text-sm font-bold text-slate-200">Raw Daraz Order JSON</summary>
           <pre className="mt-4 max-h-[500px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
             {JSON.stringify(order, null, 2)}
           </pre>

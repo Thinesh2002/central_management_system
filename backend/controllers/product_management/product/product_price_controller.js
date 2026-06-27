@@ -99,33 +99,21 @@ function normalizePriceBody(body = {}) {
     body.purchasePrice
   );
 
-  const profitPercentage = pickFirstDefined(body.profit_percentage, body.profitPercent, 50);
-  const autoSellingPrice = costPrice !== undefined
-    ? toMoney(Number(costPrice || 0) + Number(costPrice || 0) * (Number(profitPercentage || 50) / 100))
-    : undefined;
-
   if (salePrice !== undefined) {
     payload.sale_price = toMoney(salePrice);
-    payload.selling_price = toMoney(salePrice);
-  } else if (autoSellingPrice !== undefined) {
-    payload.sale_price = autoSellingPrice;
-    payload.selling_price = autoSellingPrice;
   }
 
   if (costPrice !== undefined) {
     payload.cost_price = toMoney(costPrice);
   }
 
-  payload.profit_percentage = toMoney(profitPercentage) ?? 50;
-
-  if (body.daraz_price !== undefined) payload.daraz_price = toMoney(body.daraz_price);
-  if (body.woo_price !== undefined) payload.woo_price = toMoney(body.woo_price);
-
   delete payload.sales_price;
+  delete payload.selling_price;
   delete payload.sell_price;
   delete payload.price;
   delete payload.salePrice;
   delete payload.salesPrice;
+  delete payload.sellingPrice;
 
   delete payload.cost;
   delete payload.buying_price;
@@ -288,6 +276,7 @@ const create = asyncHandler(async (req, res) => {
     throw badRequestError("No valid price fields supplied.");
   }
 
+  console.log("[PRODUCT_PRICE_CREATE_PAYLOAD]", payload);
 
   const created =
     typeof model.upsertBySku === "function"
@@ -320,6 +309,10 @@ const update = asyncHandler(async (req, res) => {
     );
   }
 
+  console.log("[PRODUCT_PRICE_UPDATE_BY_ID_PAYLOAD]", {
+    id: req.params.id,
+    payload,
+  });
 
   const updated = await model.updateById(req.params.id, payload, {
     userId: getUserId(req),
@@ -329,6 +322,12 @@ const update = asyncHandler(async (req, res) => {
 
   const changedFields = getChangedFields(before, updated, payload);
 
+  console.log("[PRODUCT_PRICE_UPDATE_BY_ID_RESULT]", {
+    id: req.params.id,
+    changedFields,
+    before,
+    updated,
+  });
 
   if (!Object.keys(changedFields).length) {
     return res.status(200).json({
@@ -374,6 +373,10 @@ const updateBySku = asyncHandler(async (req, res) => {
     );
   }
 
+  console.log("[PRODUCT_PRICE_UPDATE_BY_SKU_PAYLOAD]", {
+    sku,
+    payload,
+  });
 
   const updated =
     typeof model.updateBySku === "function"
@@ -384,6 +387,12 @@ const updateBySku = asyncHandler(async (req, res) => {
 
   const changedFields = getChangedFields(before, updated, payload);
 
+  console.log("[PRODUCT_PRICE_UPDATE_BY_SKU_RESULT]", {
+    sku,
+    changedFields,
+    before,
+    updated,
+  });
 
   if (!Object.keys(changedFields).length) {
     return res.status(200).json({

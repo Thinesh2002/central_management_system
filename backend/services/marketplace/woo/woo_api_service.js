@@ -150,59 +150,10 @@ async function getCategories(credentials, query = {}) {
   };
 }
 
-async function getAttributes(credentials, query = {}) {
-  const client = createWooClient(credentials);
-
-  const response = await client.get("/products/attributes", {
-    params: {
-      page: query.page || 1,
-      per_page: query.per_page || 100,
-      search: query.search || undefined,
-      orderby: query.orderby || "name",
-      order: query.order || "asc",
-    },
-  });
-
-  return {
-    data: response.data,
-    total: Number(response.headers["x-wp-total"] || 0),
-    total_pages: Number(response.headers["x-wp-totalpages"] || 0),
-  };
-}
-
-async function createProduct(credentials, payload = {}) {
-  const client = createWooClient(credentials);
-  const response = await client.post("/products", payload);
-  return { data: response.data, status_code: response.status };
-}
-
-async function updateProduct(credentials, productId, payload = {}) {
-  const client = createWooClient(credentials);
-  const response = await client.put(`/products/${encodeURIComponent(productId)}`, payload);
-  return { data: response.data, status_code: response.status };
-}
-
-async function patchProduct(credentials, productId, payload = {}) {
-  const client = createWooClient(credentials);
-  const response = await client.patch(`/products/${encodeURIComponent(productId)}`, payload);
-  return { data: response.data, status_code: response.status };
-}
-
-async function createVariation(credentials, productId, payload = {}) {
-  const client = createWooClient(credentials);
-  const response = await client.post(`/products/${encodeURIComponent(productId)}/variations`, payload);
-  return { data: response.data, status_code: response.status };
-}
-
 module.exports = {
   cleanStoreUrl,
   testConnection,
   getProducts,
   getOrders,
   getCategories,
-  getAttributes,
-  createProduct,
-  updateProduct,
-  patchProduct,
-  createVariation,
 };

@@ -1,3 +1,5 @@
+import api from "../../../../../config/api";
+
 export const EMPTY_IMAGE =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(`
@@ -16,7 +18,8 @@ export const IMAGE_BASE_URL =
   import.meta.env.VITE_IMAGE_BASE_URL ||
   import.meta.env.VITE_API_BASE_URL ||
   import.meta.env.VITE_API_URL ||
-  "http://localhost:5000";
+  api.defaults?.baseURL ||
+  window.location.origin;
 
 export const IMAGE_FIELD_KEYS = [
   "image_url",

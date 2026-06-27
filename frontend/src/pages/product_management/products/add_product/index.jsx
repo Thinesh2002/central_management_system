@@ -27,11 +27,10 @@ function FieldWrap({ label, required, children, hint }) {
   );
 }
 
-function TextField({ label, value, onChange, required, placeholder, disabled, hint, type = "text" }) {
+function TextField({ label, value, onChange, required, placeholder, disabled, hint }) {
   return (
     <FieldWrap label={label} required={required} hint={hint}>
       <input
-        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         required={required}
@@ -163,11 +162,6 @@ export default function LocalProductAddPage() {
     main_price: 0,
     cost_price: 0,
     sale_price: 0,
-    selling_price: 0,
-    profit_percentage: 50,
-    daraz_price: 0,
-    woo_price: 0,
-    selling_price_manual: 0,
     currency: "LKR",
     created_by: 1,
     updated_by: 1,
@@ -175,47 +169,6 @@ export default function LocalProductAddPage() {
 
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  function calculateSellingPrice(costPrice, profitPercentage = 50) {
-    const cost = Number(costPrice || 0);
-    const profit = Number(profitPercentage || 0);
-    if (!Number.isFinite(cost) || cost <= 0) return 0;
-    return Number((cost + cost * (profit / 100)).toFixed(2));
-  }
-
-  function handleCostPriceChange(value) {
-    setForm((prev) => {
-      const autoPrice = calculateSellingPrice(value, prev.profit_percentage || 50);
-      if (Number(prev.selling_price_manual) === 1) return { ...prev, cost_price: value };
-      return {
-        ...prev,
-        cost_price: value,
-        selling_price: autoPrice,
-        sale_price: autoPrice,
-        main_price: autoPrice,
-        daraz_price: prev.daraz_price || autoPrice,
-        woo_price: prev.woo_price || autoPrice,
-      };
-    });
-  }
-
-  function handleProfitChange(value) {
-    setForm((prev) => {
-      const autoPrice = calculateSellingPrice(prev.cost_price, value);
-      if (Number(prev.selling_price_manual) === 1) return { ...prev, profit_percentage: value };
-      return { ...prev, profit_percentage: value, selling_price: autoPrice, sale_price: autoPrice, main_price: autoPrice };
-    });
-  }
-
-  function handleSellingPriceChange(value) {
-    setForm((prev) => ({
-      ...prev,
-      selling_price: value,
-      sale_price: value,
-      main_price: value,
-      selling_price_manual: 1,
-    }));
   }
 
   async function loadMasters() {
@@ -366,11 +319,7 @@ export default function LocalProductAddPage() {
         has_variants: Number(form.has_variants),
         main_price: Number(form.main_price || 0),
         cost_price: Number(form.cost_price || 0),
-        sale_price: Number(form.selling_price || form.sale_price || 0),
-        selling_price: Number(form.selling_price || form.sale_price || 0),
-        daraz_price: Number(form.daraz_price || form.selling_price || 0),
-        woo_price: Number(form.woo_price || form.selling_price || 0),
-        profit_percentage: Number(form.profit_percentage || 50),
+        sale_price: Number(form.sale_price || 0),
       };
 
       const response = await localProductsApi.createProduct(payload);
@@ -565,44 +514,6 @@ export default function LocalProductAddPage() {
                 <option value="USD">USD</option>
                 <option value="GBP">GBP</option>
               </SelectField>
-
-              <TextField
-                label="Cost Price"
-                type="number"
-                value={form.cost_price}
-                onChange={handleCostPriceChange}
-                placeholder="0.00"
-              />
-
-              <TextField
-                label="Profit %"
-                type="number"
-                value={form.profit_percentage}
-                onChange={handleProfitChange}
-                hint="Default 50%"
-              />
-
-              <TextField
-                label="Selling Price"
-                type="number"
-                value={form.selling_price}
-                onChange={handleSellingPriceChange}
-                hint="Auto cost + 50%, editable"
-              />
-
-              <TextField
-                label="Daraz Price"
-                type="number"
-                value={form.daraz_price}
-                onChange={(value) => updateField("daraz_price", value)}
-              />
-
-              <TextField
-                label="Woo Price"
-                type="number"
-                value={form.woo_price}
-                onChange={(value) => updateField("woo_price", value)}
-              />
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4">

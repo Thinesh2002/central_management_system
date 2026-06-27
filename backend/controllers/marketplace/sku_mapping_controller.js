@@ -16,26 +16,4 @@ const remove = asyncHandler(async (req, res) => {
   return res.json({ success: true, message: 'Marketplace SKU mapping deleted.', data });
 });
 
-
-const bulk = asyncHandler(async (req, res) => {
-  const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
-  const data = await model.bulkUpsert(rows);
-  return res.status(201).json({ success: true, message: 'Marketplace SKU mappings saved.', data, rows: data });
-});
-
-const duplicateCheck = asyncHandler(async (req, res) => {
-  const data = await model.duplicateCheck({ ...(req.query || {}), ...(req.body || {}) });
-  return res.json({ success: true, message: 'SKU duplicate check completed.', data });
-});
-
-const suggestions = asyncHandler(async (req, res) => {
-  const rows = await model.localSkuSuggestions(req.query || {});
-  return res.json({ success: true, message: 'Local SKU suggestions loaded.', data: rows, rows });
-});
-
-const unmapped = asyncHandler(async (req, res) => {
-  const rows = await model.unmapped(req.query || {});
-  return res.json({ success: true, message: 'Unmapped marketplace SKUs loaded.', data: rows, rows });
-});
-
-module.exports = { list, save, remove, bulk, duplicateCheck, suggestions, unmapped };
+module.exports = { list, save, remove };

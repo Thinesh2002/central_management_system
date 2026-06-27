@@ -20,6 +20,17 @@ import {
   Settings2,
   ClipboardList,
   FileSpreadsheet,
+  Search,
+  Calculator,
+  TrendingUp,
+  Bell,
+  DatabaseBackup,
+  Truck,
+  RotateCcw,
+  Shield,
+  ClipboardCheck,
+  PackageCheck,
+  GitBranch,
 } from "lucide-react";
 
 const iconMap = {
@@ -41,16 +52,30 @@ const iconMap = {
   Settings2,
   ClipboardList,
   FileSpreadsheet,
+  Search,
+  Calculator,
+  TrendingUp,
+  Bell,
+  DatabaseBackup,
+  Truck,
+  RotateCcw,
+  Shield,
+  ClipboardCheck,
+  PackageCheck,
+  GitBranch,
 };
 
 const staticMenu = [
+
   { section: "Products", page_key: "local_products", page_name: "Local Products", path: "/product/local-products", icon: "Boxes", exact: true },
   { section: "Products", page_key: "add_product", page_name: "Add Product", path: "/product/local-products/create", icon: "FilePlus2", exact: true },
   { section: "Products", page_key: "categories", page_name: "Categories", path: "/product/categories", icon: "Grid3X3", exact: true },
   { section: "Products", page_key: "colours", page_name: "Colours", path: "/colours", icon: "SlidersHorizontal", exact: true },
   { section: "Products", page_key: "models", page_name: "Models", path: "/product/models", icon: "Settings2", exact: true },
+  { section: "Products", page_key: "image_dashboard", page_name: "Image Dashboard", path: "/image-dashboard", icon: "PackageSearch", exact: true },
 
-  { section: "Inventory", page_key: "inventory_dashboard", page_name: "Inventory Dashboard", path: "/inventory", icon: "ClipboardList", exact: true },
+  { section: "Inventory", page_key: "inventory_dashboard", page_name: "Inventory Dashboard", path: "/inventory/dashboard", icon: "ClipboardList", exact: true },
+  { section: "Inventory", page_key: "sku_search", page_name: "SKU Search", path: "/inventory/sku-search", icon: "Search", exact: true },
   { section: "Inventory", page_key: "stock_movements", page_name: "Stock Movements", path: "/inventory/stock-ledger", icon: "ListChecks", exact: true },
   { section: "Inventory", page_key: "stock_adjustment", page_name: "Stock Adjustment", path: "/inventory/stock-adjustment", icon: "FilePlus2", exact: true },
   { section: "Inventory", page_key: "low_stock", page_name: "Low Stock", path: "/inventory/low-stock", icon: "PackageSearch", exact: true },
@@ -62,22 +87,21 @@ const staticMenu = [
 
   { section: "Marketplaces", page_key: "marketplace_accounts", page_name: "Marketplace Accounts", path: "/marketplace/accounts", icon: "Store", exact: true },
   { section: "Marketplaces", page_key: "daraz_products", page_name: "Daraz Products", path: "/daraz/products", icon: "ShoppingBag", exact: true },
-  { section: "Marketplaces", page_key: "daraz_product_create", page_name: "Create Daraz Product", path: "/daraz-products/create", icon: "CloudUpload", exact: true },
   { section: "Marketplaces", page_key: "woo_products", page_name: "WooCommerce Products", path: "/woo-products", icon: "ShoppingBag", exact: true },
-  { section: "Marketplaces", page_key: "woo_product_create", page_name: "Create Woo Product", path: "/woo-products/create", icon: "CloudUpload", exact: true },
-  { section: "Marketplaces", page_key: "sku_mappings", page_name: "SKU Mappings", path: "/marketplace/sku-mappings", icon: "ListChecks", exact: true },
+  { section: "Marketplaces", page_key: "marketplace_transfer", page_name: "Transfer Wizard", path: "/marketplace/transfer", icon: "CloudUpload", exact: true },
 
   { section: "Finance", page_key: "net_sales", page_name: "Net Sales", path: "/finance/net-sales", icon: "BarChart3", exact: true },
+  { section: "Finance", page_key: "price_dashboard", page_name: "Price Dashboard", path: "/price-dashboard", icon: "Calculator", exact: true },
   { section: "Finance", page_key: "daraz_finance", page_name: "Daraz Finance", path: "/daraz/finance", icon: "FileSpreadsheet", exact: true },
   { section: "Finance", page_key: "woo_finance", page_name: "Woo Finance", path: "/woo/finance", icon: "FileSpreadsheet", exact: true },
   { section: "Finance", page_key: "expenses", page_name: "Expenses", path: "/finance/expenses", icon: "FilePlus2", exact: true },
 
+
+  { section: "Reports", page_key: "demand_analysis", page_name: "Demand Analysis", path: "/reports/demand-analysis", icon: "TrendingUp", exact: true },
+
   { section: "Logs", page_key: "sync_logs", page_name: "Sync Logs", path: "/daraz-products/logs", icon: "ScrollText", exact: true },
-  { section: "Logs", page_key: "transfer_logs", page_name: "Transfer Logs", path: "/marketplace/logs/transfer", icon: "ScrollText", exact: true },
-  { section: "Logs", page_key: "daraz_finance_logs", page_name: "Daraz Finance Logs", path: "/marketplace/logs/daraz_finance_api", icon: "ScrollText", exact: true },
-  { section: "Logs", page_key: "woo_logs", page_name: "Woo Logs", path: "/marketplace/logs/woo_product_sync", icon: "ScrollText", exact: true },
-  { section: "Logs", page_key: "inventory_movement_logs", page_name: "Inventory Movement Logs", path: "/marketplace/logs/inventory_movement", icon: "ScrollText", exact: true },
   { section: "Logs", page_key: "system_logs", page_name: "System Logs", path: "/logs", icon: "ScrollText", exact: true },
+  { section: "Settings", page_key: "settings", page_name: "Settings", path: "/settings", icon: "Settings2", exact: true },
 ];
 
 function groupMenu(menuItems) {
@@ -99,6 +123,7 @@ export default function Sidebar({ open, onClose }) {
 
   return (
     <>
+      {/* Mobile overlay */}
       <div
         className={`fixed bottom-0 left-0 right-0 top-16 z-30 bg-black/60 transition lg:hidden ${
           open ? "block" : "hidden"
@@ -106,11 +131,13 @@ export default function Sidebar({ open, onClose }) {
         onClick={onClose}
       />
 
+      {/* Sidebar */}
       <aside
         className={`fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-64 flex-col overflow-hidden border-r border-[#1d2940] bg-[#0f172a] text-slate-100 shadow-2xl shadow-black/40 transition-transform duration-300 lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
+        {/* Mobile close button */}
         <div className="flex h-12 shrink-0 items-center justify-end border-b border-[#1d2940] px-4 lg:hidden">
           <button
             type="button"
@@ -122,6 +149,7 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
+        {/* Navigation */}
         <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden pb-20">
           {Object.entries(groupedMenu).map(([sectionName, items]) => (
             <div key={sectionName} className="border-b border-[#1d2940] py-3">

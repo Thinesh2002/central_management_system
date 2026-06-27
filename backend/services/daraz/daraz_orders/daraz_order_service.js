@@ -1,6 +1,5 @@
 const crypto = require("crypto");
 const orderModel = require("../../../models/daraz/daraz_orders/daraz_order_model");
-const stockSyncService = require("../../inventory/stock_sync_service");
 const { callDarazApi } = require("./daraz_order_api_adapter");
 
 function uid(prefix) {
@@ -1045,7 +1044,7 @@ async function syncOrdersForAccount(account, options = {}) {
         query.status = options.status || options.Status;
       }
 
-      
+      console.log("[DARAZ_ORDERS_GET_FINAL_QUERY]", query);
 
       const requestTime = new Date();
 
@@ -1082,6 +1081,14 @@ async function syncOrdersForAccount(account, options = {}) {
       totalPages += 1;
       totalFetched += orders.length;
 
+      console.log("[DARAZ_ORDERS_PAGE_RESULT]", {
+        account_code: accountCode,
+        page: totalPages,
+        limit: pageLimit,
+        offset,
+        fetched: orders.length,
+        total_fetched: totalFetched,
+      });
 
       for (const rawOrder of orders) {
         let normalizedOrder;
@@ -1128,6 +1135,8 @@ async function syncOrdersForAccount(account, options = {}) {
             }
           }
 
+          // Important fix: merge /order/items/get customer, shipping and tracking values
+          // into the parent order before saving/updating the orders table.
           let enrichedOrder = mergeOrderWithItemDetails(normalizedOrder, rawItems);
 
           const saved = await orderModel.upsertOrder(enrichedOrder);
@@ -1135,20 +1144,10 @@ async function syncOrdersForAccount(account, options = {}) {
           if (saved.action === "inserted") totalInserted += 1;
           if (saved.action === "updated") totalUpdated += 1;
 
-          const normalizedItemsForInventory = [];
           for (const rawItem of rawItems) {
             const item = await normalizeItem(rawItem, saved.id, enrichedOrder);
-            normalizedItemsForInventory.push(item);
             await orderModel.upsertOrderItem(saved.id, item);
           }
-
-          await stockSyncService.applyMarketplaceOrderInventory({
-            platform: "DARAZ",
-            account: { id: account?.id || account?.account_id, account_code: accountCode },
-            order: enrichedOrder,
-            items: normalizedItemsForInventory,
-            status: enrichedOrder.local_status || enrichedOrder.daraz_status,
-          }).catch(() => []);
 
           const trackingSyncEnabled =
             options.sync_tracking === true ||
