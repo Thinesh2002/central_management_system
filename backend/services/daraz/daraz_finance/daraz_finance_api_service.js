@@ -468,9 +468,6 @@ async function getPayoutStatus({ account, credentials, created_after }) {
     query,
   });
 
-  console.log("[DARAZ_FINANCE_PAYOUT_QUERY]", query);
-  console.log("[DARAZ_FINANCE_PAYOUT_RAW]", previewJson(response));
-
   if (isDarazApiError(response)) throwDarazApiError(response);
 
   return {
@@ -522,9 +519,6 @@ async function getTransactionDetails({
     query,
   });
 
-  console.log("[DARAZ_FINANCE_TRANSACTION_QUERY]", query);
-  console.log("[DARAZ_FINANCE_TRANSACTION_RAW]", previewJson(response));
-
   if (isDarazApiError(response)) throwDarazApiError(response);
 
   return {
@@ -574,13 +568,6 @@ async function getAllTransactionDetails({
     const rows = result.rows || [];
     allRows = allRows.concat(rows);
     lastRaw = result.raw;
-
-    console.log("[DARAZ_FINANCE_TRANSACTION_PAGE_RESULT]", {
-      page,
-      offset,
-      limit,
-      extractedRows: rows.length,
-    });
 
     if (rows.length < limit) break;
 
@@ -651,9 +638,6 @@ async function checkFinancePermission({ account, credentials }) {
     requestType: "daraz_finance_permission_check",
     query,
   });
-
-  console.log("[DARAZ_FINANCE_PERMISSION_CHECK_QUERY]", query);
-  console.log("[DARAZ_FINANCE_PERMISSION_CHECK_RAW]", previewJson(response));
 
   if (isDarazApiError(response)) {
     const payload = getDarazApiErrorPayload(response);

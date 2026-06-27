@@ -52,6 +52,7 @@ export default function ProductsTable({
   goToProductSection,
   handleDelete,
   setImagePreview,
+  onOpenTransfer,
 }) {
   return (
     <section className="w-full overflow-hidden border border-slate-700/40 bg-[#050917] shadow-lg shadow-black/10">
@@ -108,6 +109,7 @@ export default function ProductsTable({
                     goToProductSection={goToProductSection}
                     handleDelete={handleDelete}
                     setImagePreview={setImagePreview}
+                    onOpenTransfer={onOpenTransfer}
                   />
                 );
               })

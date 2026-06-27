@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import darazFinanceApi from '../../../config/sub_api/daraz_api/daraz_finance_api';
+import DarazFinanceAccountSelect from './DarazFinanceAccountSelect';
 import { FilterBar, PageHeader, Shell, StatCard } from '../../business/components/AdminPageShell';
 import useApiPage from '../../business/hooks/useApiPage';
 import { getApiError } from '../../../config/api';
@@ -8,7 +9,7 @@ function money(value) { return `LKR ${Number(value || 0).toLocaleString(undefine
 
 export default function DarazFinanceDashboardPage() {
   const loader = useCallback((params) => darazFinanceApi.summary(params), []);
-  const { data, loading, error, filters, setFilters, reload } = useApiPage(loader, { start_time: '', end_time: '', account_code: '' });
+  const { data, loading, error, filters, setFilters, reload } = useApiPage(loader, { account_id: '', account_code: '', start_time: '', end_time: '', date_from: '', date_to: '' });
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [syncError, setSyncError] = useState('');
@@ -28,7 +29,7 @@ export default function DarazFinanceDashboardPage() {
     <Shell>
       <PageHeader title="Daraz Finance" description="Daraz seller income, fees, refunds and payout data." actions={<button onClick={syncFinance} disabled={syncing} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60">{syncing ? 'Syncing...' : 'Sync Finance'}</button>} />
       <FilterBar filters={filters} setFilters={setFilters} onRefresh={reload} loading={loading}>
-        <input value={filters.account_code || ''} onChange={(e) => setFilters((p) => ({ ...p, account_code: e.target.value }))} placeholder="Account code" className="h-10 rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm text-slate-100" />
+        <DarazFinanceAccountSelect filters={filters} setFilters={setFilters} />
         <input type="date" value={filters.start_time || ''} onChange={(e) => setFilters((p) => ({ ...p, start_time: e.target.value, date_from: e.target.value }))} className="h-10 rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm text-slate-100" />
         <input type="date" value={filters.end_time || ''} onChange={(e) => setFilters((p) => ({ ...p, end_time: e.target.value, date_to: e.target.value }))} className="h-10 rounded-lg border border-slate-700 bg-[#020617] px-3 text-sm text-slate-100" />
       </FilterBar>

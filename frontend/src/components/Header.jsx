@@ -7,6 +7,7 @@ import {
   UserCog,
   ShieldCheck,
   ScrollText,
+  Search,
 } from "lucide-react";
 
 import api from "../config/api";
@@ -16,6 +17,7 @@ import {
   getStoredMenu,
   saveMenu,
 } from "../config/auth";
+import globalSearchApi from "../config/sub_api/marketplace_api/global_search_api";
 
 function normalizePath(path) {
   if (!path) return "/";
@@ -34,7 +36,6 @@ function isMasterAdmin(user) {
 }
 
 function canShowMenuLink(menuItems, user, link) {
-  // Master Admin full access
   if (isMasterAdmin(user)) return true;
 
   const linkPath = normalizePath(link.path);
@@ -59,8 +60,13 @@ export default function Header({ onMenuClick }) {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [accessMenu, setAccessMenu] = useState(() => getStoredMenu?.() || []);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
 
   const settingsLinks = useMemo(
     () => [
@@ -96,7 +102,6 @@ export default function Header({ onMenuClick }) {
     try {
       await api.post("/auth/logout");
     } catch {
-      // Logout should still work even if the API log request fails.
     } finally {
       logout();
     }
@@ -104,6 +109,8 @@ export default function Header({ onMenuClick }) {
 
   function handleNavigate(path) {
     setSettingsOpen(false);
+    setSearchOpen(false);
+    setSearchQuery("");
     navigate(path);
   }
 
@@ -132,10 +139,44 @@ export default function Header({ onMenuClick }) {
     };
   }, []);
 
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    setSearchLoading(true);
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await globalSearchApi.search({ q: query, limit: 8 });
+        const payload = response?.data || {};
+        const rows = Array.isArray(payload.rows) ? payload.rows : Array.isArray(payload.data) ? payload.data : [];
+        if (active) setSearchResults(rows);
+      } catch {
+        if (active) setSearchResults([]);
+      } finally {
+        if (active) setSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const inSettings = dropdownRef.current && dropdownRef.current.contains(event.target);
+      const inSearch = searchRef.current && searchRef.current.contains(event.target);
+      if (!inSettings && !inSearch) {
         setSettingsOpen(false);
+        setSearchOpen(false);
       }
     }
 
@@ -149,7 +190,6 @@ export default function Header({ onMenuClick }) {
   return (
     <header className="sticky top-0 z-50 h-16 w-full border-b border-slate-800 bg-[#07111f] text-white shadow-lg shadow-black/20">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Left side */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -168,7 +208,37 @@ export default function Header({ onMenuClick }) {
           </Link>
         </div>
 
-        {/* Right side */}
+        <div className="relative mx-3 hidden min-w-[260px] max-w-xl flex-1 md:block" ref={searchRef}>
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            value={searchQuery}
+            onFocus={() => setSearchOpen(true)}
+            onChange={(event) => { setSearchQuery(event.target.value); setSearchOpen(true); }}
+            placeholder="Search pages, products, SKUs, orders..."
+            className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950/80 pl-9 pr-3 text-xs text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-blue-700"
+          />
+          {searchOpen && searchQuery.trim().length >= 2 && (
+            <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-xl shadow-black/40">
+              {searchLoading && <div className="px-3 py-3 text-xs font-semibold text-slate-500">Searching...</div>}
+              {!searchLoading && searchResults.length === 0 && <div className="px-3 py-3 text-xs font-semibold text-slate-500">No results found.</div>}
+              {!searchLoading && searchResults.map((result, index) => (
+                <button
+                  key={`${result.route || result.name}-${index}`}
+                  type="button"
+                  onClick={() => handleNavigate(result.route || "/dashboard")}
+                  className="flex w-full items-start gap-2 border-b border-slate-800 px-3 py-2 text-left last:border-b-0 hover:bg-slate-800"
+                >
+                  <span className="mt-0.5 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-300">{result.type || "Result"}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-slate-100">{result.name || result.title || result.route}</span>
+                    <span className="block truncate text-[11px] text-slate-500">{result.code || result.sku || result.order_no || result.sku_or_number || result.route}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="relative flex items-center gap-2" ref={dropdownRef}>
           <p className="max-w-[150px] truncate text-sm font-semibold text-white">
             {user?.name || "User"}

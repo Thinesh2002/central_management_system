@@ -32,7 +32,7 @@ function ProtectedLayout({ children }) {
 function NotFoundPage() {
   return (
     <div className="flex min-h-[calc(100vh-180px)] items-center justify-center">
-      <h1 className="text-center text-3xl font-bold text-red-500 sm:text-4xl">
+      <h1 className="text-center text-3xl font-bold text-[#FF9E20] sm:text-4xl">
         404 Page Not Found
       </h1>
     </div>
@@ -82,10 +82,8 @@ export default function App() {
         }
       />
 
-      {/* Product Management Routes */}
       {ProductManagementRoutes()}
 
-        {/* Marketplace Management Routes */}
       {MarketplaceManagementRoutes()} 
 
       {DarazProductRoute()}
@@ -99,7 +97,6 @@ export default function App() {
       {DarazFinanceRoutes()}
 
       
-      {/* Unknown pages */}
       <Route
         path="*"
         element={

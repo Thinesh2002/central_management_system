@@ -8,6 +8,8 @@ import MarketplaceAccountsPage from "../../pages/marketplace_management/marketpl
 import AddMarketplaceAccountPage from "../../pages/marketplace_management/add_marketplace_account_page";
 import MarketplaceAccountDetailsPage from "../../pages/marketplace_management/marketplace_account_details_page";
 import EditMarketplaceAccountPage from "../../pages/marketplace_management/edit_marketplace_account_page";
+import SkuMappingsPage from "../../pages/marketplace_management/sku_mappings_page";
+import MarketplaceLogsPage from "../../pages/marketplace_management/logs_page";
 
 function ProtectedMarketplacePage({ children }) {
   return (
@@ -52,6 +54,33 @@ export default function MarketplaceManagementRoutes() {
         element={
           <ProtectedMarketplacePage>
             <EditMarketplaceAccountPage />
+          </ProtectedMarketplacePage>
+        }
+      />
+
+      <Route
+        path="/marketplace/sku-mappings"
+        element={
+          <ProtectedMarketplacePage>
+            <SkuMappingsPage />
+          </ProtectedMarketplacePage>
+        }
+      />
+
+      <Route
+        path="/marketplace/logs"
+        element={
+          <ProtectedMarketplacePage>
+            <MarketplaceLogsPage />
+          </ProtectedMarketplacePage>
+        }
+      />
+
+      <Route
+        path="/marketplace/logs/:type"
+        element={
+          <ProtectedMarketplacePage>
+            <MarketplaceLogsPage />
           </ProtectedMarketplacePage>
         }
       />

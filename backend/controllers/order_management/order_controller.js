@@ -62,12 +62,6 @@ const createOrder = asyncHandler(async (req, res) => {
     ...req.body,
   };
 
-  /*
-    IMPORTANT:
-    order_id should not come from frontend.
-    Backend model will create:
-    BH001, BH002, BH003...
-  */
   delete payload.order_id;
 
   const order = await orderModel.createOrder(payload, getUserCode(req));
@@ -80,10 +74,6 @@ const updateOrder = asyncHandler(async (req, res) => {
     ...req.body,
   };
 
-  /*
-    Do not allow order_id update.
-    Order ID must stay fixed after create.
-  */
   delete payload.order_id;
 
   const order = await orderModel.updateOrder(

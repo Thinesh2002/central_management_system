@@ -401,14 +401,6 @@ async function upsertDarazProduct({ account_id, product }) {
   const darazCreatedAt = darazTimeToMysql(rawDarazCreatedTime);
   const darazUpdatedAt = darazTimeToMysql(rawDarazUpdatedTime);
 
-  console.log("[DARAZ_PRODUCT_TIME_DEBUG]", {
-    account_id,
-    item_id: darazItemId,
-    raw_created_time: rawDarazCreatedTime,
-    raw_updated_time: rawDarazUpdatedTime,
-    daraz_created_at: darazCreatedAt,
-    daraz_updated_at: darazUpdatedAt,
-  });
 
   const [existingRows] = await pool.query(
     `SELECT id, raw_json

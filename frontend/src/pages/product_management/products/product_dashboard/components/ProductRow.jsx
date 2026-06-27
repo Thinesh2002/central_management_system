@@ -6,7 +6,9 @@ import {
   Copy,
   Edit,
   Eye,
+  Link2,
   MoreVertical,
+  Send,
   Trash2,
 } from "lucide-react";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
@@ -89,6 +91,7 @@ export default function ProductRow({
   toggleExpanded,
   handleDelete,
   setImagePreview,
+  onOpenTransfer,
 }) {
   const [actionOpen, setActionOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -139,6 +142,11 @@ export default function ProductRow({
   function handleRemoveProduct() {
     setActionOpen(false);
     handleDelete(product);
+  }
+
+  function handleTransfer(type) {
+    setActionOpen(false);
+    onOpenTransfer?.(product, type);
   }
 
   useEffect(() => {
@@ -309,6 +317,35 @@ export default function ProductRow({
               Edit Product
             </button>
 
+
+            <button
+              type="button"
+              onClick={() => handleTransfer("DARAZ")}
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-normal text-slate-100 transition hover:bg-orange-500/15 hover:text-orange-300"
+            >
+              <Send size={14} />
+              Transfer to Daraz
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTransfer("WOO")}
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-normal text-slate-100 transition hover:bg-orange-500/15 hover:text-orange-300"
+            >
+              <Send size={14} />
+              Transfer to Woo
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTransfer("MAP")}
+              className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-normal text-slate-100 transition hover:bg-orange-500/15 hover:text-orange-300"
+            >
+              <Link2 size={14} />
+              Map SKU
+            </button>
+
+            <div className="border-t border-slate-700" />
             <button
               type="button"
               onClick={handleRemoveProduct}

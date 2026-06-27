@@ -229,6 +229,14 @@ function normalizeTransaction(line = {}, account = {}, range = {}) {
     line.transaction_date
   );
 
+  const category = safeString(line.category || classifyTransaction(raw));
+  const itemPrice = category === "revenue" ? amount : 0;
+  const shipping = category === "shipping" ? amount : 0;
+  const commission = String(feeName || "").toLowerCase().includes("commission") ? amount : 0;
+  const fees = category === "fee" ? amount : 0;
+  const payoutAmount = amount;
+  const netSales = itemPrice + shipping + fees + commission;
+
   const hash = hashValue({
     account_id: account.id || account.account_id || null,
     account_code: account.account_code || null,
@@ -265,7 +273,13 @@ function normalizeTransaction(line = {}, account = {}, range = {}) {
     fee_type: safeString(firstValue(raw.fee_type, raw.feeType, line.fee_type)),
     fee_name: safeString(feeName),
     transaction_type: safeString(transactionType),
-    category: safeString(line.category || classifyTransaction(raw)),
+    category,
+    item_price: itemPrice,
+    shipping_amount: shipping,
+    commission_amount: commission,
+    fee_amount: fees,
+    payout_amount: payoutAmount,
+    net_sales: netSales,
     statement_label: safeString(firstValue(raw.statement, raw.statement_id, raw.statementId, line.statement)),
     reference_no: safeString(firstValue(raw.reference, raw.ref, line.reference)),
     details: safeString(firstValue(raw.details, raw.detail, line.details)),
@@ -436,6 +450,12 @@ async function saveTransactions({ account, start_time, end_time, rows = [] }) {
           fee_name,
           transaction_type,
           category,
+          item_price,
+          shipping_amount,
+          commission_amount,
+          fee_amount,
+          payout_amount,
+          net_sales,
           statement_label,
           reference_no,
           details,
@@ -447,7 +467,7 @@ async function saveTransactions({ account, start_time, end_time, rows = [] }) {
           raw_json,
           last_synced_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE
           account_id = VALUES(account_id),
           account_code = VALUES(account_code),
@@ -469,6 +489,12 @@ async function saveTransactions({ account, start_time, end_time, rows = [] }) {
           fee_name = VALUES(fee_name),
           transaction_type = VALUES(transaction_type),
           category = VALUES(category),
+          item_price = VALUES(item_price),
+          shipping_amount = VALUES(shipping_amount),
+          commission_amount = VALUES(commission_amount),
+          fee_amount = VALUES(fee_amount),
+          payout_amount = VALUES(payout_amount),
+          net_sales = VALUES(net_sales),
           statement_label = VALUES(statement_label),
           reference_no = VALUES(reference_no),
           details = VALUES(details),
@@ -502,6 +528,12 @@ async function saveTransactions({ account, start_time, end_time, rows = [] }) {
           data.fee_name,
           data.transaction_type,
           data.category,
+          data.item_price,
+          data.shipping_amount,
+          data.commission_amount,
+          data.fee_amount,
+          data.payout_amount,
+          data.net_sales,
           data.statement_label,
           data.reference_no,
           data.details,

@@ -1,5 +1,6 @@
 const db = require("../../config/order_management_db/cm_order_management");
 const orderLogModel = require("./order_log_model");
+const stockSyncService = require("../../services/inventory/stock_sync_service");
 const {
   toMoney,
   toInt,
@@ -103,26 +104,10 @@ function removeImageFields(item = {}) {
   return safeItem;
 }
 
-/**
- * Order ID format:
- * BH001
- * BH002
- * BH003
- */
 function formatBhOrderId(number) {
   return `BH${String(Number(number || 1)).padStart(3, "0")}`;
 }
 
-/**
- * Finds latest BH order id from existing orders table
- * and creates next id.
- *
- * Example:
- * No order     -> BH001
- * Last BH001   -> BH002
- * Last BH009   -> BH010
- * Last BH099   -> BH100
- */
 async function getNextBhOrderId(connection = db) {
   const [rows] = await connection.query(
     `
@@ -641,6 +626,13 @@ async function createOrder(payload = {}, userCode = null) {
       connection
     );
 
+    await stockSyncService.applyManualOrderInventory({
+      orderId: orderData.order_id,
+      items: insertedItems,
+      status: orderData.order_status,
+      userId: userCode,
+    });
+
     await connection.commit();
 
     return getOrderById(orderData.order_id);
@@ -709,6 +701,19 @@ async function updateOrder(orderId, payload = {}, userCode = null) {
       },
       connection
     );
+
+    if (oldOrder.order_status !== newOrder.order_status) {
+      const [items] = await connection.query(
+        `SELECT sku, quantity FROM order_items WHERE order_id = ? AND deleted_at IS NULL AND item_status = 'Active'`,
+        [orderId]
+      );
+      await stockSyncService.applyManualOrderInventory({
+        orderId,
+        items,
+        status: newOrder.order_status,
+        userId: userCode,
+      });
+    }
 
     await connection.commit();
 

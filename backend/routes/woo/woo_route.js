@@ -48,6 +48,31 @@ router.get(
   requireHandler(wooAccountController.getWooCategories, "getWooCategories")
 );
 
+router.get(
+  "/accounts/:accountId/attributes",
+  requireHandler(wooAccountController.getWooAttributes, "getWooAttributes")
+);
+
+router.post(
+  "/accounts/:accountId/products",
+  requireHandler(wooAccountController.createWooProduct, "createWooProduct")
+);
+
+router.put(
+  "/accounts/:accountId/products/:wooProductId",
+  requireHandler(wooAccountController.updateWooProduct, "updateWooProduct")
+);
+
+router.patch(
+  "/accounts/:accountId/products/:wooProductId",
+  requireHandler(wooAccountController.updateWooProduct, "updateWooProduct")
+);
+
+router.post(
+  "/transfer-local/:productId",
+  requireHandler(wooAccountController.transferLocalToWoo, "transferLocalToWoo")
+);
+
 router.post(
   "/accounts/:accountId/sync-products",
   requireHandler(wooProductController.syncWooProducts, "syncWooProducts")

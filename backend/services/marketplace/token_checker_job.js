@@ -127,14 +127,6 @@ async function checkMarketplaceTokens() {
 
       await safeUpdateAccountStatus(account.id, "active", "connected", null);
 
-      console.log("[MARKETPLACE_TOKEN_JOB_ACCOUNT_SUCCESS]:", {
-        account_id: account.id,
-        account_code: account.account_code || null,
-        token_status: tokenStatus.token_status,
-        message: result?.refreshed
-          ? "Token refreshed successfully."
-          : "Token checked successfully.",
-      });
     } catch (error) {
       failed += 1;
 
@@ -178,18 +170,15 @@ async function checkMarketplaceTokens() {
 function startMarketplaceTokenCheckerJob() {
   cron.schedule("*/15 * * * *", async () => {
     if (isRunning) {
-      console.log("[MARKETPLACE_TOKEN_JOB]: Previous job still running. Skipping.");
       return;
     }
 
     isRunning = true;
 
     try {
-      console.log("[MARKETPLACE_TOKEN_JOB]: Checking Daraz tokens...");
 
       const summary = await checkMarketplaceTokens();
 
-      console.log("[MARKETPLACE_TOKEN_JOB_SUCCESS]:", summary);
     } catch (error) {
       console.error("[MARKETPLACE_TOKEN_JOB_ERROR]:", {
         message: error?.message || "Marketplace token checker failed.",
@@ -202,7 +191,6 @@ function startMarketplaceTokenCheckerJob() {
     }
   });
 
-  console.log("[MARKETPLACE_TOKEN_JOB]: Scheduler started. Runs every 15 minutes.");
 }
 
 module.exports = {

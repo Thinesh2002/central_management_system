@@ -6,6 +6,7 @@ import ProtectedRoute from "../../../config/ProtectedRoute";
 
 import WooProductDashboardPage from "../../../pages/woo/product_management/index";
 import WooProductDetailPage from "../../../pages/woo/product_management/woo_product_detail_page/index";
+import WooProductFormPage from "../../../pages/woo/product_management/woo_product_form";
 
 function ProtectedWooProductPage({ children }) {
   return (
@@ -23,6 +24,24 @@ export default function WooProductRoutes() {
         element={
           <ProtectedWooProductPage>
             <WooProductDashboardPage />
+          </ProtectedWooProductPage>
+        }
+      />
+
+      <Route
+        path="/woo-products/create"
+        element={
+          <ProtectedWooProductPage>
+            <WooProductFormPage />
+          </ProtectedWooProductPage>
+        }
+      />
+
+      <Route
+        path="/woo-products/edit/:accountId/:wooProductId"
+        element={
+          <ProtectedWooProductPage>
+            <WooProductFormPage />
           </ProtectedWooProductPage>
         }
       />

@@ -125,4 +125,31 @@ export const darazProductsApi = {
       timeout: LONG_TIMEOUT,
     });
   },
+
+  getCategories: (accountId, params = {}) =>
+    api.get(`/daraz-products/categories/${requireId(accountId, "Account ID")}`, {
+      params,
+      timeout: LONG_TIMEOUT,
+    }),
+
+  getCategoryAttributes: (accountId, categoryId, params = {}) =>
+    api.get(
+      `/daraz-products/category-attributes/${requireId(accountId, "Account ID")}/${requireId(categoryId, "Category ID")}`,
+      { params, timeout: LONG_TIMEOUT }
+    ),
+
+  createProduct: (accountId, payload = {}) =>
+    api.post(`/daraz-products/create/${requireId(accountId, "Account ID")}`, payload, {
+      timeout: LONG_TIMEOUT,
+    }),
+
+  updateProduct: (accountId, payload = {}) =>
+    api.post(`/daraz-products/update/${requireId(accountId, "Account ID")}`, payload, {
+      timeout: LONG_TIMEOUT,
+    }),
+
+  transferLocalProduct: (productId, payload = {}) =>
+    api.post(`/daraz-products/transfer-local/${requireId(productId, "Product ID")}`, payload, {
+      timeout: LONG_TIMEOUT,
+    }),
 };

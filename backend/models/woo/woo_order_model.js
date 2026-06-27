@@ -1,6 +1,7 @@
 const db = require('../../config/marketplace_management_db/cm_marketplace_management');
 const productDb = require('../../config/product_management_db/product_management_db');
 const { listParams, toMoney, clean, jsonValue } = require('../../utils/business/query_helpers');
+const stockSyncService = require('../../services/inventory/stock_sync_service');
 
 async function getCostByLocalSku(localSku) {
   if (!localSku) return 0;
@@ -91,12 +92,29 @@ async function upsertOrder(account = {}, order = {}) {
   }
 
   const saved = await getById(wooOrderId);
+  await stockSyncService.applyMarketplaceOrderInventory({
+    platform: 'WOO',
+    account,
+    order: saved || order,
+    items: saved?.items || lineItems,
+    status: saved?.status || order.status,
+  }).catch(() => []);
   return saved;
 }
 
 async function updateStatus(id, status) {
   await db.query('UPDATE woo_orders SET status = ?, local_status = ?, updated_at = NOW() WHERE id = ? OR woo_order_id = ? OR order_number = ?', [status, status, id, id, id]);
-  return getById(id);
+  const saved = await getById(id);
+  if (saved?.items?.length) {
+    await stockSyncService.applyMarketplaceOrderInventory({
+      platform: 'WOO',
+      account: { account_id: saved.account_id, account_code: saved.account_code },
+      order: saved,
+      items: saved.items,
+      status,
+    }).catch(() => []);
+  }
+  return saved;
 }
 
 async function financeSummary(params = {}) {

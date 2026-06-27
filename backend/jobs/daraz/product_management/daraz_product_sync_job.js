@@ -8,14 +8,12 @@ let isRunning = false;
 
 async function syncAllDarazAccounts() {
   if (isRunning) {
-    console.log("[DARAZ_PRODUCT_SYNC] Previous sync still running. Skipped.");
     return;
   }
 
   isRunning = true;
 
   try {
-    console.log("[DARAZ_PRODUCT_SYNC] Auto sync started.");
 
     const accounts = await accountModel.listActiveDarazAccounts();
 
@@ -24,7 +22,6 @@ async function syncAllDarazAccounts() {
         const credentials = await credentialModel.findByAccountId(account.id);
 
         if (!credentials?.access_token) {
-          console.log(`[DARAZ_PRODUCT_SYNC] Token missing for account ${account.id}`);
           continue;
         }
 
@@ -35,7 +32,6 @@ async function syncAllDarazAccounts() {
           withDetail: false,
         });
 
-        console.log(`[DARAZ_PRODUCT_SYNC] Success account ${account.id}`);
       } catch (accountError) {
         console.error(
           `[DARAZ_PRODUCT_SYNC] Failed account ${account.id}:`,
@@ -44,7 +40,6 @@ async function syncAllDarazAccounts() {
       }
     }
 
-    console.log("[DARAZ_PRODUCT_SYNC] Auto sync finished.");
   } catch (error) {
     console.error("[DARAZ_PRODUCT_SYNC] Job failed:", error.message);
   } finally {
@@ -57,7 +52,6 @@ function startDarazProductSyncJob() {
     timezone: "Asia/Colombo",
   });
 
-  console.log("[DARAZ_PRODUCT_SYNC] Scheduler started. Runs every 30 minutes.");
 }
 
 module.exports = {

@@ -33,6 +33,8 @@ const financeRoutes = require("./routes/finance/finance_routes");
 const wooOrderRoutes = require("./routes/woo/woo_orders_routes");
 const darazOrderStatusRoutes = require("./routes/daraz/order_management/daraz_order_status_routes");
 const marketplaceSkuMappingRoutes = require("./routes/marketplace/sku_mapping_routes");
+const marketplaceLogsRoutes = require("./routes/marketplace/logs_routes");
+const globalSearchRoutes = require("./routes/marketplace/global_search_routes");
 const productInventoryRoutes = require("./routes/product_management/product/product_inventory_routes");
 const productImageRoutes = require("./routes/product_management/product/product_images_routes");
 
@@ -141,8 +143,9 @@ app.use("/api/finance", financeRoutes);
 app.use("/api/woo", wooOrderRoutes);
 app.use("/api/daraz/order-status", darazOrderStatusRoutes);
 app.use("/api/marketplace/sku-mappings", marketplaceSkuMappingRoutes);
+app.use("/api/marketplace/logs", marketplaceLogsRoutes);
+app.use("/api/global-search", globalSearchRoutes);
 
-// Backward-compatible direct product API mounts used by current frontend files.
 app.use("/api/product/product-inventory", productInventoryRoutes);
 app.use("/api/product/product-images", productImageRoutes);
 
@@ -158,7 +161,6 @@ function startJob(name, starter) {
     }
 
     starter();
-    console.log(`[${name}]: Started successfully.`);
   } catch (error) {
     console.error(`[${name}_ERROR]:`, error.message);
   }
@@ -172,7 +174,6 @@ async function syncPermissions() {
     }
 
     await accessModel.ensureAllUserPermissions();
-    console.log("[PERMISSION_SYNC]: User page permissions synced successfully.");
   } catch (error) {
     console.error("[PERMISSION_SYNC_ERROR]:", error.message);
   }
@@ -182,10 +183,8 @@ async function startServer() {
   await syncPermissions();
 
   app.listen(PORT, () => {
-    console.log(`Backend running: http://localhost:${PORT}`);
 
     if (String(process.env.DISABLE_JOBS || "").toLowerCase() === "true") {
-      console.log("[JOBS]: Disabled by DISABLE_JOBS=true");
       return;
     }
 

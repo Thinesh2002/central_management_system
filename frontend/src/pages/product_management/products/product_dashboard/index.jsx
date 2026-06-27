@@ -5,6 +5,7 @@ import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
 import FilterModal from "./components/FilterModal";
 import ImagePreviewModal from "./components/ImagePreviewModal";
 import ProductFilterBar from "./components/ProductFilterBar";
+import ProductTransferModal from "../components/transfer/ProductTransferModal";
 import ProductsTable from "./components/ProductsTable";
 import { EMPTY_FILTERS, VIEW_TABS } from "./constants/localProductsDashboardConstants";
 import {
@@ -366,6 +367,7 @@ export default function LocalProductsDashboard() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
   const [draftView, setDraftView] = useState("all");
+  const [transferModal, setTransferModal] = useState({ open: false, product: null, platform: "DARAZ" });
 
   async function loadData() {
     setLoading(true);
@@ -501,6 +503,10 @@ export default function LocalProductsDashboard() {
     setDraftView("all");
   }
 
+  function openTransfer(product, platform = "DARAZ") {
+    setTransferModal({ open: true, product, platform });
+  }
+
   return (
     <div className="min-h-screen bg-[#070b16] p-2 text-slate-100 lg:p-3">
       <div className="mx-auto max-w-[1680px] space-y-3">
@@ -527,6 +533,7 @@ export default function LocalProductsDashboard() {
           goToProductSection={goToProductSection}
           handleDelete={handleDelete}
           setImagePreview={setImagePreview}
+          onOpenTransfer={openTransfer}
         />
       </div>
 
@@ -548,6 +555,14 @@ export default function LocalProductsDashboard() {
       <ImagePreviewModal
         imagePreview={imagePreview}
         onClose={() => setImagePreview(null)}
+      />
+
+      <ProductTransferModal
+        open={transferModal.open}
+        product={transferModal.product}
+        defaultPlatform={transferModal.platform}
+        onClose={() => setTransferModal({ open: false, product: null, platform: "DARAZ" })}
+        onSuccess={loadData}
       />
     </div>
   );

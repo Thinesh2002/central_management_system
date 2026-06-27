@@ -17,8 +17,6 @@ function sendSuccess(res, message, data) {
 }
 
 function sendError(res, error) {
-  console.error("[DARAZ_FINANCE_CONTROLLER_ERROR]:", error);
-
   return res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || "Daraz finance API request failed.",
@@ -221,10 +219,22 @@ function validateCreatedAfter(created_after) {
   return null;
 }
 
+function defaultDateOnly(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function resolveDateRange(req) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+
+  return {
+    start_time: req.query.start_time || req.query.date_from || req.body?.start_time || req.body?.date_from || defaultDateOnly(start),
+    end_time: req.query.end_time || req.query.date_to || req.body?.end_time || req.body?.date_to || defaultDateOnly(end),
+  };
+}
+
 function validateDateRange(start_time, end_time) {
-  if (!start_time || !end_time) {
-    return "start_time and end_time are required.";
-  }
 
   const startDate = new Date(start_time);
   const endDate = new Date(end_time);
@@ -305,8 +315,7 @@ async function getPayoutStatus(req, res) {
 
 async function getTransactionDetails(req, res) {
   try {
-    const start_time = req.query.start_time || req.body?.start_time;
-    const end_time = req.query.end_time || req.body?.end_time;
+    const { start_time, end_time } = resolveDateRange(req);
 
     const dateError = validateDateRange(start_time, end_time);
     if (dateError) {
@@ -350,8 +359,7 @@ async function getTransactionDetails(req, res) {
 
 async function getFinanceSummary(req, res) {
   try {
-    const start_time = req.query.start_time || req.body?.start_time;
-    const end_time = req.query.end_time || req.body?.end_time;
+    const { start_time, end_time } = resolveDateRange(req);
 
     const dateError = validateDateRange(start_time, end_time);
     if (dateError) {
@@ -396,8 +404,7 @@ async function getOrderFinanceDetails(req, res) {
       req.query.trade_order_id ||
       req.body?.trade_order_id;
 
-    const start_time = req.query.start_time || req.body?.start_time;
-    const end_time = req.query.end_time || req.body?.end_time;
+    const { start_time, end_time } = resolveDateRange(req);
 
     if (!trade_order_id) {
       return res.status(400).json({

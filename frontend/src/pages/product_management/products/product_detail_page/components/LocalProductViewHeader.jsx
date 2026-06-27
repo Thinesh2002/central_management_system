@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit3, RefreshCcw } from "lucide-react";
+import { ArrowLeft, Edit3, RefreshCcw, Link2, Send } from "lucide-react";
 import { getProductId } from "../utils/localProductViewHelpers";
 
 function getProductTitle(product = {}) {
@@ -42,6 +42,9 @@ export default function LocalProductViewHeader({
   onBack,
   onEdit,
   onRefresh,
+  onTransferDaraz,
+  onTransferWoo,
+  onMapSku,
 }) {
   const productId = getProductId(product || {});
   const title = getProductTitle(product || {});
@@ -86,10 +89,27 @@ export default function LocalProductViewHeader({
           </ActionButton>
 
           {productId && (
-            <ActionButton onClick={onEdit} variant="primary">
-              <Edit3 size={16} />
-              Edit
-            </ActionButton>
+            <>
+              <ActionButton onClick={onTransferDaraz}>
+                <Send size={16} />
+                Daraz
+              </ActionButton>
+
+              <ActionButton onClick={onTransferWoo}>
+                <Send size={16} />
+                Woo
+              </ActionButton>
+
+              <ActionButton onClick={onMapSku}>
+                <Link2 size={16} />
+                Map SKU
+              </ActionButton>
+
+              <ActionButton onClick={onEdit} variant="primary">
+                <Edit3 size={16} />
+                Edit
+              </ActionButton>
+            </>
           )}
         </div>
       </div>

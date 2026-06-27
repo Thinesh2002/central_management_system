@@ -62,4 +62,93 @@ async function remove(id) {
   return rows[0] || null;
 }
 
-module.exports = { list, upsert, remove, findMatch };
+
+async function duplicateCheck(payload = {}) {
+  const platform = String(payload.platform || '').toUpperCase();
+  const accountId = payload.account_id || null;
+  const accountCode = payload.account_code || null;
+  const marketplaceSku = clean(payload.marketplace_sku || payload.sku);
+
+  if (!platform || !marketplaceSku) {
+    return { duplicate: false, mapping: null };
+  }
+
+  const mapping = await findMatch({ platform, account_id: accountId, account_code: accountCode, marketplace_sku: marketplaceSku });
+  return { duplicate: Boolean(mapping), mapping };
+}
+
+async function bulkUpsert(rows = []) {
+  const saved = [];
+  for (const row of Array.isArray(rows) ? rows : []) {
+    saved.push(await upsert(row));
+  }
+  return saved;
+}
+
+async function localSkuSuggestions(params = {}) {
+  const search = `%${clean(params.search || params.q || '')}%`;
+  const [inventoryRows] = await require('../../config/product_management_db/product_management_db').query(
+    `SELECT sku AS local_sku, product_name, stock_qty, reserved_qty, available_qty
+     FROM product_inventory
+     WHERE sku LIKE ? OR product_name LIKE ?
+     ORDER BY updated_at DESC
+     LIMIT 20`,
+    [search, search]
+  ).catch(() => [[]]);
+
+  if (inventoryRows.length) return inventoryRows;
+
+  const [productRows] = await require('../../config/product_management_db/product_management_db').query(
+    `SELECT sku AS local_sku, product_name, name, title
+     FROM products
+     WHERE sku LIKE ? OR product_name LIKE ? OR name LIKE ? OR title LIKE ?
+     ORDER BY updated_at DESC
+     LIMIT 20`,
+    [search, search, search, search]
+  ).catch(() => [[]]);
+
+  return productRows;
+}
+
+async function unmapped(params = {}) {
+  const platform = String(params.platform || '').toUpperCase();
+  const accountId = params.account_id || null;
+
+  if (platform === 'DARAZ') {
+    const values = [];
+    let where = `WHERE 1=1`;
+    if (accountId) { where += ` AND dp.account_id = ?`; values.push(accountId); }
+    if (params.search) { where += ` AND (dp.seller_sku LIKE ? OR dp.product_name LIKE ? OR CAST(dp.daraz_item_id AS CHAR) LIKE ?)`; values.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`); }
+    const [rows] = await require('../../config/product_management_db/product_management_db').query(
+      `SELECT 'DARAZ' AS platform, dp.account_id, dp.seller_sku AS marketplace_sku, dp.daraz_item_id AS marketplace_item_id, dp.product_name
+       FROM daraz_products dp
+       LEFT JOIN marketplace_sku_mappings m ON m.platform = 'DARAZ' AND m.account_id = dp.account_id AND m.marketplace_sku = dp.seller_sku
+       ${where} AND dp.seller_sku IS NOT NULL AND m.id IS NULL
+       ORDER BY dp.updated_at DESC
+       LIMIT 100`,
+      values
+    ).catch(() => [[]]);
+    return rows;
+  }
+
+  if (platform === 'WOO') {
+    const values = [];
+    let where = `WHERE 1=1`;
+    if (accountId) { where += ` AND wp.account_id = ?`; values.push(accountId); }
+    if (params.search) { where += ` AND (wp.sku LIKE ? OR wp.name LIKE ? OR CAST(wp.woo_product_id AS CHAR) LIKE ?)`; values.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`); }
+    const [rows] = await require('../../config/product_management_db/product_management_db').query(
+      `SELECT 'WOO' AS platform, wp.account_id, wp.sku AS marketplace_sku, wp.woo_product_id AS marketplace_product_id, wp.name AS product_name
+       FROM woo_products wp
+       LEFT JOIN marketplace_sku_mappings m ON m.platform = 'WOO' AND m.account_id = wp.account_id AND m.marketplace_sku = wp.sku
+       ${where} AND wp.sku IS NOT NULL AND m.id IS NULL
+       ORDER BY wp.updated_at DESC
+       LIMIT 100`,
+      values
+    ).catch(() => [[]]);
+    return rows;
+  }
+
+  return [];
+}
+
+module.exports = { list, upsert, remove, findMatch, duplicateCheck, bulkUpsert, localSkuSuggestions, unmapped };

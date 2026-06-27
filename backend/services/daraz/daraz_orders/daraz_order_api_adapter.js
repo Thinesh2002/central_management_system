@@ -390,17 +390,6 @@ async function callDarazApi(options = {}) {
     body: finalBody,
   };
 
-  console.log("[DARAZ_ORDER_ADAPTER_CALL]", {
-    account_code: resolvedAccount.account_code,
-    apiPath: payload.apiPath,
-    requestType: payload.requestType,
-    method: payload.method,
-    query: payload.query,
-    has_credentials: Boolean(payload.credentials),
-    has_app_key: Boolean(payload.credentials?.app_key),
-    has_app_secret: Boolean(payload.credentials?.app_secret),
-    has_access_token: Boolean(payload.credentials?.access_token),
-  });
 
   return fn(payload);
 }

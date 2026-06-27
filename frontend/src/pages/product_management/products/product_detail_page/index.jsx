@@ -1,10 +1,12 @@
 import { AlertTriangle, Loader2, PackageOpen } from "lucide-react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import LocalProductDescriptionCard from "./components/LocalProductDescriptionCard";
 import LocalProductOverviewCard from "./components/LocalProductOverviewCard";
 import LocalProductStockCard from "./components/LocalProductStockCard";
 import LocalProductVariationsCard from "./components/LocalProductVariationsCard";
 import LocalProductViewHeader from "./components/LocalProductViewHeader";
+import ProductTransferModal from "../components/transfer/ProductTransferModal";
 import useLocalProductView from "./hooks/useLocalProductView";
 import {
   getProductId,
@@ -15,6 +17,7 @@ import {
 export default function LocalProductViewPage() {
   const navigate = useNavigate();
   const { id, productId } = useParams();
+  const [transferModal, setTransferModal] = useState({ open: false, platform: "DARAZ" });
 
   const resolvedProductId = id || productId;
 
@@ -35,6 +38,10 @@ export default function LocalProductViewPage() {
     navigate(`/product/local-products/edit/${currentProductId}/basic`);
   }
 
+  function openTransfer(platform) {
+    setTransferModal({ open: true, platform });
+  }
+
   return (
     <div className="min-h-screen bg-[#070b16] p-3 text-slate-100 lg:p-5">
       <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-4">
@@ -44,7 +51,10 @@ export default function LocalProductViewPage() {
           loading={loading}
           onBack={handleBack}
           onEdit={handleEdit}
-          onReload={reload}
+          onRefresh={reload}
+          onTransferDaraz={() => openTransfer("DARAZ")}
+          onTransferWoo={() => openTransfer("WOO")}
+          onMapSku={() => openTransfer("MAP")}
         />
 
         {loading && (
@@ -128,6 +138,14 @@ export default function LocalProductViewPage() {
             {showProductStock && <LocalProductStockCard product={product} />}
           </div>
         )}
+
+        <ProductTransferModal
+          open={transferModal.open}
+          product={product}
+          defaultPlatform={transferModal.platform}
+          onClose={() => setTransferModal({ open: false, platform: "DARAZ" })}
+          onSuccess={reload}
+        />
       </div>
     </div>
   );

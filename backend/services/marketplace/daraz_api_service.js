@@ -400,19 +400,6 @@ const commonParams = cleanParams({
 
   const url = `${baseUrl}${apiPath}`;
 
-  console.log(
-    "[DARAZ_API_REQUEST]",
-    safeRequestLog({
-      requestUid,
-      account,
-      apiPath,
-      requestType,
-      method,
-      appKey,
-      appSecret,
-      accessToken,
-    })
-  );
 
   try {
     const response = await axios({
@@ -478,15 +465,6 @@ const commonParams = cleanParams({
       duration_ms: Date.now() - startedAt,
     });
 
-    console.log("[DARAZ_API_RESPONSE_SUCCESS]", {
-      request_uid: requestUid,
-      account_code: account.account_code,
-      api_path: apiPath,
-      endpoint: apiPath,
-      message: successMessage,
-      response_code: response.status,
-      duration_ms: Date.now() - startedAt,
-    });
 
     return {
       success: true,
@@ -577,19 +555,6 @@ async function callDarazApiWithoutAccessToken({
 
   const url = `${baseUrl}${apiPath}`;
 
-  console.log(
-    "[DARAZ_AUTH_API_REQUEST]",
-    safeRequestLog({
-      requestUid,
-      account,
-      apiPath,
-      requestType,
-      method,
-      appKey,
-      appSecret,
-      accessToken: "not_required",
-    })
-  );
 
   try {
     const response = await axios({
@@ -654,15 +619,6 @@ async function callDarazApiWithoutAccessToken({
       duration_ms: Date.now() - startedAt,
     });
 
-    console.log("[DARAZ_AUTH_API_RESPONSE_SUCCESS]", {
-      request_uid: requestUid,
-      account_code: account?.account_code || null,
-      api_path: apiPath,
-      endpoint: apiPath,
-      message: successMessage,
-      response_code: response.status,
-      duration_ms: Date.now() - startedAt,
-    });
 
     return {
       success: true,
