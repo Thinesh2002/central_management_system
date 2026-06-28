@@ -1,5 +1,7 @@
 import axios from "axios";
-import { getToken, logout } from "./auth";function cleanBaseUrl(value) {
+import { getToken, logout } from "./auth";
+
+function cleanBaseUrl(value) {
   const raw = String(value || "").trim();
 
   if (!raw) return "https://backend.teckvora.com/api";
@@ -49,8 +51,6 @@ export function getApiError(error, fallback = "Something went wrong. Please try 
 
 export function getApiBaseUrl() {
   return apiBaseUrl;
-.message || fallback;
-r.message || fallback;
 }
 
 export default api;
