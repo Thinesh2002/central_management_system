@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Calculator, Search, Save } from 'lucide-react';
+import { Calculator, Save } from 'lucide-react';
 import erpApi from '../../config/sub_api/erp_api/erpApi';
 import { getApiError } from '../../config/api';
 import PageLoader from '../../components/ui/PageLoader';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
+import FilterSection, { FilterField, FilterInput, FilterSelect } from '../../components/ui/FilterSection';
 
 function money(value) {
   return Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -175,17 +176,25 @@ export default function PriceDashboardPage() {
         <button disabled={busy} className="erp-btn-secondary" type="submit">Save Mapping</button>
       </form>
 
-      <div className="erp-card grid gap-3 md:grid-cols-[1fr_180px]">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input className="erp-input pl-9" value={search} onChange={(e) => setSearch(e.target.value)} onBlur={load} placeholder="Search SKU, marketplace SKU or title" />
-        </div>
-        <select className="erp-input" value={marketplace} onChange={(e) => { setMarketplace(e.target.value); setTimeout(load, 0); }}>
-          <option value="">All marketplace</option>
-          <option value="DARAZ">Daraz</option>
-          <option value="WOO">Woo</option>
-        </select>
-      </div>
+      <FilterSection
+        title="Search & Filter Price Dashboard"
+        loading={loading}
+        filterCount={(search ? 1 : 0) + (marketplace ? 1 : 0)}
+        onSearch={(event) => { event.preventDefault(); load(); }}
+        onOpenFilters={() => {}}
+        onClear={() => { setSearch(''); setMarketplace(''); setTimeout(load, 0); }}
+      >
+        <FilterField label="SKU / Title" icon="sku">
+          <FilterInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SKU, marketplace SKU or title" />
+        </FilterField>
+        <FilterField label="Marketplace" icon="select">
+          <FilterSelect value={marketplace} onChange={(e) => { setMarketplace(e.target.value); setTimeout(load, 0); }}>
+            <option value="">All marketplace</option>
+            <option value="DARAZ">Daraz</option>
+            <option value="WOO">Woo</option>
+          </FilterSelect>
+        </FilterField>
+      </FilterSection>
 
       {!visibleRows.length ? <EmptyState title="No price records" text="Add SKU price above or run marketplace sync first." /> : (
         <div className="erp-table-wrap">

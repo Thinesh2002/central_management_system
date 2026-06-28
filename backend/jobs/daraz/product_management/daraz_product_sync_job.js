@@ -3,28 +3,35 @@ const cron = require("node-cron");
 const accountModel = require("../../../models/marketplace/account_model");
 const credentialModel = require("../../../models/marketplace/credential_model");
 const darazProductSyncService = require("../../../services/daraz/product_management/daraz_product_sync_service");
+const stockService = require("../../../services/inventory/marketplace_stock_service");
 
 let isRunning = false;
 
+function getIntervalMinutes() {
+  const value = Number(process.env.DARAZ_PRODUCT_SYNC_INTERVAL_MINUTES || 30);
+  if (!Number.isFinite(value)) return 30;
+  return Math.min(Math.max(value, 10), 180);
+}
+
 async function syncAllDarazAccounts() {
-  if (isRunning) {
-    console.log("[DARAZ_PRODUCT_SYNC] Previous sync still running. Skipped.");
-    return;
-  }
+  if (isRunning) return { skipped: true, reason: "previous_run_still_running" };
 
   isRunning = true;
+  const summary = { accounts: 0, success: 0, failed: 0 };
 
   try {
-    console.log("[DARAZ_PRODUCT_SYNC] Auto sync started.");
+    const settings = await stockService.getStockSettings();
+    if (!settings.daraz_auto_product_sync) return { ...summary, skipped: true, reason: "daraz_auto_product_sync_disabled" };
 
     const accounts = await accountModel.listActiveDarazAccounts();
+    summary.accounts = accounts.length;
 
     for (const account of accounts) {
       try {
         const credentials = await credentialModel.findByAccountId(account.id);
 
         if (!credentials?.access_token) {
-          console.log(`[DARAZ_PRODUCT_SYNC] Token missing for account ${account.id}`);
+          summary.failed += 1;
           continue;
         }
 
@@ -35,29 +42,28 @@ async function syncAllDarazAccounts() {
           withDetail: false,
         });
 
-        console.log(`[DARAZ_PRODUCT_SYNC] Success account ${account.id}`);
-      } catch (accountError) {
-        console.error(
-          `[DARAZ_PRODUCT_SYNC] Failed account ${account.id}:`,
-          accountError.message
-        );
+        summary.success += 1;
+      } catch (_) {
+        summary.failed += 1;
       }
     }
 
-    console.log("[DARAZ_PRODUCT_SYNC] Auto sync finished.");
+    console.log(`[DARAZ_PRODUCT_SYNC] Accounts: ${summary.accounts} | Success: ${summary.success} | Failed: ${summary.failed}`);
+    return summary;
   } catch (error) {
-    console.error("[DARAZ_PRODUCT_SYNC] Job failed:", error.message);
+    console.error("[DARAZ_PRODUCT_SYNC_ERROR]:", error.message);
+    return { ...summary, error: error.message };
   } finally {
     isRunning = false;
   }
 }
 
 function startDarazProductSyncJob() {
-  cron.schedule("*/30 * * * *", syncAllDarazAccounts, {
+  cron.schedule(`*/${getIntervalMinutes()} * * * *`, syncAllDarazAccounts, {
     timezone: "Asia/Colombo",
   });
 
-  console.log("[DARAZ_PRODUCT_SYNC] Scheduler started. Runs every 30 minutes.");
+  console.log(`[DARAZ_PRODUCT_SYNC] Scheduler started. Runs every ${getIntervalMinutes()} minutes.`);
 }
 
 module.exports = {

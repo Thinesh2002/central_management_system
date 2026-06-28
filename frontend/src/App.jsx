@@ -27,6 +27,18 @@ import MarketplaceTransferWizardPage from "./pages/marketplace_transfer/Marketpl
 import SkuMappingPage from "./pages/marketplace_mapping/SkuMappingPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 
+import Phase4ControlCenterPage from "./pages/phase4/Phase4ControlCenterPage";
+import RolesPermissionsPage from "./pages/phase4/RolesPermissionsPage";
+import AuditLogsPage from "./pages/phase4/AuditLogsPage";
+import BackupMigrationPage from "./pages/phase4/BackupMigrationPage";
+import OrderProfitPage from "./pages/phase4/OrderProfitPage";
+import ReturnsRefundsPage from "./pages/phase4/ReturnsRefundsPage";
+import CourierDashboardPage from "./pages/phase4/CourierDashboardPage";
+import BulkToolsPage from "./pages/phase4/BulkToolsPage";
+import NotificationsPage from "./pages/phase4/NotificationsPage";
+import ProductQualityPage from "./pages/phase4/ProductQualityPage";
+import QueueDashboardPage from "./pages/phase4/QueueDashboardPage";
+
 import Layout from "./components/Layout";
 import ProtectedRoute from "./config/ProtectedRoute";
 
@@ -69,6 +81,19 @@ export default function App() {
       <Route path="/access-control" element={<ProtectedLayout><AccessControlPage /></ProtectedLayout>} />
       <Route path="/logs" element={<ProtectedLayout><LogsPage /></ProtectedLayout>} />
       <Route path="/settings" element={<ProtectedLayout><SettingsPage /></ProtectedLayout>} />
+
+      <Route path="/phase4" element={<ProtectedLayout><Phase4ControlCenterPage /></ProtectedLayout>} />
+      <Route path="/phase4/roles-permissions" element={<ProtectedLayout><RolesPermissionsPage /></ProtectedLayout>} />
+      <Route path="/phase4/audit-logs" element={<ProtectedLayout><AuditLogsPage /></ProtectedLayout>} />
+      <Route path="/phase4/backup-migration" element={<ProtectedLayout><BackupMigrationPage /></ProtectedLayout>} />
+      <Route path="/phase4/order-profit" element={<ProtectedLayout><OrderProfitPage /></ProtectedLayout>} />
+      <Route path="/phase4/returns-refunds" element={<ProtectedLayout><ReturnsRefundsPage /></ProtectedLayout>} />
+      <Route path="/phase4/courier" element={<ProtectedLayout><CourierDashboardPage /></ProtectedLayout>} />
+      <Route path="/phase4/bulk-tools" element={<ProtectedLayout><BulkToolsPage /></ProtectedLayout>} />
+      <Route path="/phase4/notifications" element={<ProtectedLayout><NotificationsPage /></ProtectedLayout>} />
+      <Route path="/notifications" element={<ProtectedLayout><NotificationsPage /></ProtectedLayout>} />
+      <Route path="/phase4/product-quality" element={<ProtectedLayout><ProductQualityPage /></ProtectedLayout>} />
+      <Route path="/phase4/queue-dashboard" element={<ProtectedLayout><QueueDashboardPage /></ProtectedLayout>} />
 
       {ProductManagementRoutes()}
       {MarketplaceManagementRoutes()}

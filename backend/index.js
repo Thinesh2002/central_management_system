@@ -63,6 +63,18 @@ const {
   startDarazOrderSyncJob,
 } = require("./jobs/daraz/daraz_orders/daraz_order_sync_job");
 
+const {
+  startWooProductSyncJob,
+} = require("./jobs/woo/product/woo_product_sync_job");
+
+const {
+  startWooOrderSyncJob,
+} = require("./jobs/woo/orders/woo_order_sync_job");
+
+const {
+  startStockPushJob,
+} = require("./jobs/inventory/stock_push_job");
+
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
@@ -247,11 +259,19 @@ async function startServer() {
   await syncPermissions();
 
   app.listen(PORT, () => {
-    if (String(process.env.ENABLE_JOBS || "").toLowerCase() === "true") {
+    const jobsDisabled = String(process.env.DISABLE_JOBS || "false").toLowerCase() === "true";
+    const jobsExplicitlyEnabled = String(process.env.ENABLE_JOBS || "true").toLowerCase() === "true";
+
+    if (!jobsDisabled && jobsExplicitlyEnabled) {
       startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
       startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
       startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
-      console.log("Background jobs enabled.");
+      startJob("WOO_PRODUCT_SYNC_JOB", startWooProductSyncJob);
+      startJob("WOO_ORDER_SYNC_JOB", startWooOrderSyncJob);
+      startJob("STOCK_PUSH_JOB", startStockPushJob);
+      console.log("Background jobs enabled: tokens, Daraz products/orders, Woo products/orders, stock push.");
+    } else {
+      console.log("Background jobs disabled. Set ENABLE_JOBS=true or remove DISABLE_JOBS=true to enable auto sync.");
     }
   });
 }

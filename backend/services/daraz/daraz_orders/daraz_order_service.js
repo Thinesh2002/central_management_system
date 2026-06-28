@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const orderModel = require("../../../models/daraz/daraz_orders/daraz_order_model");
+const stockService = require("../../inventory/marketplace_stock_service");
 const { callDarazApi } = require("./daraz_order_api_adapter");
 
 function uid(prefix) {
@@ -1044,7 +1045,9 @@ async function syncOrdersForAccount(account, options = {}) {
         query.status = options.status || options.Status;
       }
 
-      console.log("[DARAZ_ORDERS_GET_FINAL_QUERY]", query);
+      if (String(process.env.DEBUG_DARAZ_SYNC || "").toLowerCase() === "true") {
+        console.log("[DARAZ_ORDERS_GET_FINAL_QUERY]", query);
+      }
 
       const requestTime = new Date();
 
@@ -1081,14 +1084,16 @@ async function syncOrdersForAccount(account, options = {}) {
       totalPages += 1;
       totalFetched += orders.length;
 
-      console.log("[DARAZ_ORDERS_PAGE_RESULT]", {
-        account_code: accountCode,
-        page: totalPages,
-        limit: pageLimit,
-        offset,
-        fetched: orders.length,
-        total_fetched: totalFetched,
-      });
+      if (String(process.env.DEBUG_DARAZ_SYNC || "").toLowerCase() === "true") {
+        console.log("[DARAZ_ORDERS_PAGE_RESULT]", {
+          account_code: accountCode,
+          page: totalPages,
+          limit: pageLimit,
+          offset,
+          fetched: orders.length,
+          total_fetched: totalFetched,
+        });
+      }
 
       for (const rawOrder of orders) {
         let normalizedOrder;
@@ -1144,9 +1149,34 @@ async function syncOrdersForAccount(account, options = {}) {
           if (saved.action === "inserted") totalInserted += 1;
           if (saved.action === "updated") totalUpdated += 1;
 
+          const savedItems = [];
+
           for (const rawItem of rawItems) {
             const item = await normalizeItem(rawItem, saved.id, enrichedOrder);
             await orderModel.upsertOrderItem(saved.id, item);
+            savedItems.push(item);
+          }
+
+          if (savedItems.length) {
+            try {
+              await stockService.deductStockForOrderItems(
+                {
+                  platform: "DARAZ",
+                  account_id: account.id || account.account_id || null,
+                  account_code: accountCode,
+                  marketplace_order_id: enrichedOrder.order_id,
+                  order_db_id: saved.id,
+                },
+                savedItems.map((item) => ({
+                  ...item,
+                  marketplace_order_item_id: item.order_item_id,
+                  marketplace_sku: item.seller_sku || item.sku || item.shop_sku,
+                  quantity: item.quantity || 1,
+                }))
+              );
+            } catch (stockError) {
+              errors.push(`Order ${enrichedOrder.order_id} stock deduction failed: ${stockError.message}`);
+            }
           }
 
           const trackingSyncEnabled =

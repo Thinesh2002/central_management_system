@@ -1,5 +1,6 @@
 const db = require('../../config/marketplace_management_db/cm_marketplace_management');
 const productDb = require('../../config/product_management_db/product_management_db');
+const stockService = require('../../services/inventory/marketplace_stock_service');
 const { listParams, toMoney, clean, jsonValue } = require('../../utils/business/query_helpers');
 
 async function getCostByLocalSku(localSku) {
@@ -65,19 +66,21 @@ async function upsertOrder(account = {}, order = {}) {
   );
 
   const lineItems = Array.isArray(order.line_items) ? order.line_items : [];
+  const savedItems = [];
+
   for (const item of lineItems) {
     const marketplaceSku = clean(item.sku || item.seller_sku || item.name);
-    const [mappingRows] = await db.query(
-      `SELECT local_sku FROM marketplace_sku_mappings
-       WHERE platform = 'WOO' AND marketplace_sku = ? AND (account_id = ? OR account_code = ? OR ? IS NULL)
-       ORDER BY id DESC LIMIT 1`,
-      [marketplaceSku, account.account_id || account.id || null, account.account_code || null, account.account_id || account.id || null]
-    );
-    const localSku = mappingRows[0]?.local_sku || marketplaceSku;
+    const localSku = await stockService.findMappedSku({
+      platform: 'WOO',
+      accountId: account.account_id || account.id || null,
+      accountCode: account.account_code || null,
+      marketplaceSku,
+    }) || marketplaceSku;
     const qty = Number(item.quantity || 1);
     const costPrice = await getCostByLocalSku(localSku);
     const productCost = costPrice * qty;
     const itemTotal = toMoney(item.total || 0, 0);
+    const wooOrderItemId = String(item.id || `${wooOrderId}-${marketplaceSku}`);
 
     await db.query(
       `INSERT INTO woo_order_items
@@ -86,7 +89,28 @@ async function upsertOrder(account = {}, order = {}) {
        ON DUPLICATE KEY UPDATE
         sku=VALUES(sku), local_sku=VALUES(local_sku), product_name=VALUES(product_name), quantity=VALUES(quantity), unit_price=VALUES(unit_price),
         item_total=VALUES(item_total), product_cost=VALUES(product_cost), raw_json=VALUES(raw_json), updated_at=NOW()`,
-      [wooOrderId, item.id || `${wooOrderId}-${marketplaceSku}`, item.product_id || null, item.variation_id || null, marketplaceSku, localSku, item.name || '-', qty, qty ? itemTotal / qty : itemTotal, itemTotal, productCost, jsonValue(item)]
+      [wooOrderId, wooOrderItemId, item.product_id || null, item.variation_id || null, marketplaceSku, localSku, item.name || '-', qty, qty ? itemTotal / qty : itemTotal, itemTotal, productCost, jsonValue(item)]
+    );
+
+    savedItems.push({
+      marketplace_order_item_id: wooOrderItemId,
+      marketplace_sku: marketplaceSku,
+      local_sku: localSku,
+      quantity: qty,
+      product_name: item.name || '-',
+      raw_json: item,
+    });
+  }
+
+  if (savedItems.length) {
+    await stockService.deductStockForOrderItems(
+      {
+        platform: 'WOO',
+        account_id: account.account_id || account.id || null,
+        account_code: account.account_code || null,
+        marketplace_order_id: wooOrderId,
+      },
+      savedItems
     );
   }
 

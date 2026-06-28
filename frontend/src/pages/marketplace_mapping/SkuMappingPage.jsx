@@ -3,6 +3,7 @@ import api from '../../config/api';
 import erpApi from '../../config/sub_api/erp_api/erpApi';
 import { getApiError } from '../../config/api';
 import PageLoader from '../../components/ui/PageLoader';
+import FilterSection, { FilterField, FilterInput, FilterSelect } from '../../components/ui/FilterSection';
 
 const empty = { platform: 'DARAZ', account_id: '', account_code: '', marketplace_sku: '', local_sku: '', marketplace_item_id: '' };
 
@@ -27,6 +28,7 @@ export default function SkuMappingPage() {
   const [accounts, setAccounts] = useState([]);
   const [skuRows, setSkuRows] = useState([]);
   const [form, setForm] = useState(empty);
+  const [filters, setFilters] = useState({ search: '', platform: '', account_code: '' });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -39,6 +41,19 @@ export default function SkuMappingPage() {
       return accountPlatform === platform;
     });
   }, [accounts, form.platform]);
+
+  const visibleRows = useMemo(() => {
+    const q = String(filters.search || '').toLowerCase().trim();
+    const platform = String(filters.platform || '').toUpperCase();
+    const account = String(filters.account_code || '').toLowerCase().trim();
+    return rows.filter((row) => {
+      const text = `${row.platform || ''} ${row.account_code || ''} ${row.account_id || ''} ${row.marketplace_sku || ''} ${row.local_sku || ''} ${row.marketplace_item_id || ''}`.toLowerCase();
+      if (q && !text.includes(q)) return false;
+      if (platform && String(row.platform || '').toUpperCase() !== platform) return false;
+      if (account && !String(row.account_code || row.account_id || '').toLowerCase().includes(account)) return false;
+      return true;
+    });
+  }, [rows, filters]);
 
   const localSkuOptions = useMemo(() => {
     const seen = new Set();
@@ -77,6 +92,14 @@ export default function SkuMappingPage() {
 
   function handlePlatformChange(platform) {
     setForm({ ...empty, platform });
+  }
+
+  function updateFilter(name, value) {
+    setFilters((prev) => ({ ...prev, [name]: value }));
+  }
+
+  function resetFilters() {
+    setFilters({ search: '', platform: '', account_code: '' });
   }
 
   function handleAccountChange(value) {
@@ -159,13 +182,35 @@ export default function SkuMappingPage() {
         <button className="erp-btn-primary justify-center" type="submit">Save Mapping</button>
       </form>
 
+      <FilterSection
+        title="Search & Filter SKU Mappings"
+        filterCount={Object.values(filters).filter(Boolean).length}
+        onSearch={(event) => { event.preventDefault(); }}
+        onOpenFilters={() => {}}
+        onClear={resetFilters}
+      >
+        <FilterField label="SKU / Item ID" icon="sku">
+          <FilterInput value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Search marketplace SKU / local SKU / item ID" />
+        </FilterField>
+        <FilterField label="Platform" icon="select">
+          <FilterSelect value={filters.platform} onChange={(event) => updateFilter('platform', event.target.value)}>
+            <option value="">All platform</option>
+            <option value="DARAZ">Daraz</option>
+            <option value="WOO">Woo</option>
+          </FilterSelect>
+        </FilterField>
+        <FilterField label="Account" icon="select">
+          <FilterInput value={filters.account_code} onChange={(event) => updateFilter('account_code', event.target.value)} placeholder="Search account code" />
+        </FilterField>
+      </FilterSection>
+
       <div className="erp-table-wrap">
         <table className="erp-table">
           <thead>
             <tr><th>Platform</th><th>Account</th><th>Marketplace SKU</th><th>Local SKU</th><th>Item ID</th><th>Status</th></tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               <tr key={row.id || `${row.platform}-${row.marketplace_sku}-${row.local_sku}`}>
                 <td>{row.platform}</td>
                 <td>{row.account_code || row.account_id || '-'}</td>

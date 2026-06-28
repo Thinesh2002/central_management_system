@@ -22,6 +22,17 @@ const PAGE_SEARCH = [
   { label: "Transfer Wizard", path: "/marketplace/transfer", keywords: "transfer push daraz woo" },
   { label: "SKU Mapping", path: "/marketplace/sku-mappings", keywords: "sku mapping wrong sku local sku daraz sku" },
   { label: "Demand Analysis", path: "/reports/demand-analysis", keywords: "demand reorder stock suggestion" },
+  { label: "Control Center", path: "/phase4", keywords: "phase4 operations control center" },
+  { label: "Roles & Permissions", path: "/phase4/roles-permissions", keywords: "roles permissions access" },
+  { label: "Audit Logs", path: "/phase4/audit-logs", keywords: "audit logs changes" },
+  { label: "Backup & Migration", path: "/phase4/backup-migration", keywords: "backup migration database" },
+  { label: "Order Profit", path: "/phase4/order-profit", keywords: "order profit report" },
+  { label: "Returns & Refunds", path: "/phase4/returns-refunds", keywords: "returns refund loss" },
+  { label: "Courier Dashboard", path: "/phase4/courier", keywords: "courier shipments cod" },
+  { label: "Bulk Tools", path: "/phase4/bulk-tools", keywords: "bulk import export csv excel" },
+  { label: "Notifications", path: "/notifications", keywords: "alerts notification" },
+  { label: "Product Quality", path: "/phase4/product-quality", keywords: "product quality score issues" },
+  { label: "Sync Queue", path: "/phase4/queue-dashboard", keywords: "queue sync jobs" },
   { label: "Settings", path: "/settings", keywords: "settings logs page access" },
   { label: "Logs", path: "/logs", keywords: "system logs login logs" },
 ];
@@ -171,16 +182,16 @@ export default function Header({ onMenuClick }) {
         </form>
 
         <div className="relative flex shrink-0 items-center gap-2" ref={dropdownRef}>
-          <div className="hidden min-w-[92px] rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-center xl:block">
-            <p className="font-mono text-sm font-bold leading-4 text-slate-100">{formatClock(now)}</p>
-            <p className="mt-0.5 text-[10px] font-semibold text-slate-500">{formatDate(now)}</p>
-          </div>
-
           <p className="max-w-[120px] truncate text-sm font-semibold text-white">{user?.name || "User"}</p>
 
           <button type="button" onClick={() => setSettingsOpen((prev) => !prev)} className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white" aria-label="Open settings">
             <Settings size={15} />
           </button>
+
+          <div className="hidden min-w-[92px] rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-center xl:block">
+            <p className="font-mono text-sm font-bold leading-4 text-slate-100">{formatClock(now)}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-slate-500">{formatDate(now)}</p>
+          </div>
 
           {settingsOpen && (
             <div className="absolute right-0 top-10 z-50 w-52 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-xl shadow-black/40">

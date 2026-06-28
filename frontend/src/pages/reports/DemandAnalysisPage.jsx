@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Filter, Search } from 'lucide-react';
+import { Filter } from 'lucide-react';
 import erpApi from '../../config/sub_api/erp_api/erpApi';
 import { getApiError } from '../../config/api';
 import PageLoader from '../../components/ui/PageLoader';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
+import FilterSection, { FilterField, FilterInput, FilterSelect } from '../../components/ui/FilterSection';
 
 function n(value) {
   return Number(value || 0).toLocaleString();
@@ -87,54 +88,41 @@ export default function DemandAnalysisPage() {
 
       {error && <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">{error}</div>}
 
-      <div className="erp-card grid gap-3 lg:grid-cols-[1fr_150px_150px_140px_160px_120px]">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            value={filters.search}
-            onChange={(event) => updateFilter('search', event.target.value)}
-            className="erp-input pl-9"
-            placeholder="Search SKU or product name"
-          />
-        </div>
-
-        <select value={filters.priority} onChange={(event) => updateFilter('priority', event.target.value)} className="erp-input">
-          <option value="">All priority</option>
-          <option value="urgent">Urgent</option>
-          <option value="need_order">Need Order</option>
-          <option value="good">Good</option>
-          <option value="slow_moving">Slow Moving</option>
-        </select>
-
-        <select value={filters.stock_status} onChange={(event) => updateFilter('stock_status', event.target.value)} className="erp-input">
-          <option value="">All stock</option>
-          <option value="out_of_stock">Out of stock</option>
-          <option value="low_stock">Low stock</option>
-          <option value="in_stock">In stock</option>
-        </select>
-
-        <input
-          type="number"
-          min="0"
-          value={filters.min_sales_30}
-          onChange={(event) => updateFilter('min_sales_30', event.target.value)}
-          className="erp-input"
-          placeholder="Min 30D sales"
-        />
-
-        <input
-          type="number"
-          min="0"
-          value={filters.min_reorder_qty}
-          onChange={(event) => updateFilter('min_reorder_qty', event.target.value)}
-          className="erp-input"
-          placeholder="Min reorder qty"
-        />
-
-        <button type="button" onClick={resetFilters} className="erp-btn-secondary justify-center">
-          Reset
-        </button>
-      </div>
+      <FilterSection
+        title="Search & Filter Demand Analysis"
+        loading={loading}
+        filterCount={Object.entries(filters).filter(([key, value]) => key !== 'safety_days' && value).length}
+        onSearch={(event) => { event.preventDefault(); load(params); }}
+        onClear={resetFilters}
+        onOpenFilters={() => {}}
+      >
+        <FilterField label="SKU / Product" icon="sku">
+          <FilterInput value={filters.search} onChange={(event) => updateFilter('search', event.target.value)} placeholder="Search SKU or product name" />
+        </FilterField>
+        <FilterField label="Priority" icon="select">
+          <FilterSelect value={filters.priority} onChange={(event) => updateFilter('priority', event.target.value)}>
+            <option value="">All priority</option>
+            <option value="urgent">Urgent</option>
+            <option value="need_order">Need Order</option>
+            <option value="good">Good</option>
+            <option value="slow_moving">Slow Moving</option>
+          </FilterSelect>
+        </FilterField>
+        <FilterField label="Stock" icon="select">
+          <FilterSelect value={filters.stock_status} onChange={(event) => updateFilter('stock_status', event.target.value)}>
+            <option value="">All stock</option>
+            <option value="out_of_stock">Out of stock</option>
+            <option value="low_stock">Low stock</option>
+            <option value="in_stock">In stock</option>
+          </FilterSelect>
+        </FilterField>
+        <FilterField label="Min 30D Sales" icon="select">
+          <FilterInput type="number" min="0" value={filters.min_sales_30} onChange={(event) => updateFilter('min_sales_30', event.target.value)} placeholder="Min 30D sales" />
+        </FilterField>
+        <FilterField label="Min Reorder" icon="select">
+          <FilterInput type="number" min="0" value={filters.min_reorder_qty} onChange={(event) => updateFilter('min_reorder_qty', event.target.value)} placeholder="Min reorder qty" />
+        </FilterField>
+      </FilterSection>
 
       {!rows.length ? (
         <EmptyState title="No demand data" text="Try changing the filters or import marketplace sales data first." />

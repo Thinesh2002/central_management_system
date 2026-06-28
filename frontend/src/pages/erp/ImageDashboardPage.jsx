@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Image, Search, ScanLine, Star, Trash2, UploadCloud } from 'lucide-react';
+import { ExternalLink, Image, ScanLine, Star, Trash2, UploadCloud } from 'lucide-react';
 import erpApi from '../../config/sub_api/erp_api/erpApi';
 import { getApiError } from '../../config/api';
 import PageLoader from '../../components/ui/PageLoader';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
+import FilterSection, { FilterField, FilterInput, FilterSelect } from '../../components/ui/FilterSection';
 
 const API_BASE = import.meta.env.VITE_IMAGE_BASE_URL || import.meta.env.VITE_API_BASE_URL || 'https://backend.teckvora.com';
 const BACKEND_BASE = API_BASE.replace(/\/api\/?$/, '').replace(/\/$/, '');
@@ -27,6 +28,8 @@ export default function ImageDashboardPage() {
   const [summary, setSummary] = useState({});
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [checkType, setCheckType] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -37,7 +40,7 @@ export default function ImageDashboardPage() {
     try {
       setLoading(true);
       setError('');
-      const response = await erpApi.imageDashboard({ search: search || undefined, status: status || undefined, limit: 100 });
+      const response = await erpApi.imageDashboard({ search: search || undefined, status: status || undefined, check_type: checkType || undefined, limit: 100 });
       setRows(response.data?.rows || response.data?.data || []);
       setSummary(response.data?.summary || {});
     } catch (err) {
@@ -136,7 +139,7 @@ export default function ImageDashboardPage() {
     }
     const timer = window.setTimeout(() => load(), 500);
     return () => window.clearTimeout(timer);
-  }, [search, status]);
+  }, [search, status, checkType]);
 
   if (loading) return <PageLoader label="Loading image dashboard..." />;
   if (error && !rows.length) return <ErrorState title="Image dashboard failed" text={error} />;
@@ -164,15 +167,35 @@ export default function ImageDashboardPage() {
         <div className="erp-card"><p className="text-xs text-slate-500">Low resolution</p><p className="mt-2 text-xl font-bold">{summary.low_resolution || 0}</p></div>
       </div>
 
-      <div className="erp-card grid gap-3 md:grid-cols-[1fr_160px]">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input className="erp-input pl-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SKU or product name" />
-        </div>
-        <select className="erp-input" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All status</option><option value="fail">Fail</option><option value="warning">Warning</option><option value="pass">Pass</option>
-        </select>
-      </div>
+      <FilterSection
+        title="Search & Filter Images"
+        loading={loading}
+        filterCount={(status ? 1 : 0) + (checkType ? 1 : 0)}
+        onSearch={(event) => { event.preventDefault(); load(); }}
+        onOpenFilters={() => setShowAdvanced((prev) => !prev)}
+        onClear={() => { setSearch(''); setStatus(''); setCheckType(''); }}
+      >
+        <FilterField label="SKU / Product" icon="sku">
+          <FilterInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SKU or product name" />
+        </FilterField>
+        <FilterField label="Status" icon="select">
+          <FilterSelect value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All status</option><option value="fail">Fail</option><option value="warning">Warning</option><option value="pass">Pass</option>
+          </FilterSelect>
+        </FilterField>
+        {showAdvanced && (
+          <FilterField label="Check Type" icon="select">
+            <FilterSelect value={checkType} onChange={(e) => setCheckType(e.target.value)}>
+              <option value="">All checks</option>
+              <option value="missing_main">Missing main</option>
+              <option value="low_resolution">Low resolution</option>
+              <option value="missing_url">Missing URL</option>
+              <option value="sync_failed">Sync failed</option>
+              <option value="duplicate_url">Duplicate URL</option>
+            </FilterSelect>
+          </FilterField>
+        )}
+      </FilterSection>
 
       {!rows.length ? <EmptyState title="No image checks" text="Run image audit to create image quality records." /> : (
         <div className="erp-table-wrap">
@@ -200,7 +223,7 @@ export default function ImageDashboardPage() {
                         <button className="erp-btn-secondary" onClick={() => resolved && window.open(resolved, '_blank', 'noopener,noreferrer')}><ExternalLink size={13} /> View</button>
                         <button className="erp-btn-secondary" onClick={() => updateUrl(row)}>Fix URL</button>
                         <button className="erp-btn-secondary" onClick={() => setMain(row)} disabled={busy === `main-${row.id}`}><Star size={13} /> Main</button>
-                        <button className="erp-btn-secondary" onClick={() => deleteImage(row)} disabled={busy === `delete-${row.id}`}><Trash2 size={13} /> Delete</button>
+                        <button className="erp-btn-danger" onClick={() => deleteImage(row)} disabled={busy === `delete-${row.id}`}><Trash2 size={13} /> Delete Image</button>
                         <button className="erp-btn-secondary" onClick={() => pushImage(row, 'DARAZ')} disabled={busy === `DARAZ-${row.id}`}><UploadCloud size={13} /> Daraz</button>
                         <button className="erp-btn-secondary" onClick={() => pushImage(row, 'WOO')} disabled={busy === `WOO-${row.id}`}><UploadCloud size={13} /> Woo</button>
                       </div>
