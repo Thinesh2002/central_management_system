@@ -1,5 +1,4 @@
 const productDb = require('../../config/product_management_db/product_management_db');
-const marketplaceDb = require('../../config/marketplace_management_db/cm_marketplace_management');
 
 const SOURCE_TYPES = {
   DARAZ: 'daraz_order',
@@ -114,6 +113,30 @@ async function ensureOperationalTables() {
   `);
 
   await productDb.query(`
+    CREATE TABLE IF NOT EXISTS marketplace_sku_mappings (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      platform ENUM('DARAZ','WOO','LOCAL','OTHER') NOT NULL,
+      account_id BIGINT UNSIGNED NULL,
+      account_code VARCHAR(80) NULL,
+      marketplace_sku VARCHAR(180) NOT NULL,
+      local_sku VARCHAR(180) NOT NULL,
+      marketplace_product_id VARCHAR(120) NULL,
+      marketplace_item_id VARCHAR(120) NULL,
+      marketplace_variant_id VARCHAR(120) NULL,
+      local_product_id BIGINT UNSIGNED NULL,
+      local_variant_id BIGINT UNSIGNED NULL,
+      status ENUM('active','inactive','deleted') NOT NULL DEFAULT 'active',
+      note TEXT NULL,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_marketplace_sku_map (platform, account_id, marketplace_sku),
+      KEY idx_marketplace_sku_local (local_sku),
+      KEY idx_marketplace_sku_account (platform, account_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+
+  await productDb.query(`
     CREATE TABLE IF NOT EXISTS stock_update_logs (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       local_sku VARCHAR(180) NOT NULL,
@@ -194,14 +217,14 @@ async function findMappedSku({ platform, accountId, accountCode, marketplaceSku 
 
   try {
     const values = [String(platform || '').toUpperCase(), sku];
-    const where = [`platform = ?`, `marketplace_sku = ?`, `status <> 'DELETED'`];
+    const where = [`platform = ?`, `marketplace_sku = ?`, `(status IS NULL OR LOWER(status) <> 'deleted')`];
 
     if (accountId || accountCode) {
       where.push(`(account_id = ? OR account_code = ? OR account_id IS NULL OR account_code IS NULL)`);
       values.push(accountId || null, accountCode || null);
     }
 
-    const [rows] = await marketplaceDb.query(
+    const [rows] = await productDb.query(
       `SELECT local_sku FROM marketplace_sku_mappings WHERE ${where.join(' AND ')} ORDER BY account_id IS NULL ASC, account_code IS NULL ASC, id DESC LIMIT 1`,
       values
     );
@@ -214,33 +237,64 @@ async function findMappedSku({ platform, accountId, accountCode, marketplaceSku 
   return normalizeSku(sku);
 }
 
-async function findInventoryRow(localSku) {
+async function selectInventoryMeta() {
   const columns = await getColumns(productDb, 'product_inventory');
   if (!columns.length) return null;
-
-  const skuColumns = ['sku', 'local_sku', 'product_sku', 'seller_sku', 'variant_sku'].filter((column) => hasColumn(columns, column));
-  if (!skuColumns.length) return null;
-
-  const stockColumn = firstColumn(columns, ['stock_qty', 'qty', 'quantity', 'stock', 'available_qty']);
-  if (!stockColumn) return null;
-
-  const where = skuColumns.map((column) => `UPPER(TRIM(${qid(column)})) = ?`).join(' OR ');
-  const values = skuColumns.map(() => normalizeSku(localSku));
-
-  const [rows] = await productDb.query(
-    `SELECT * FROM product_inventory WHERE ${where} LIMIT 1`,
-    values
-  );
-
   return {
-    row: rows[0] || null,
     columns,
-    skuColumn: skuColumns[0],
-    stockColumn,
+    skuColumns: ['sku', 'local_sku', 'product_sku', 'seller_sku', 'variant_sku'].filter((column) => hasColumn(columns, column)),
+    stockColumn: firstColumn(columns, ['stock_qty', 'qty', 'quantity', 'stock', 'available_qty']),
     availableColumn: hasColumn(columns, 'available_qty') ? 'available_qty' : null,
     reservedColumn: firstColumn(columns, ['reserved_qty', 'reserved_stock']),
+    productIdColumn: firstColumn(columns, ['product_id', 'local_product_id']),
+    variantIdColumn: firstColumn(columns, ['variant_id', 'product_variant_id']),
     primaryKey: firstColumn(columns, ['id', 'inventory_id']) || 'id',
   };
+}
+
+async function findInventoryRow(localSku) {
+  const meta = await selectInventoryMeta();
+  if (!meta || !meta.stockColumn) return null;
+
+  const sku = normalizeSku(localSku);
+  if (!sku) return { ...meta, row: null, skuColumn: meta.skuColumns[0] || 'sku' };
+
+  if (meta.skuColumns.length) {
+    const where = meta.skuColumns.map((column) => `UPPER(TRIM(${qid(column)})) = ?`).join(' OR ');
+    const values = meta.skuColumns.map(() => sku);
+    const [rows] = await productDb.query(`SELECT * FROM product_inventory WHERE ${where} LIMIT 1`, values);
+    if (rows[0]) return { ...meta, row: rows[0], skuColumn: meta.skuColumns[0] };
+  }
+
+  // Fallback 1: inventory row mapped by variant_id -> product_variants SKU.
+  if (meta.variantIdColumn && await tableExists(productDb, 'product_variants')) {
+    const variantColumns = await getColumns(productDb, 'product_variants');
+    const variantPk = firstColumn(variantColumns, ['id', 'variant_id', 'product_variant_id']) || 'id';
+    const variantSkuColumns = ['sku', 'variant_sku', 'seller_sku', 'local_sku', 'child_sku'].filter((column) => hasColumn(variantColumns, column));
+    for (const skuColumn of variantSkuColumns) {
+      const [rows] = await productDb.query(
+        `SELECT i.* FROM product_inventory i INNER JOIN product_variants v ON v.${qid(variantPk)} = i.${qid(meta.variantIdColumn)} WHERE UPPER(TRIM(v.${qid(skuColumn)})) = ? LIMIT 1`,
+        [sku]
+      );
+      if (rows[0]) return { ...meta, row: rows[0], skuColumn: meta.skuColumns[0] || skuColumn };
+    }
+  }
+
+  // Fallback 2: inventory row mapped by product_id -> products SKU.
+  if (meta.productIdColumn && await tableExists(productDb, 'products')) {
+    const productColumns = await getColumns(productDb, 'products');
+    const productPk = firstColumn(productColumns, ['id', 'product_id', 'local_product_id']) || 'id';
+    const productSkuColumns = ['sku', 'product_sku', 'seller_sku', 'local_sku'].filter((column) => hasColumn(productColumns, column));
+    for (const skuColumn of productSkuColumns) {
+      const [rows] = await productDb.query(
+        `SELECT i.* FROM product_inventory i INNER JOIN products p ON p.${qid(productPk)} = i.${qid(meta.productIdColumn)} WHERE UPPER(TRIM(p.${qid(skuColumn)})) = ? LIMIT 1`,
+        [sku]
+      );
+      if (rows[0]) return { ...meta, row: rows[0], skuColumn: meta.skuColumns[0] || skuColumn };
+    }
+  }
+
+  return { ...meta, row: null, skuColumn: meta.skuColumns[0] || 'sku' };
 }
 
 async function insertDeductionLog(data) {
@@ -272,7 +326,39 @@ async function insertDeductionLog(data) {
   }
 }
 
+async function ensureInventoryMovementTable() {
+  await productDb.query(`
+    CREATE TABLE IF NOT EXISTS inventory_stock_movements (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      sku VARCHAR(180) NOT NULL,
+      movement_type ENUM('IN','OUT','RESERVED','RELEASED','RETURN','DAMAGE','ADJUSTMENT') NOT NULL DEFAULT 'OUT',
+      reference_type VARCHAR(80) NULL,
+      reference_id VARCHAR(160) NULL,
+      qty_before INT NOT NULL DEFAULT 0,
+      qty_change INT NOT NULL DEFAULT 0,
+      qty_after INT NOT NULL DEFAULT 0,
+      cost_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      note TEXT NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_inventory_movements_sku (sku),
+      KEY idx_inventory_movements_ref (reference_type, reference_id),
+      KEY idx_inventory_movements_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
 async function writeStockLogs({ localSku, oldQty, newQty, source, referenceId, note }) {
+  await ensureInventoryMovementTable();
+
+  await productDb.query(
+    `INSERT INTO inventory_stock_movements
+      (sku, movement_type, reference_type, reference_id, qty_before, qty_change, qty_after, note, created_at)
+     VALUES (?, 'OUT', ?, ?, ?, ?, ?, ?, NOW())`,
+    [localSku, source, referenceId || null, oldQty, newQty - oldQty, newQty, note || null]
+  ).catch(() => {});
+
   if (await tableExists(productDb, 'stock_update_logs')) {
     await productDb.query(
       `INSERT INTO stock_update_logs (local_sku, old_qty, new_qty, source, reference_id, note) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -386,8 +472,8 @@ async function queueStockPush({ localSku, qty, sourcePlatform, sourceOrderId }) 
 
 async function getMappingsForLocalSku(localSku, platform) {
   try {
-    const [rows] = await marketplaceDb.query(
-      `SELECT * FROM marketplace_sku_mappings WHERE platform = ? AND UPPER(TRIM(local_sku)) = ? AND status <> 'DELETED' ORDER BY account_id IS NULL ASC, id DESC`,
+    const [rows] = await productDb.query(
+      `SELECT * FROM marketplace_sku_mappings WHERE platform = ? AND UPPER(TRIM(local_sku)) = ? AND (status IS NULL OR LOWER(status) <> 'deleted') ORDER BY account_id IS NULL ASC, id DESC`,
       [platform, normalizeSku(localSku)]
     );
     return rows;

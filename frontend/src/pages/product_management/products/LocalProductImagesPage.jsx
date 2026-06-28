@@ -249,17 +249,26 @@ async function validateImage(file) {
   });
 }
 
-function SmallImageBox({ image, label, onPick, onRemove, disabled = false }) {
+function SmallImageBox({ image, label, onPick, onUrlPick, onRemove, disabled = false }) {
   const inputRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const preview = getImageUrl(image);
 
+  function openUrlPrompt() {
+    setMenuOpen(false);
+    const nextUrl = window.prompt("Paste existing image URL from Media Center", image?.image_url || image?.url || "");
+    if (!nextUrl) return;
+    onUrlPick?.(nextUrl);
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="group relative flex items-center gap-2">
       <button
         type="button"
         disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-        className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden border border-slate-700 bg-[#0a101d] transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
+        onClick={() => setMenuOpen((prev) => !prev)}
+        onMouseEnter={() => !disabled && setMenuOpen(true)}
+        className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden border border-slate-700 bg-[#0a101d] transition hover:border-yellow-400/70 disabled:cursor-not-allowed disabled:opacity-60"
         title={label}
       >
         {preview ? (
@@ -277,14 +286,30 @@ function SmallImageBox({ image, label, onPick, onRemove, disabled = false }) {
         )}
       </button>
 
-      <div className="min-w-[70px]">
+      {menuOpen && !disabled ? (
+        <div onMouseLeave={() => setMenuOpen(false)} className="absolute left-0 top-16 z-40 w-44 overflow-hidden rounded-lg border border-slate-700 bg-[#020617] p-1 shadow-xl shadow-black/40">
+          <button type="button" onClick={() => { setMenuOpen(false); inputRef.current?.click(); }} className="block w-full rounded-md px-3 py-2 text-left text-xs font-bold text-slate-200 hover:bg-slate-800">
+            Add Image
+          </button>
+          <button type="button" onClick={openUrlPrompt} className="block w-full rounded-md px-3 py-2 text-left text-xs font-bold text-slate-200 hover:bg-slate-800">
+            Media Center URL
+          </button>
+          {preview ? (
+            <button type="button" onClick={() => { setMenuOpen(false); onRemove?.(); }} className="block w-full rounded-md px-3 py-2 text-left text-xs font-bold text-rose-300 hover:bg-rose-500/10">
+              Remove Image
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="min-w-[90px]">
         <button
           type="button"
           disabled={disabled}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => setMenuOpen((prev) => !prev)}
           className="block cursor-pointer text-left text-xs font-bold text-slate-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {preview ? "Edit" : "Add"}
+          {preview ? "Edit" : "Add Image"}
         </button>
 
         {preview ? (
@@ -446,6 +471,18 @@ function ExtraImagesPopup({
                     {preview ? "Edit" : "Add"}
                   </button>
 
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={() => {
+                      const nextUrl = window.prompt("Paste existing image URL from Media Center", image?.image_url || image?.url || "");
+                      if (nextUrl) onUploadExtra({ mediaUrl: nextUrl }, index);
+                    }}
+                    className="cursor-pointer border border-slate-700 px-2 py-1 text-xs font-bold text-slate-300 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    URL
+                  </button>
+
                   {preview ? (
                     <button
                       type="button"
@@ -599,6 +636,52 @@ export default function LocalProductImagesPage() {
     }
   }
 
+  async function saveImageUrl({
+    imageUrl,
+    isMain,
+    sortOrder,
+    existingImage = null,
+    variantId = "",
+  }) {
+    try {
+      const cleanUrl = String(imageUrl || "").trim();
+      if (!cleanUrl) return;
+
+      const uploadKey = `${variantId || "parent"}-url-${isMain ? "main" : sortOrder}`;
+      setUploadingKey(uploadKey);
+
+      const payload = {
+        product_id: productId,
+        image_url: cleanUrl,
+        url: cleanUrl,
+        path: cleanUrl,
+        is_main: isMain ? 1 : 0,
+        sort_order: sortOrder,
+        image_type: isMain ? "main" : "sub",
+        sku: variantId ? "" : productSku,
+        created_by: 1,
+        updated_by: 1,
+      };
+
+      if (variantId) {
+        payload.variant_id = variantId;
+        payload.product_variant_id = variantId;
+      }
+
+      if (existingImage?.id) {
+        await localProductsApi.updateImageUrl(existingImage.id, payload);
+      } else {
+        await localProductsApi.createImageFromUrl(payload);
+      }
+
+      await loadData();
+    } catch (error) {
+      alert(getErrorMessage(error, error.message || "Unable to save image URL."));
+    } finally {
+      setUploadingKey("");
+    }
+  }
+
   async function removeImage(image) {
     if (!image?.id) return;
 
@@ -700,6 +783,15 @@ export default function LocalProductImagesPage() {
                           variantId: "",
                         })
                       }
+                      onUrlPick={(imageUrl) =>
+                        saveImageUrl({
+                          imageUrl,
+                          isMain: true,
+                          sortOrder: 0,
+                          existingImage: parentImageSet.main,
+                          variantId: "",
+                        })
+                      }
                       onRemove={() => removeImage(parentImageSet.main)}
                     />
                   </td>
@@ -758,6 +850,15 @@ export default function LocalProductImagesPage() {
                                 variantId,
                               })
                             }
+                            onUrlPick={(imageUrl) =>
+                              saveImageUrl({
+                                imageUrl,
+                                isMain: true,
+                                sortOrder: 0,
+                                existingImage: imageSet.main,
+                                variantId,
+                              })
+                            }
                             onRemove={() => removeImage(imageSet.main)}
                           />
                         </td>
@@ -800,15 +901,24 @@ export default function LocalProductImagesPage() {
           images={extraPopup.images}
           uploading={Boolean(uploadingKey)}
           onClose={() => setExtraPopup(null)}
-          onUploadExtra={(file, index) =>
-            uploadFile({
+          onUploadExtra={(file, index) => {
+            if (file?.mediaUrl) {
+              return saveImageUrl({
+                imageUrl: file.mediaUrl,
+                isMain: false,
+                sortOrder: index + 1,
+                existingImage: extraPopup.images[index],
+                variantId: extraPopup.variantId,
+              });
+            }
+            return uploadFile({
               file,
               isMain: false,
               sortOrder: index + 1,
               existingImage: extraPopup.images[index],
               variantId: extraPopup.variantId,
-            })
-          }
+            });
+          }}
           onRemoveExtra={(image) => removeImage(image)}
         />
       ) : null}

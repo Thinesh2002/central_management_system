@@ -1,4 +1,5 @@
-const db = require('../../config/marketplace_management_db/cm_marketplace_management');
+// SKU mapping belongs to Product Management DB because it controls local SKU inventory mapping.
+const db = require('../../config/product_management_db/product_management_db');
 const { listParams, clean } = require('../../utils/business/query_helpers');
 
 async function list(params = {}) {

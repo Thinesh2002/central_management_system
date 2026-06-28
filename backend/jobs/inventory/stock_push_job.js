@@ -1,12 +1,12 @@
 const cron = require('node-cron');
 const productDb = require('../../config/product_management_db/product_management_db');
-const marketplaceDb = require('../../config/marketplace_management_db/cm_marketplace_management');
 const accountModel = require('../../models/marketplace/account_model');
 const credentialModel = require('../../models/marketplace/credential_model');
 const wooModel = require('../../models/marketplace/woo/woo_model');
 const wooApi = require('../../services/marketplace/woo/woo_api_service');
 const darazApi = require('../../services/marketplace/daraz_api_service');
 const stockService = require('../../services/inventory/marketplace_stock_service');
+const { recordAutomationRun } = require('../../services/system/automation_log_service');
 
 let isRunning = false;
 
@@ -51,7 +51,7 @@ async function findMapping(row) {
       values.push(row.marketplace_sku);
     }
 
-    const [rows] = await marketplaceDb.query(
+    const [rows] = await productDb.query(
       `SELECT * FROM marketplace_sku_mappings WHERE ${where.join(' AND ')} ORDER BY id DESC LIMIT 1`,
       values
     );
@@ -122,6 +122,7 @@ async function processQueueItem(row) {
 async function runStockPushQueue() {
   if (isRunning) return { skipped: true, reason: 'previous_run_still_running' };
   isRunning = true;
+  const startedAt = new Date();
 
   const summary = { checked: 0, success: 0, failed: 0 };
 
@@ -143,10 +144,13 @@ async function runStockPushQueue() {
       console.log(`[STOCK_PUSH] Checked: ${summary.checked} | Success: ${summary.success} | Failed: ${summary.failed}`);
     }
 
+    await recordAutomationRun({ jobName: 'STOCK_PUSH', jobType: 'stock_push', status: summary.failed ? 'partial' : 'success', summary, startedAt });
     return summary;
   } catch (error) {
     console.error('[STOCK_PUSH_ERROR]:', error.message);
-    return { ...summary, error: error.message };
+    const failedSummary = { ...summary, error: error.message };
+    await recordAutomationRun({ jobName: 'STOCK_PUSH', jobType: 'stock_push', status: 'failed', summary: failedSummary, error, startedAt });
+    return failedSummary;
   } finally {
     isRunning = false;
   }
@@ -154,7 +158,7 @@ async function runStockPushQueue() {
 
 function startStockPushJob() {
   runStockPushQueue();
-  const interval = Math.min(Math.max(Number(process.env.STOCK_PUSH_INTERVAL_MINUTES || 5), 5), 60);
+  const interval = Math.min(Math.max(Number(process.env.STOCK_PUSH_INTERVAL_MINUTES || 30), 5), 60);
   cron.schedule(`*/${interval} * * * *`, runStockPushQueue, { timezone: 'Asia/Colombo' });
   console.log(`[STOCK_PUSH] Scheduler started. Runs every ${interval} minutes.`);
 }

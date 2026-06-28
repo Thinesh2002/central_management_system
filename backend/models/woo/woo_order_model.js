@@ -1,4 +1,4 @@
-const db = require('../../config/marketplace_management_db/cm_marketplace_management');
+const db = require('../../config/order_management_db/cm_order_management');
 const productDb = require('../../config/product_management_db/product_management_db');
 const stockService = require('../../services/inventory/marketplace_stock_service');
 const { listParams, toMoney, clean, jsonValue } = require('../../utils/business/query_helpers');

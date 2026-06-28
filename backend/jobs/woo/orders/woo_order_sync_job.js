@@ -3,6 +3,7 @@ const wooModel = require('../../../models/marketplace/woo/woo_model');
 const wooApi = require('../../../services/marketplace/woo/woo_api_service');
 const wooOrderModel = require('../../../models/woo/woo_order_model');
 const stockService = require('../../../services/inventory/marketplace_stock_service');
+const { recordAutomationRun } = require('../../../services/system/automation_log_service');
 
 let isRunning = false;
 
@@ -11,8 +12,8 @@ function minutesAgoIso(minutes) {
 }
 
 function getIntervalMinutes() {
-  const value = Number(process.env.WOO_ORDER_SYNC_INTERVAL_MINUTES || 10);
-  return Number.isFinite(value) && value > 0 ? Math.max(value, 5) : 10;
+  const value = Number(process.env.WOO_ORDER_SYNC_INTERVAL_MINUTES || 30);
+  return Number.isFinite(value) && value > 0 ? Math.max(value, 5) : 30;
 }
 
 function getDaysBack() {
@@ -49,12 +50,17 @@ async function syncWooOrdersForAccount(account) {
 async function runWooOrderSync() {
   if (isRunning) return { skipped: true, reason: 'previous_run_still_running' };
   isRunning = true;
+  const startedAt = new Date();
 
   const summary = { checked_accounts: 0, success_accounts: 0, failed_accounts: 0, fetched: 0, saved: 0, failed_orders: 0 };
 
   try {
     const settings = await stockService.getStockSettings();
-    if (!settings.woo_auto_order_sync) return { ...summary, skipped: true, reason: 'woo_auto_order_sync_disabled' };
+    if (!settings.woo_auto_order_sync) {
+      const skipped = { ...summary, skipped: true, reason: 'woo_auto_order_sync_disabled' };
+      await recordAutomationRun({ jobName: 'WOO_ORDER_SYNC', jobType: 'order_sync', status: 'skipped', summary: skipped, startedAt });
+      return skipped;
+    }
 
     const accounts = await wooModel.listWooAccounts();
     const activeAccounts = accounts.filter((account) => {
@@ -78,10 +84,13 @@ async function runWooOrderSync() {
     }
 
     console.log(`[WOO_ORDER_SYNC] Accounts: ${summary.checked_accounts} | Saved: ${summary.saved} | Failed: ${summary.failed_accounts + summary.failed_orders}`);
+    await recordAutomationRun({ jobName: 'WOO_ORDER_SYNC', jobType: 'order_sync', status: summary.failed_accounts || summary.failed_orders ? 'partial' : 'success', summary, startedAt });
     return summary;
   } catch (error) {
     console.error('[WOO_ORDER_SYNC_ERROR]:', error.message);
-    return { ...summary, error: error.message };
+    const failedSummary = { ...summary, error: error.message };
+    await recordAutomationRun({ jobName: 'WOO_ORDER_SYNC', jobType: 'order_sync', status: 'failed', summary: failedSummary, error, startedAt });
+    return failedSummary;
   } finally {
     isRunning = false;
   }

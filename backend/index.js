@@ -12,6 +12,9 @@ const orderManagementDb = require("./config/order_management_db/cm_order_managem
 const marketplaceManagementDb = require("./config/marketplace_management_db/cm_marketplace_management");
 const financeManagementDb = require("./config/finance_management_db/cm_finance_management");
 const accessModel = require("./models/accessModel");
+const { auditLogger, ensureAuditTable } = require("./middleware/auditLogger");
+const { ensureAutomationLogTables } = require("./services/system/automation_log_service");
+const stockAutomationService = require("./services/inventory/marketplace_stock_service");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -47,6 +50,7 @@ const marketplaceSkuMappingRoutes = require("./routes/marketplace/sku_mapping_ro
 const productInventoryRoutes = require("./routes/product_management/product/product_inventory_routes");
 const productImageRoutes = require("./routes/product_management/product/product_images_routes");
 const erpRoutes = require("./routes/erp/erp_routes");
+const phase4Routes = require("./routes/phase4/phase4_routes");
 
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -123,6 +127,10 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Audit all create/update/delete requests. req.user is attached later by protected routes,
+// but res.finish runs after route middleware, so user details are captured correctly.
+app.use(auditLogger);
+
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 const loginLimiter = rateLimit({
@@ -198,12 +206,16 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/woo", wooOrderRoutes);
 app.use("/api/daraz/order-status", darazOrderStatusRoutes);
+// SKU mappings are stored in Product Management DB. Keep marketplace URL as legacy alias.
+app.use("/api/product/sku-mappings", marketplaceSkuMappingRoutes);
+app.use("/api/product-management/sku-mappings", marketplaceSkuMappingRoutes);
 app.use("/api/marketplace/sku-mappings", marketplaceSkuMappingRoutes);
 
 // Backward-compatible direct product API mounts used by current frontend files.
 app.use("/api/product/product-inventory", productInventoryRoutes);
 app.use("/api/product/product-images", productImageRoutes);
 app.use("/api/erp", erpRoutes);
+app.use("/api/phase4", phase4Routes);
 
 
 app.use(notFound);
@@ -256,6 +268,10 @@ async function startServer() {
   await pool.query("SELECT 1");
   await printStartupSummary();
 
+  if (typeof accessModel.ensureAccessSchema === "function") await accessModel.ensureAccessSchema();
+  await ensureAuditTable();
+  await ensureAutomationLogTables();
+  if (typeof stockAutomationService.ensureOperationalTables === "function") await stockAutomationService.ensureOperationalTables();
   await syncPermissions();
 
   app.listen(PORT, () => {

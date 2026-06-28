@@ -133,7 +133,7 @@ export default function SkuMappingPage() {
       <div className="page-header-card">
         <h1 className="text-xl font-bold">SKU Mapping</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Daraz/Woo wrong SKU ah correct local SKU ku map pannunga. Accounts and local SKU suggestions database la irunthu varum.
+          Daraz/Woo wrong SKU ah correct local SKU ku map pannunga. This mapping now saves in Product Management DB, so stock reduce and SKU reports use one source.
         </p>
       </div>
 

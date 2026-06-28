@@ -313,6 +313,12 @@ export const localProductsApi = {
       headers: { "Content-Type": "multipart/form-data" },
     }),
 
+  createImageFromUrl: (payload) =>
+    api.post("/product-management/product-images", payload),
+
+  updateImageUrl: (id, payload) =>
+    api.patch(`/product-management/product-images/${safeValue(id)}`, payload),
+
   updateImage: (id, formData) =>
     api.put(
       `/product-management/product-images/${safeValue(id)}`,

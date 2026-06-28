@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 const db = require('../../config/product_management_db/product_management_db');
+const authDb = require('../../config/db');
 
 function clean(value) {
   return String(value ?? '').trim();
@@ -56,19 +57,70 @@ async function safeOne(sql, params = [], fallback = {}) {
   return rows[0] || fallback;
 }
 
+async function safeAuthQuery(sql, params = [], fallback = []) {
+  try {
+    const [rows] = await authDb.query(sql, params);
+    return rows;
+  } catch (error) {
+    if (['ER_NO_SUCH_TABLE', 'ER_BAD_FIELD_ERROR', 'ER_PARSE_ERROR'].includes(error.code)) return fallback;
+    throw error;
+  }
+}
+
+async function safeAuthOne(sql, params = [], fallback = {}) {
+  const rows = await safeAuthQuery(sql, params, []);
+  return rows[0] || fallback;
+}
+
+async function ensureAuthAuditTable() {
+  await authDb.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      request_uid VARCHAR(120) NULL,
+      user_id BIGINT UNSIGNED NULL,
+      user_uid VARCHAR(80) NULL,
+      user_name VARCHAR(160) NULL,
+      user_email VARCHAR(190) NULL,
+      module_name VARCHAR(120) NOT NULL DEFAULT 'system',
+      action_name VARCHAR(120) NOT NULL DEFAULT 'update',
+      http_method VARCHAR(12) NULL,
+      route_path VARCHAR(255) NULL,
+      entity_type VARCHAR(120) NULL,
+      entity_id VARCHAR(160) NULL,
+      old_value_json JSON NULL,
+      new_value_json JSON NULL,
+      request_json JSON NULL,
+      response_status INT NULL,
+      status ENUM('success','failed') NOT NULL DEFAULT 'success',
+      message TEXT NULL,
+      ip_address VARCHAR(80) NULL,
+      user_agent TEXT NULL,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_audit_user_created (user_id, created_at),
+      KEY idx_audit_module_created (module_name, created_at),
+      KEY idx_audit_status_created (status, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+
 function userName(user = {}) {
   return user.name || user.full_name || user.username || user.email || null;
 }
 
 async function addAuditLog(payload = {}) {
-  await safeQuery(
+  await ensureAuthAuditTable();
+  await authDb.query(
     `INSERT INTO audit_logs
-     (request_uid, user_id, user_name, module_name, action_name, entity_type, entity_id, old_value_json, new_value_json, ip_address, user_agent, status, message)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (request_uid, user_id, user_uid, user_name, user_email, module_name, action_name, entity_type, entity_id, old_value_json, new_value_json, ip_address, user_agent, status, message)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       payload.request_uid || uid('audit'),
       payload.user_id || null,
+      payload.user_uid || null,
       payload.user_name || null,
+      payload.user_email || null,
       payload.module_name || 'system',
       payload.action_name || 'unknown',
       payload.entity_type || null,
@@ -87,7 +139,9 @@ async function auditFromRequest(req, data = {}) {
   await addAuditLog({
     ...data,
     user_id: req.user?.id || req.user?.user_id || null,
+    user_uid: req.user?.user_uid || null,
     user_name: userName(req.user || {}),
+    user_email: req.user?.email || null,
     ip_address: req.ip || req.headers['x-forwarded-for'] || null,
     user_agent: req.headers['user-agent'] || null,
   });
@@ -95,7 +149,8 @@ async function auditFromRequest(req, data = {}) {
 
 async function dashboard() {
   const roles = await safeOne(`SELECT COUNT(*) AS total_roles FROM roles WHERE status <> 'deleted'`, [], { total_roles: 0 });
-  const audit = await safeOne(
+  await ensureAuthAuditTable();
+  const audit = await safeAuthOne(
     `SELECT COUNT(*) AS audit_count, COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END),0) AS failed_actions
      FROM audit_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
     [],
@@ -143,13 +198,13 @@ async function dashboard() {
     [],
     { queue_jobs: 0, failed_queue: 0 }
   );
-  const recentAudit = await safeQuery(`SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 8`, []);
+  const recentAudit = await safeAuthQuery(`SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 8`, []);
   const notifications = await safeQuery(`SELECT * FROM notifications WHERE is_read = 0 ORDER BY created_at DESC LIMIT 8`, []);
   return { roles, audit, backup, profit, returns, courier, bulk, quality, queue, recent_audit: recentAudit, notifications };
 }
 
 async function rolesAndPermissions() {
-  const roles = await safeQuery(
+  const roles = await safeAuthQuery(
     `SELECT r.*, COUNT(rp.permission_id) AS permission_count
      FROM roles r
      LEFT JOIN role_permissions rp ON rp.role_id = r.id
@@ -158,11 +213,11 @@ async function rolesAndPermissions() {
      ORDER BY r.is_system DESC, r.role_name ASC`,
     []
   );
-  const permissions = await safeQuery(
+  const permissions = await safeAuthQuery(
     `SELECT * FROM permissions WHERE status = 'active' ORDER BY module_name, action_name, permission_name`,
     []
   );
-  const rolePermissions = await safeQuery(
+  const rolePermissions = await safeAuthQuery(
     `SELECT rp.role_id, p.permission_code
      FROM role_permissions rp
      JOIN permissions p ON p.id = rp.permission_id`,
@@ -175,10 +230,10 @@ async function createRole(payload = {}, req = null) {
   const code = clean(payload.role_code || payload.code || payload.role_name).toUpperCase().replace(/\s+/g, '_');
   const name = clean(payload.role_name || payload.name);
   if (!code || !name) throw new Error('Role code and role name are required.');
-  const [result] = await db.query(
-    `INSERT INTO roles (role_code, role_name, description, status) VALUES (?, ?, ?, ?)
+  const [result] = await authDb.query(
+    `INSERT INTO roles (role_code, role_key, role_name, description, status) VALUES (?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE role_name = VALUES(role_name), description = VALUES(description), status = VALUES(status), updated_at = NOW()`,
-    [code, name, payload.description || null, payload.status || 'active']
+    [code, code.toLowerCase(), name, payload.description || null, payload.status || 'active']
   );
   if (req) await auditFromRequest(req, { module_name: 'roles', action_name: 'create_or_update', entity_type: 'role', entity_id: code, new_value_json: payload, message: `Role saved: ${code}` });
   return { id: result.insertId, role_code: code, role_name: name };
@@ -188,15 +243,15 @@ async function updateRolePermissions(roleId, permissionCodes = [], req = null) {
   const id = intValue(roleId, 0);
   if (!id) throw new Error('role_id is required.');
   const codes = Array.isArray(permissionCodes) ? permissionCodes.map((x) => clean(x)).filter(Boolean) : [];
-  const oldRows = await safeQuery(
+  const oldRows = await safeAuthQuery(
     `SELECT p.permission_code FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = ?`,
     [id]
   );
-  await db.query(`DELETE FROM role_permissions WHERE role_id = ?`, [id]);
+  await authDb.query(`DELETE FROM role_permissions WHERE role_id = ?`, [id]);
   if (codes.length) {
-    const permissions = await safeQuery(`SELECT id, permission_code FROM permissions WHERE permission_code IN (?)`, [codes], []);
+    const permissions = await safeAuthQuery(`SELECT id, permission_code FROM permissions WHERE permission_code IN (?)`, [codes], []);
     for (const permission of permissions) {
-      await db.query(`INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)`, [id, permission.id]);
+      await authDb.query(`INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)`, [id, permission.id]);
     }
   }
   if (req) await auditFromRequest(req, { module_name: 'roles', action_name: 'permission_update', entity_type: 'role', entity_id: id, old_value_json: oldRows, new_value_json: codes, message: 'Role permissions updated.' });
@@ -204,12 +259,13 @@ async function updateRolePermissions(roleId, permissionCodes = [], req = null) {
 }
 
 async function listAuditLogs(params = {}) {
+  await ensureAuthAuditTable();
   const { page, limit, offset } = listParams(params, 30, 500);
   const where = [];
   const values = [];
   if (params.search) {
-    where.push('(user_name LIKE ? OR module_name LIKE ? OR action_name LIKE ? OR entity_id LIKE ? OR message LIKE ?)');
-    values.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`);
+    where.push('(user_name LIKE ? OR user_uid LIKE ? OR user_email LIKE ? OR module_name LIKE ? OR action_name LIKE ? OR entity_id LIKE ? OR message LIKE ?)');
+    values.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`);
   }
   if (params.module_name) { where.push('module_name = ?'); values.push(params.module_name); }
   if (params.action_name) { where.push('action_name = ?'); values.push(params.action_name); }
@@ -217,8 +273,8 @@ async function listAuditLogs(params = {}) {
   if (params.date_from) { where.push('DATE(created_at) >= ?'); values.push(params.date_from); }
   if (params.date_to) { where.push('DATE(created_at) <= ?'); values.push(params.date_to); }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  const rows = await safeQuery(`SELECT * FROM audit_logs ${whereSql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
-  const count = await safeOne(`SELECT COUNT(*) AS total FROM audit_logs ${whereSql}`, values, { total: 0 });
+  const rows = await safeAuthQuery(`SELECT * FROM audit_logs ${whereSql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
+  const count = await safeAuthOne(`SELECT COUNT(*) AS total FROM audit_logs ${whereSql}`, values, { total: 0 });
   return { rows, pagination: { page, limit, offset, total: Number(count.total || 0) } };
 }
 

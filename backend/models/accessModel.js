@@ -14,10 +14,99 @@ const PAGE_DEFAULTS = {
   user: { can_view: 0, can_edit: 0, can_delete: 0 },
 };
 
-function defaultForRole(role, pageKey = "") {
-  if (role === "master_admin") return { ...PAGE_DEFAULTS.master_admin };
+function normalizeRoleName(role) {
+  return String(role || 'user').toLowerCase().replace(/[\s-]+/g, '_');
+}
 
-  if (role === "admin") {
+const DEFAULT_PAGES = [
+  ['dashboard','Dashboard','/dashboard','LayoutDashboard',10],
+  ['business_dashboard','Business Dashboard','/business-dashboard','BarChart3',20],
+  ['local_products','Local Products','/product/local-products','Boxes',100],
+  ['add_product','Add Product','/product/local-products/create','FilePlus2',110],
+  ['categories','Categories','/product/categories','Grid3X3',120],
+  ['image_dashboard','Image Dashboard','/image-dashboard','PackageSearch',130],
+  ['product_quality','Product Quality','/phase4/product-quality','ClipboardCheck',140],
+  ['inventory_dashboard','Inventory Dashboard','/inventory/dashboard','BarChart3',200],
+  ['inventory_list','Inventory List','/inventory','Boxes',210],
+  ['sku_search','SKU Search','/inventory/sku-search','Search',220],
+  ['stock_ledger','Stock Logs','/inventory/stock-ledger','FileSpreadsheet',230],
+  ['stock_adjustment','Stock Adjustment','/inventory/stock-adjustment','PackageCheck',240],
+  ['demand_analysis','Demand Analysis','/reports/demand-analysis','TrendingUp',250],
+  ['daraz_orders','Daraz Orders','/daraz/orders','ShoppingBag',300],
+  ['woo_orders','Woo Orders','/woo/orders','ShoppingBag',310],
+  ['manual_orders','Manual Orders','/manual/orders','ShoppingBag',320],
+  ['order_profit','Order Profit','/phase4/order-profit','ReceiptText',330],
+  ['returns_refunds','Returns / Refunds','/phase4/returns-refunds','RotateCcw',340],
+  ['marketplace_accounts','Accounts','/marketplace/accounts','Store',400],
+  ['daraz_products','Daraz Products','/daraz/products','ShoppingBag',410],
+  ['woo_products','Woo Products','/woo-products','ShoppingBag',420],
+  ['marketplace_transfer','Transfer','/marketplace/transfer','CloudUpload',430],
+  ['sku_mapping','SKU Mapping','/product/sku-mappings','GitBranch',145],
+  ['net_sales','Net Sales','/finance/net-sales','BarChart3',500],
+  ['price_dashboard','Price Dashboard','/price-dashboard','Calculator',510],
+  ['daraz_finance','Daraz Finance','/daraz/finance','FileSpreadsheet',520],
+  ['phase4_control','Control Center','/phase4','ListChecks',600],
+  ['courier_dashboard','Courier Dashboard','/phase4/courier','Truck',610],
+  ['bulk_tools','Bulk Tools','/phase4/bulk-tools','ArchiveRestore',620],
+  ['notifications','Notifications','/notifications','Bell',630],
+  ['queue_dashboard','Sync Queue','/phase4/queue-dashboard','RefreshCcw',640],
+  ['roles_permissions','Roles & Permissions','/phase4/roles-permissions','ShieldCheck',700],
+  ['users','Users','/users','Users',710],
+  ['access_control','Page Access','/access-control','ShieldCheck',720],
+  ['audit_logs','Audit Logs','/phase4/audit-logs','FileSpreadsheet',730],
+  ['logs','System Logs','/logs','FileSpreadsheet',740],
+  ['backup_migration','Backup / Migration','/phase4/backup-migration','DatabaseBackup',750],
+  ['settings','Settings','/settings','Settings2',760],
+];
+
+let accessSchemaReady = false;
+async function ensureAccessSchema() {
+  if (accessSchemaReady) return;
+  await pool.query(`CREATE TABLE IF NOT EXISTS app_pages (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    page_key VARCHAR(120) NOT NULL,
+    page_name VARCHAR(160) NOT NULL,
+    route_path VARCHAR(220) NOT NULL,
+    icon VARCHAR(80) NULL DEFAULT 'LayoutDashboard',
+    display_order INT NOT NULL DEFAULT 100,
+    status ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_app_pages_key (page_key),
+    UNIQUE KEY uq_app_pages_path (route_path),
+    KEY idx_app_pages_status_order (status, display_order)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_permissions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    page_key VARCHAR(120) NOT NULL,
+    can_view TINYINT(1) NOT NULL DEFAULT 0,
+    can_edit TINYINT(1) NOT NULL DEFAULT 0,
+    can_delete TINYINT(1) NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_user_page_permission (user_id, page_key),
+    KEY idx_user_permissions_page (page_key)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  for (const page of DEFAULT_PAGES) {
+    await pool.query(
+      `INSERT INTO app_pages (page_key, page_name, route_path, icon, display_order, status)
+       VALUES (?, ?, ?, ?, ?, 'active')
+       ON DUPLICATE KEY UPDATE page_name=VALUES(page_name), route_path=VALUES(route_path), icon=VALUES(icon), display_order=VALUES(display_order), status='active'`,
+      page
+    );
+  }
+  accessSchemaReady = true;
+}
+
+function defaultForRole(role, pageKey = "") {
+  const normalizedRole = normalizeRoleName(role);
+  if (normalizedRole === "master_admin" || normalizedRole === "super_admin") return { ...PAGE_DEFAULTS.master_admin };
+
+  if (normalizedRole === "admin") {
     if (["dashboard", "users", "access_control", "logs"].includes(pageKey)) {
       return {
         can_view: 1,
@@ -27,11 +116,11 @@ function defaultForRole(role, pageKey = "") {
     }
   }
 
-  if (role === "user" && pageKey === "dashboard") {
+  if (normalizedRole === "user" && pageKey === "dashboard") {
     return { can_view: 1, can_edit: 0, can_delete: 0 };
   }
 
-  return { ...PAGE_DEFAULTS[role] || PAGE_DEFAULTS.user };
+  return { ...(PAGE_DEFAULTS[normalizedRole] || PAGE_DEFAULTS.user) };
 }
 
 function cleanPermissionFlags(row = {}) {
@@ -43,6 +132,7 @@ function cleanPermissionFlags(row = {}) {
 }
 
 async function listPages({ includeInactive = false } = {}) {
+  await ensureAccessSchema();
   const [rows] = await pool.query(
     `SELECT id, page_key, page_name, route_path, icon, display_order, status, created_at, updated_at
      FROM app_pages
@@ -53,6 +143,7 @@ async function listPages({ includeInactive = false } = {}) {
 }
 
 async function getPageByKey(pageKey) {
+  await ensureAccessSchema();
   const [rows] = await pool.query(
     `SELECT id, page_key, page_name, route_path, icon, display_order, status, created_at, updated_at
      FROM app_pages
@@ -64,6 +155,7 @@ async function getPageByKey(pageKey) {
 }
 
 async function getPageByPath(routePath) {
+  await ensureAccessSchema();
   const path = normalizeRoutePath(routePath);
   const [rows] = await pool.query(
     `SELECT id, page_key, page_name, route_path, icon, display_order, status, created_at, updated_at
@@ -86,6 +178,7 @@ async function ensurePermissionForUserAndPage(user, pageKey, updatedBy = null) {
 }
 
 async function ensureUserDefaultPermissions(userId, role = "user", updatedBy = null) {
+  await ensureAccessSchema();
   const [pages] = await pool.query(`SELECT page_key FROM app_pages WHERE status = 'active'`);
 
   for (const page of pages) {
@@ -114,6 +207,7 @@ async function ensureAllUserPermissionsForPage(pageKey, updatedBy = null) {
 }
 
 async function ensureAllUserPermissions() {
+  await ensureAccessSchema();
   const [users] = await pool.query(`SELECT id, role FROM users`);
   for (const user of users) {
     await ensureUserDefaultPermissions(user.id, user.role);
@@ -121,6 +215,7 @@ async function ensureAllUserPermissions() {
 }
 
 async function createPage(payload, updatedBy = null) {
+  await ensureAccessSchema();
   const pageName = cleanString(payload.page_name);
   const pageKey = makePageKey(payload.page_key || payload.page_name);
   const routePath = normalizeRoutePath(payload.route_path || pageKey.replaceAll("_", "-"));
@@ -257,8 +352,10 @@ async function updateUserPermissions(targetUserId, permissionRows = [], updatedB
 }
 
 async function hasPermission(user, pageKey, action = "view") {
+  await ensureAccessSchema();
   if (!user?.id || !pageKey || !ACTION_COLUMN[action]) return false;
-  if (user.role === "master_admin") return true;
+  const roleName = normalizeRoleName(user.role);
+  if (roleName === "master_admin" || roleName === "super_admin" || Number(user.is_master_locked || 0) === 1) return true;
 
   await ensureUserDefaultPermissions(user.id, user.role);
 
@@ -275,9 +372,11 @@ async function hasPermission(user, pageKey, action = "view") {
 }
 
 async function listUserMenu(user) {
+  await ensureAccessSchema();
   await ensureUserDefaultPermissions(user.id, user.role);
 
-  if (user.role === "master_admin") {
+  const roleName = normalizeRoleName(user.role);
+  if (roleName === "master_admin" || roleName === "super_admin" || Number(user.is_master_locked || 0) === 1) {
     return listPages({ includeInactive: false });
   }
 
@@ -310,4 +409,5 @@ module.exports = {
   updateUserPermissions,
   hasPermission,
   listUserMenu,
+  ensureAccessSchema,
 };

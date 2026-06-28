@@ -3,6 +3,7 @@ const orderModel = require("../../../models/daraz/daraz_orders/daraz_order_model
 const orderService = require("../../../services/daraz/daraz_orders/daraz_order_service");
 const accountModel = require("../../../models/marketplace/account_model");
 const stockService = require("../../../services/inventory/marketplace_stock_service");
+const { recordAutomationRun } = require("../../../services/system/automation_log_service");
 
 let isRunning = false;
 let historicalSyncCompleted = false;
@@ -61,7 +62,7 @@ function getLimit(settings) {
 }
 
 function getIntervalMinutes() {
-  const value = Number(process.env.DARAZ_ORDER_SYNC_INTERVAL_MINUTES || 10);
+  const value = Number(process.env.DARAZ_ORDER_SYNC_INTERVAL_MINUTES || 30);
   if (!Number.isFinite(value)) return 10;
   return Math.min(Math.max(value, 5), 60);
 }
@@ -108,18 +109,23 @@ async function runDarazOrderSync() {
   }
 
   isRunning = true;
+  const startedAt = new Date();
   const summary = { accounts: 0, success_accounts: 0, failed_accounts: 0, fetched: 0, inserted: 0, updated: 0, failed: 0 };
 
   try {
     const stockSettings = await stockService.getStockSettings();
     if (!stockSettings.daraz_auto_order_sync) {
-      return { ...summary, skipped: true, reason: "daraz_auto_order_sync_disabled" };
+      const skipped = { ...summary, skipped: true, reason: "daraz_auto_order_sync_disabled" };
+      await recordAutomationRun({ jobName: "DARAZ_ORDER_SYNC", jobType: "order_sync", status: "skipped", summary: skipped, startedAt });
+      return skipped;
     }
 
     const settings = await orderModel.getSyncSettings();
 
     if (!isAutoSyncEnabled(settings)) {
-      return { ...summary, skipped: true, reason: "order_sync_settings_disabled" };
+      const skipped = { ...summary, skipped: true, reason: "order_sync_settings_disabled" };
+      await recordAutomationRun({ jobName: "DARAZ_ORDER_SYNC", jobType: "order_sync", status: "skipped", summary: skipped, startedAt });
+      return skipped;
     }
 
     const accounts = await getDarazAccounts();
@@ -127,6 +133,7 @@ async function runDarazOrderSync() {
 
     if (!accounts.length) {
       console.log("[DARAZ_ORDER_SYNC] Accounts: 0 | Saved: 0 | Failed: 0");
+      await recordAutomationRun({ jobName: "DARAZ_ORDER_SYNC", jobType: "order_sync", status: "success", summary, startedAt });
       return summary;
     }
 
@@ -158,10 +165,13 @@ async function runDarazOrderSync() {
     }
 
     console.log(`[DARAZ_ORDER_SYNC] Accounts: ${summary.accounts} | Inserted: ${summary.inserted} | Updated: ${summary.updated} | Failed: ${summary.failed + summary.failed_accounts}`);
+    await recordAutomationRun({ jobName: "DARAZ_ORDER_SYNC", jobType: "order_sync", status: summary.failed || summary.failed_accounts ? "partial" : "success", summary, startedAt });
     return summary;
   } catch (error) {
     console.error("[DARAZ_ORDER_SYNC_ERROR]:", error.message);
-    return { ...summary, error: error.message };
+    const failedSummary = { ...summary, error: error.message };
+    await recordAutomationRun({ jobName: "DARAZ_ORDER_SYNC", jobType: "order_sync", status: "failed", summary: failedSummary, error, startedAt });
+    return failedSummary;
   } finally {
     isRunning = false;
   }

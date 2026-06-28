@@ -223,7 +223,14 @@ export default function ImageDashboardPage() {
                         <button className="erp-btn-secondary" onClick={() => resolved && window.open(resolved, '_blank', 'noopener,noreferrer')}><ExternalLink size={13} /> View</button>
                         <button className="erp-btn-secondary" onClick={() => updateUrl(row)}>Fix URL</button>
                         <button className="erp-btn-secondary" onClick={() => setMain(row)} disabled={busy === `main-${row.id}`}><Star size={13} /> Main</button>
-                        <button className="erp-btn-danger" onClick={() => deleteImage(row)} disabled={busy === `delete-${row.id}`}><Trash2 size={13} /> Delete Image</button>
+                        <button
+                          className="erp-btn-danger"
+                          onClick={() => deleteImage(row)}
+                          disabled={busy === `delete-${row.id}` || !(row.product_image_id || row.source_image_id)}
+                          title={row.product_image_id || row.source_image_id ? "Delete local product image" : "This is a marketplace/missing image check, not a local image record"}
+                        >
+                          <Trash2 size={13} /> {row.product_image_id || row.source_image_id ? "Delete Image" : "No Local Image"}
+                        </button>
                         <button className="erp-btn-secondary" onClick={() => pushImage(row, 'DARAZ')} disabled={busy === `DARAZ-${row.id}`}><UploadCloud size={13} /> Daraz</button>
                         <button className="erp-btn-secondary" onClick={() => pushImage(row, 'WOO')} disabled={busy === `WOO-${row.id}`}><UploadCloud size={13} /> Woo</button>
                       </div>

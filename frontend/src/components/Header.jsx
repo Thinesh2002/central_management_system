@@ -4,55 +4,14 @@ import { LogOut, Menu, Search, Settings, ShieldCheck, SlidersHorizontal, ScrollT
 
 import api from "../config/api";
 import { getStoredUser, logout, getStoredMenu, saveMenu } from "../config/auth";
-
-const PAGE_SEARCH = [
-  { label: "Dashboard", path: "/dashboard", keywords: "home business sales net sales orders" },
-  { label: "Local Products", path: "/product/local-products", keywords: "products sku stock inventory" },
-  { label: "Add Product", path: "/product/local-products/create", keywords: "create product new product" },
-  { label: "Image Dashboard", path: "/image-dashboard", keywords: "image upload main image" },
-  { label: "Inventory Dashboard", path: "/inventory/dashboard", keywords: "stock inventory warehouse" },
-  { label: "SKU Search", path: "/inventory/sku-search", keywords: "sku report stock push" },
-  { label: "Price Dashboard", path: "/price-dashboard", keywords: "price profit margin daraz fee ppc" },
-  { label: "Daraz Finance", path: "/daraz/finance", keywords: "finance payout transaction daraz" },
-  { label: "Daraz Products", path: "/daraz/products", keywords: "daraz listing product" },
-  { label: "Daraz Orders", path: "/daraz/orders", keywords: "daraz order" },
-  { label: "Woo Products", path: "/woo-products", keywords: "woocommerce woo product" },
-  { label: "Woo Orders", path: "/woo/orders", keywords: "woocommerce woo order" },
-  { label: "Marketplace Accounts", path: "/marketplace/accounts", keywords: "account daraz woo settings" },
-  { label: "Transfer Wizard", path: "/marketplace/transfer", keywords: "transfer push daraz woo" },
-  { label: "SKU Mapping", path: "/marketplace/sku-mappings", keywords: "sku mapping wrong sku local sku daraz sku" },
-  { label: "Demand Analysis", path: "/reports/demand-analysis", keywords: "demand reorder stock suggestion" },
-  { label: "Control Center", path: "/phase4", keywords: "phase4 operations control center" },
-  { label: "Roles & Permissions", path: "/phase4/roles-permissions", keywords: "roles permissions access" },
-  { label: "Audit Logs", path: "/phase4/audit-logs", keywords: "audit logs changes" },
-  { label: "Backup & Migration", path: "/phase4/backup-migration", keywords: "backup migration database" },
-  { label: "Order Profit", path: "/phase4/order-profit", keywords: "order profit report" },
-  { label: "Returns & Refunds", path: "/phase4/returns-refunds", keywords: "returns refund loss" },
-  { label: "Courier Dashboard", path: "/phase4/courier", keywords: "courier shipments cod" },
-  { label: "Bulk Tools", path: "/phase4/bulk-tools", keywords: "bulk import export csv excel" },
-  { label: "Notifications", path: "/notifications", keywords: "alerts notification" },
-  { label: "Product Quality", path: "/phase4/product-quality", keywords: "product quality score issues" },
-  { label: "Sync Queue", path: "/phase4/queue-dashboard", keywords: "queue sync jobs" },
-  { label: "Settings", path: "/settings", keywords: "settings logs page access" },
-  { label: "Logs", path: "/logs", keywords: "system logs login logs" },
-];
-
-function normalizePath(path) {
-  if (!path) return "/";
-  return path.split("?")[0].replace(/\/+$/, "") || "/";
-}
-
-function isMasterAdmin(user) {
-  const role = String(user?.role || "").toLowerCase();
-  return role === "master_admin" || role === "master admin" || role === "super_admin" || role === "super admin";
-}
+import { appPages, canViewPage, isMasterAdmin, normalizePath } from "../config/pageRegistry";
 
 function canShowMenuLink(menuItems, user, link) {
   if (isMasterAdmin(user)) return true;
   const linkPath = normalizePath(link.path);
   const linkKeys = Array.isArray(link.pageKeys) ? link.pageKeys.map((key) => String(key).toLowerCase()) : [];
-  return menuItems.some((item) => {
-    const itemPath = normalizePath(item.path);
+  return (menuItems || []).some((item) => {
+    const itemPath = normalizePath(item.path || item.route_path);
     const itemKey = String(item.page_key || "").toLowerCase();
     return itemPath === linkPath || linkKeys.includes(itemKey);
   });
@@ -91,8 +50,12 @@ export default function Header({ onMenuClick }) {
   const pageMatches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return PAGE_SEARCH.filter((item) => `${item.label} ${item.path} ${item.keywords}`.toLowerCase().includes(q)).slice(0, 8);
-  }, [query]);
+    return appPages
+      .filter((page) => canViewPage(user, accessMenu, page))
+      .filter((page) => `${page.page_name} ${page.path} ${page.keywords || ""}`.toLowerCase().includes(q))
+      .map((page) => ({ label: page.page_name, path: page.path }))
+      .slice(0, 8);
+  }, [query, accessMenu, user]);
 
   async function handleLogout() {
     try { await api.post("/auth/logout"); } catch { /* local logout still required */ }

@@ -31,8 +31,8 @@ export const erpApi = {
   autoStockSettings() { return api.get('/erp/inventory/auto-stock-settings'); },
   saveAutoStockSettings(data = {}) { return api.put('/erp/inventory/auto-stock-settings', data); },
   transfer(data = {}) { return api.post('/erp/marketplace/transfer', data); },
-  skuMappings(params = {}) { return api.get('/marketplace/sku-mappings', { params }); },
-  saveSkuMapping(data = {}) { return api.post('/marketplace/sku-mappings', data); },
+  skuMappings(params = {}) { return api.get('/product/sku-mappings', { params }); },
+  saveSkuMapping(data = {}) { return api.post('/product/sku-mappings', data); },
 };
 
 export default erpApi;

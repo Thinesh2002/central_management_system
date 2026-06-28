@@ -8,6 +8,30 @@ function normalizeSku(value) {
   return clean(value).toUpperCase();
 }
 
+
+async function ensureMovementTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS inventory_stock_movements (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      sku VARCHAR(180) NOT NULL,
+      movement_type ENUM('IN','OUT','RESERVED','RELEASED','RETURN','DAMAGE','ADJUSTMENT') NOT NULL DEFAULT 'OUT',
+      reference_type VARCHAR(80) NULL,
+      reference_id VARCHAR(160) NULL,
+      qty_before INT NOT NULL DEFAULT 0,
+      qty_change INT NOT NULL DEFAULT 0,
+      qty_after INT NOT NULL DEFAULT 0,
+      cost_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+      note TEXT NULL,
+      created_by BIGINT UNSIGNED NULL,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_inventory_movements_sku (sku),
+      KEY idx_inventory_movements_created (created_at),
+      KEY idx_inventory_movements_ref (reference_type, reference_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
 async function getInventoryBySku(sku, connection = db) {
   const [rows] = await connection.query(
     `SELECT * FROM ${INVENTORY_TABLE} WHERE sku = ? LIMIT 1`,
@@ -51,6 +75,7 @@ async function listInventory(params = {}) {
 }
 
 async function getDashboard() {
+  await ensureMovementTable();
   const [[summary]] = await db.query(
     `SELECT
        COUNT(*) AS total_skus,
@@ -135,6 +160,7 @@ async function getOutOfStock(params = {}) {
 }
 
 async function getLedger(params = {}) {
+  await ensureMovementTable();
   const { page, limit, offset } = listParams(params, 25, 500);
   const values = [];
   const where = [];
@@ -214,6 +240,7 @@ function calculateNextQuantities(current, movementType, qtyChange) {
 }
 
 async function applyStockAdjustment(payload = {}, userId = null) {
+  await ensureMovementTable();
   const sku = normalizeSku(payload.sku);
   if (!sku) throw new Error('SKU is required.');
 
@@ -274,6 +301,73 @@ async function applyStockAdjustment(payload = {}, userId = null) {
   }
 }
 
+async function getOrderStockDeductions(params = {}) {
+  const { page, limit, offset } = listParams(params, 25, 500);
+  const values = [];
+  const where = [];
+  await db.query(`CREATE TABLE IF NOT EXISTS order_stock_deductions (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    platform VARCHAR(30) NOT NULL,
+    account_id BIGINT UNSIGNED NULL,
+    account_code VARCHAR(80) NULL,
+    marketplace_order_id VARCHAR(120) NOT NULL,
+    marketplace_order_item_id VARCHAR(160) NOT NULL,
+    marketplace_sku VARCHAR(180) NULL,
+    local_sku VARCHAR(180) NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    qty_before INT NOT NULL DEFAULT 0,
+    qty_after INT NOT NULL DEFAULT 0,
+    status ENUM('deducted','skipped','failed') NOT NULL DEFAULT 'deducted',
+    reason TEXT NULL,
+    raw_json JSON NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_order_stock_deduction (platform, marketplace_order_item_id),
+    KEY idx_order_stock_sku (local_sku),
+    KEY idx_order_stock_order (marketplace_order_id),
+    KEY idx_order_stock_platform (platform, account_code)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+
+  if (params.search) {
+    where.push('(local_sku LIKE ? OR marketplace_sku LIKE ? OR marketplace_order_id LIKE ? OR account_code LIKE ? OR reason LIKE ?)');
+    values.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`);
+  }
+  if (params.platform) { where.push('platform = ?'); values.push(String(params.platform).toUpperCase()); }
+  if (params.status) { where.push('status = ?'); values.push(params.status); }
+  if (params.account_code) { where.push('account_code = ?'); values.push(params.account_code); }
+  if (params.date_from) { where.push('created_at >= ?'); values.push(params.date_from); }
+  if (params.date_to) { where.push('created_at < DATE_ADD(?, INTERVAL 1 DAY)'); values.push(params.date_to); }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  const [rows] = await db.query(
+    `SELECT * FROM order_stock_deductions ${whereSql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`,
+    [...values, limit, offset]
+  );
+  const [[countRow]] = await db.query(`SELECT COUNT(*) AS total FROM order_stock_deductions ${whereSql}`, values);
+  const [[summary]] = await db.query(
+    `SELECT COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN status='deducted' THEN 1 ELSE 0 END),0) AS deducted,
+            COALESCE(SUM(CASE WHEN status='skipped' THEN 1 ELSE 0 END),0) AS skipped,
+            COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END),0) AS failed
+     FROM order_stock_deductions ${whereSql}`,
+    values
+  );
+  return { rows, summary, pagination: { page, limit, offset, total: Number(countRow.total || 0) } };
+}
+
+async function getStockPushQueue(params = {}) {
+  const { page, limit, offset } = listParams(params, 25, 500);
+  const values = [];
+  const where = [];
+  if (params.search) { where.push('(local_sku LIKE ? OR marketplace_sku LIKE ? OR reference_id LIKE ? OR error_message LIKE ?)'); values.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`, `%${params.search}%`); }
+  if (params.marketplace) { where.push('marketplace = ?'); values.push(String(params.marketplace).toUpperCase()); }
+  if (params.status) { where.push('status = ?'); values.push(params.status); }
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const [rows] = await db.query(`SELECT * FROM inventory_stock_push_queue ${whereSql} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, [...values, limit, offset]).catch(() => [[]]);
+  const [[countRow]] = await db.query(`SELECT COUNT(*) AS total FROM inventory_stock_push_queue ${whereSql}`, values).catch(() => [[{ total: 0 }]]);
+  return { rows, pagination: { page, limit, offset, total: Number(countRow.total || 0) } };
+}
+
 module.exports = {
   listInventory,
   getDashboard,
@@ -282,4 +376,6 @@ module.exports = {
   getLedger,
   applyStockAdjustment,
   getInventoryBySku,
+  getOrderStockDeductions,
+  getStockPushQueue,
 };

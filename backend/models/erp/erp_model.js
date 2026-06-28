@@ -146,11 +146,11 @@ async function safeOne(db, sql, params = [], fallback = {}) {
 }
 
 async function getSkuMappingMap(platforms = ['DARAZ', 'WOO']) {
-  const exists = await tableExists(marketplaceDb, 'marketplace_sku_mappings');
+  const exists = await tableExists(productDb, 'marketplace_sku_mappings');
   if (!exists) return new Map();
 
   const rows = await safeQuery(
-    marketplaceDb,
+    productDb,
     `SELECT platform, marketplace_sku, local_sku, account_id, account_code
      FROM marketplace_sku_mappings
      WHERE platform IN (${platforms.map(() => '?').join(',')})`,
@@ -302,8 +302,8 @@ async function getDarazItemRows(days = 90) {
 }
 
 async function getWooItemRows(days = 90) {
-  const orderMeta = await getMeta(marketplaceDb, 'woo_orders');
-  const itemMeta = await getMeta(marketplaceDb, 'woo_order_items');
+  const orderMeta = await getMeta(orderDb, 'woo_orders');
+  const itemMeta = await getMeta(orderDb, 'woo_order_items');
   if (!orderMeta.exists || !itemMeta.exists) return [];
 
   const orderDate = firstColumn(orderMeta, ['order_date', 'created_at', 'date_created']) || 'order_date';
@@ -319,7 +319,7 @@ async function getWooItemRows(days = 90) {
   const accountCode = firstColumn(orderMeta, ['account_code']);
 
   return safeQuery(
-    marketplaceDb,
+    orderDb,
     `SELECT
        i.${qid(sku)} AS local_sku,
        i.${qid(marketplaceSku)} AS marketplace_sku,
@@ -428,7 +428,7 @@ async function getDirectOrderSummary() {
     );
   }
 
-  const wooMeta = await getMeta(marketplaceDb, 'woo_orders');
+  const wooMeta = await getMeta(orderDb, 'woo_orders');
   let woo = { today_sales: 0, last_30_days_sales: 0, last_90_days_sales: 0, delivered_30_days_sales: 0, today_orders: 0, new_orders_24h: 0 };
   if (wooMeta.exists) {
     const date = firstColumn(wooMeta, ['order_date', 'created_at', 'date_created']) || 'order_date';
@@ -436,7 +436,7 @@ async function getDirectOrderSummary() {
     const statusColumn = firstColumn(wooMeta, ['local_status', 'status']);
     const status = statusColumn ? `LOWER(${qid(statusColumn)})` : "''";
     woo = await safeOne(
-      marketplaceDb,
+      orderDb,
       `SELECT
          COALESCE(SUM(CASE WHEN DATE(${qid(date)}) = ? THEN ${qid(total)} ELSE 0 END),0) AS today_sales,
          COALESCE(SUM(CASE WHEN DATE(${qid(date)}) >= ? THEN ${qid(total)} ELSE 0 END),0) AS last_30_days_sales,
@@ -464,13 +464,13 @@ async function getRecentOrderNotifications() {
     const rows = await safeQuery(orderDb, `SELECT ${qid(orderNumber)} AS order_number, ${qid(total)} AS amount, ${account ? qid(account) : "''"} AS account_code, ${qid(date)} AS created_at FROM daraz_orders WHERE ${qid(date)} >= DATE_SUB(NOW(), INTERVAL 24 HOUR) ORDER BY ${qid(date)} DESC LIMIT 8`, [], []);
     rows.forEach((row) => notifications.push({ title: 'New Daraz order', message: `${row.account_code || 'Daraz'} order ${row.order_number} received - LKR ${Number(row.amount || 0).toLocaleString()}`, type: 'info', module_name: 'daraz_orders', created_at: row.created_at }));
   }
-  const wooMeta = await getMeta(marketplaceDb, 'woo_orders');
+  const wooMeta = await getMeta(orderDb, 'woo_orders');
   if (wooMeta.exists) {
     const date = firstColumn(wooMeta, ['order_date', 'created_at']) || 'order_date';
     const orderNumber = firstColumn(wooMeta, ['order_number', 'woo_order_id']) || 'id';
     const total = firstColumn(wooMeta, ['net_sales', 'gross_sales']) || 'net_sales';
     const account = firstColumn(wooMeta, ['account_code']);
-    const rows = await safeQuery(marketplaceDb, `SELECT ${qid(orderNumber)} AS order_number, ${qid(total)} AS amount, ${account ? qid(account) : "''"} AS account_code, ${qid(date)} AS created_at FROM woo_orders WHERE ${qid(date)} >= DATE_SUB(NOW(), INTERVAL 24 HOUR) ORDER BY ${qid(date)} DESC LIMIT 8`, [], []);
+    const rows = await safeQuery(orderDb, `SELECT ${qid(orderNumber)} AS order_number, ${qid(total)} AS amount, ${account ? qid(account) : "''"} AS account_code, ${qid(date)} AS created_at FROM woo_orders WHERE ${qid(date)} >= DATE_SUB(NOW(), INTERVAL 24 HOUR) ORDER BY ${qid(date)} DESC LIMIT 8`, [], []);
     rows.forEach((row) => notifications.push({ title: 'New Woo order', message: `${row.account_code || 'Woo'} order ${row.order_number} received - LKR ${Number(row.amount || 0).toLocaleString()}`, type: 'info', module_name: 'woo_orders', created_at: row.created_at }));
   }
   const dbNotifications = await safeQuery(productDb, `SELECT id, title, message, type, module_name, created_at FROM notifications WHERE is_read = 0 ORDER BY created_at DESC LIMIT 8`, [], []);
@@ -500,11 +500,11 @@ async function getDailySalesRows() {
     });
   }
 
-  const wooMeta = await getMeta(marketplaceDb, 'woo_orders');
+  const wooMeta = await getMeta(orderDb, 'woo_orders');
   if (wooMeta.exists) {
     const date = firstColumn(wooMeta, ['order_date', 'created_at']) || 'order_date';
     const total = firstColumn(wooMeta, ['net_sales', 'gross_sales']) || 'net_sales';
-    const rows = await safeQuery(marketplaceDb, `SELECT DATE(${qid(date)}) AS sales_date, COALESCE(SUM(${qid(total)}),0) AS amount, COUNT(*) AS order_count FROM woo_orders WHERE ${qid(date)} >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) GROUP BY DATE(${qid(date)})`, [], []);
+    const rows = await safeQuery(orderDb, `SELECT DATE(${qid(date)}) AS sales_date, COALESCE(SUM(${qid(total)}),0) AS amount, COUNT(*) AS order_count FROM woo_orders WHERE ${qid(date)} >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) GROUP BY DATE(${qid(date)})`, [], []);
     rows.forEach((row) => {
       const key = dateSql(row.sales_date);
       const item = map.get(key) || { sales_date: key, daraz_sales: 0, woo_sales: 0, gross_sales: 0, net_sales: 0, order_count: 0 };
@@ -783,6 +783,22 @@ async function deleteImage(id, userId = null) {
       const err = new Error('This image URL is used by another product. Remove that usage first, then delete.');
       err.statusCode = 409;
       throw err;
+    }
+    if (await tableExists(productDb, 'marketplace_listings')) {
+      const listingUsage = await safeOne(productDb, `SELECT COUNT(*) AS total FROM marketplace_listings WHERE image_url = ?`, [imageUrl], { total: 0 });
+      if (Number(listingUsage.total || 0) > 0) {
+        const err = new Error('This image URL is used by Daraz/Woo listing data. Replace that listing image first, then delete.');
+        err.statusCode = 409;
+        throw err;
+      }
+    }
+    if (await tableExists(productDb, 'marketplace_listing_images')) {
+      const marketUsage = await safeOne(productDb, `SELECT COUNT(*) AS total FROM marketplace_listing_images WHERE image_url = ?`, [imageUrl], { total: 0 });
+      if (Number(marketUsage.total || 0) > 0) {
+        const err = new Error('This image URL is used by marketplace listing images. Replace that listing image first, then delete.');
+        err.statusCode = 409;
+        throw err;
+      }
     }
   }
 

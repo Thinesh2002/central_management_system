@@ -403,11 +403,67 @@ async function updateById(id, payload = {}, options = {}) {
   return findById(id);
 }
 
+async function tableExists(tableName) {
+  try {
+    const [rows] = await db.query('SHOW TABLES LIKE ?', [tableName]);
+    return rows.length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+function getImageUrlFromRow(row = {}) {
+  return firstValid(row.image_url, row.url, row.image_path, row.path, row.file_url, row.file_path, row.src);
+}
+
+async function assertImageCanBeDeleted(meta, existing) {
+  const urlColumn = ['image_url', 'url', 'image_path', 'path', 'file_url', 'file_path', 'src'].find((column) => hasColumn(meta, column));
+  const imageUrl = urlColumn ? existing[urlColumn] : getImageUrlFromRow(existing);
+  if (!imageUrl) return;
+
+  const deletedFilter = hasColumn(meta, 'deleted_at') ? ` AND deleted_at IS NULL` : '';
+  const [sameImageRows] = await db.query(
+    `SELECT COUNT(*) AS total FROM ${qid(TABLE_NAME)} WHERE ${qid(urlColumn)} = ? AND ${qid(meta.primaryKey)} <> ?${deletedFilter}`,
+    [imageUrl, existing[meta.primaryKey]]
+  );
+  if (Number(sameImageRows?.[0]?.total || 0) > 0) {
+    const error = new Error('This image URL is used by another product image record. Remove that usage first, then delete.');
+    error.statusCode = 409;
+    throw error;
+  }
+
+  if (await tableExists('marketplace_listings')) {
+    const [listingRows] = await db.query(
+      `SELECT COUNT(*) AS total FROM marketplace_listings WHERE image_url = ?`,
+      [imageUrl]
+    ).catch(() => [[{ total: 0 }]]);
+    if (Number(listingRows?.[0]?.total || 0) > 0) {
+      const error = new Error('This image URL is used by a Daraz/Woo listing. Remove or replace the marketplace listing image first.');
+      error.statusCode = 409;
+      throw error;
+    }
+  }
+
+  if (await tableExists('marketplace_listing_images')) {
+    const [marketRows] = await db.query(
+      `SELECT COUNT(*) AS total FROM marketplace_listing_images WHERE image_url = ?`,
+      [imageUrl]
+    ).catch(() => [[{ total: 0 }]]);
+    if (Number(marketRows?.[0]?.total || 0) > 0) {
+      const error = new Error('This image URL is used by marketplace listing images. Remove that usage first.');
+      error.statusCode = 409;
+      throw error;
+    }
+  }
+}
+
 async function removeById(id, options = {}) {
   const meta = await getTableMeta();
 
   const existing = await findById(id);
   if (!existing) return null;
+
+  await assertImageCanBeDeleted(meta, existing);
 
   if (hasColumn(meta, "deleted_at")) {
     const data = {
