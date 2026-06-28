@@ -1,19 +1,30 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  CalendarClock,
-  LogOut,
-  Menu,
-  Search,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-  ScrollText,
-  UserCog,
-} from "lucide-react";
+import { LogOut, Menu, Search, Settings, ShieldCheck, SlidersHorizontal, ScrollText, UserCog } from "lucide-react";
 
 import api from "../config/api";
 import { getStoredUser, logout, getStoredMenu, saveMenu } from "../config/auth";
+
+const PAGE_SEARCH = [
+  { label: "Dashboard", path: "/dashboard", keywords: "home business sales net sales orders" },
+  { label: "Local Products", path: "/product/local-products", keywords: "products sku stock inventory" },
+  { label: "Add Product", path: "/product/local-products/create", keywords: "create product new product" },
+  { label: "Image Dashboard", path: "/image-dashboard", keywords: "image upload main image" },
+  { label: "Inventory Dashboard", path: "/inventory/dashboard", keywords: "stock inventory warehouse" },
+  { label: "SKU Search", path: "/inventory/sku-search", keywords: "sku report stock push" },
+  { label: "Price Dashboard", path: "/price-dashboard", keywords: "price profit margin daraz fee ppc" },
+  { label: "Daraz Finance", path: "/daraz/finance", keywords: "finance payout transaction daraz" },
+  { label: "Daraz Products", path: "/daraz/products", keywords: "daraz listing product" },
+  { label: "Daraz Orders", path: "/daraz/orders", keywords: "daraz order" },
+  { label: "Woo Products", path: "/woo-products", keywords: "woocommerce woo product" },
+  { label: "Woo Orders", path: "/woo/orders", keywords: "woocommerce woo order" },
+  { label: "Marketplace Accounts", path: "/marketplace/accounts", keywords: "account daraz woo settings" },
+  { label: "Transfer Wizard", path: "/marketplace/transfer", keywords: "transfer push daraz woo" },
+  { label: "SKU Mapping", path: "/marketplace/sku-mappings", keywords: "sku mapping wrong sku local sku daraz sku" },
+  { label: "Demand Analysis", path: "/reports/demand-analysis", keywords: "demand reorder stock suggestion" },
+  { label: "Settings", path: "/settings", keywords: "settings logs page access" },
+  { label: "Logs", path: "/logs", keywords: "system logs login logs" },
+];
 
 function normalizePath(path) {
   if (!path) return "/";
@@ -36,14 +47,12 @@ function canShowMenuLink(menuItems, user, link) {
   });
 }
 
-function formatDateTime(value) {
-  return value.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatClock(date) {
+  return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export default function Header({ onMenuClick }) {
@@ -54,6 +63,7 @@ export default function Header({ onMenuClick }) {
   const [query, setQuery] = useState("");
   const [now, setNow] = useState(() => new Date());
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
 
   const settingsLinks = useMemo(
     () => [
@@ -67,18 +77,20 @@ export default function Header({ onMenuClick }) {
 
   const visibleSettingsLinks = useMemo(() => settingsLinks.filter((link) => canShowMenuLink(accessMenu, user, link)), [settingsLinks, accessMenu, user]);
 
+  const pageMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return PAGE_SEARCH.filter((item) => `${item.label} ${item.path} ${item.keywords}`.toLowerCase().includes(q)).slice(0, 8);
+  }, [query]);
+
   async function handleLogout() {
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      // local logout still required
-    } finally {
-      logout();
-    }
+    try { await api.post("/auth/logout"); } catch { /* local logout still required */ }
+    finally { logout(); }
   }
 
-  function handleNavigate(path) {
+  function go(path) {
     setSettingsOpen(false);
+    setQuery("");
     navigate(path);
   }
 
@@ -86,12 +98,12 @@ export default function Header({ onMenuClick }) {
     event.preventDefault();
     const value = query.trim();
     if (!value) return;
-    navigate(`/inventory/sku-search?sku=${encodeURIComponent(value)}`);
-    setQuery("");
+    if (pageMatches.length) return go(pageMatches[0].path);
+    return go(`/inventory/sku-search?sku=${encodeURIComponent(value)}`);
   }
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30000);
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -116,6 +128,9 @@ export default function Header({ onMenuClick }) {
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setSettingsOpen(false);
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        // keep typed text, only close native focus/dropdown by leaving matches hidden via focus state not needed
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -133,22 +148,32 @@ export default function Header({ onMenuClick }) {
           </Link>
         </div>
 
-        <form onSubmit={submitSearch} className="hidden min-w-[260px] max-w-[520px] flex-1 md:block">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search SKU and open report"
-              className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900/80 pl-9 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-yellow-400/70"
-            />
-          </div>
+        <form ref={searchRef} onSubmit={submitSearch} className="relative hidden min-w-[260px] max-w-[560px] flex-1 md:block">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search pages or SKU"
+            className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900/80 pl-9 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-yellow-400/70"
+          />
+          {query.trim() && pageMatches.length ? (
+            <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-lg border border-slate-700 bg-slate-950 shadow-xl shadow-black/40">
+              {pageMatches.map((item) => (
+                <button key={item.path} type="button" onClick={() => go(item.path)} className="block w-full px-3 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800">
+                  {item.label}<span className="ml-2 text-slate-500">{item.path}</span>
+                </button>
+              ))}
+              <button type="button" onClick={() => go(`/inventory/sku-search?sku=${encodeURIComponent(query.trim())}`)} className="block w-full border-t border-slate-800 px-3 py-2 text-left text-xs font-semibold text-yellow-100 hover:bg-slate-800">
+                Search SKU: {query.trim()}
+              </button>
+            </div>
+          ) : null}
         </form>
 
         <div className="relative flex shrink-0 items-center gap-2" ref={dropdownRef}>
-          <div className="hidden items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs font-semibold text-slate-300 xl:flex">
-            <CalendarClock size={14} className="text-yellow-200" />
-            {formatDateTime(now)}
+          <div className="hidden min-w-[92px] rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-center xl:block">
+            <p className="font-mono text-sm font-bold leading-4 text-slate-100">{formatClock(now)}</p>
+            <p className="mt-0.5 text-[10px] font-semibold text-slate-500">{formatDate(now)}</p>
           </div>
 
           <p className="max-w-[120px] truncate text-sm font-semibold text-white">{user?.name || "User"}</p>
@@ -162,7 +187,7 @@ export default function Header({ onMenuClick }) {
               {visibleSettingsLinks.map((link) => {
                 const Icon = link.icon;
                 return (
-                  <button key={link.path} type="button" onClick={() => handleNavigate(link.path)} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-xs font-medium text-slate-200 transition hover:bg-slate-800 hover:text-white">
+                  <button key={link.path} type="button" onClick={() => go(link.path)} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-left text-xs font-medium text-slate-200 transition hover:bg-slate-800 hover:text-white">
                     <Icon size={14} />
                     {link.label}
                   </button>

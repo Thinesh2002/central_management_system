@@ -59,9 +59,7 @@ export function FilterBar({ filters, setFilters, onRefresh, loading, children })
         />
         {children}
       </div>
-      <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 text-sm font-semibold text-slate-200 hover:bg-slate-700 disabled:opacity-60">
-        <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
-      </button>
+
     </div>
   );
 }

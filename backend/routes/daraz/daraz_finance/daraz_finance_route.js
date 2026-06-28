@@ -81,6 +81,9 @@ router.post("/summary", getFinanceSummary);
 router.get("/summary/sync", getFinanceSummary);
 router.post("/summary/sync", getFinanceSummary);
 
+router.get("/sync", getFinanceSummary);
+router.post("/sync", getFinanceSummary);
+
 router.get("/orders/:order_no", getOrderFinanceDetails);
 router.post("/orders/:order_no", getOrderFinanceDetails);
 

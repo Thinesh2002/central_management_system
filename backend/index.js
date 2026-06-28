@@ -21,6 +21,13 @@ const localProductManagementRoutes = require("./routes/product_management/produc
 const productVariantRoutes = require("./routes/product_management/product/product_variants_routes");
 const productCategoryRoutes = require("./routes/product_management/category/category_route");
 const productSubCategoryRoutes = require("./routes/product_management/category/sub_category_route");
+const productAttributeRoutes = require("./routes/product_management/attribute/attribute_route");
+const productAttributeValueRoutes = require("./routes/product_management/attribute/attributeValue_route");
+const productRoutes = require("./routes/product_management/product/products_routes");
+const productPriceRoutes = require("./routes/product_management/product/product_prices_routes");
+const productAttributeValueProductRoutes = require("./routes/product_management/product/product_attribute_values_routes");
+const productLogRoutes = require("./routes/product_management/product/product_logs_routes");
+const productImageLogRoutes = require("./routes/product_management/product/product_image_logs_routes");
 
 const marketplaceRoutes = require("./routes/marketplace/marketplace_routes");
 const darazProductSyncRoutes = require("./routes/daraz/product_management/daraz_product_sync_route");
@@ -57,10 +64,24 @@ const PORT = Number(process.env.PORT || 5000);
 
 app.set("trust proxy", 1);
 
-const allowedOrigins = String(process.env.CORS_ORIGIN)
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://system.teckvora.com",
+  "https://www.system.teckvora.com",
+];
+
+const allowedOrigins = Array.from(
+  new Set([
+    ...defaultAllowedOrigins,
+    ...String(process.env.CORS_ORIGIN || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ])
+);
 
 app.use(
   helmet({
@@ -125,6 +146,26 @@ app.use("/api/access", accessRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
+// Product API compatibility mounts.
+// Old frontend pages use /api/product/*, while newer pages use /api/product-management/*.
+// Keep both path styles working so local product pages do not fail with 404.
+app.use("/api/product/categories", productCategoryRoutes);
+app.use("/api/product/category", productCategoryRoutes);
+app.use("/api/product/sub-categories", productSubCategoryRoutes);
+app.use("/api/product/sub_categories", productSubCategoryRoutes);
+app.use("/api/product/attributes", productAttributeRoutes);
+app.use("/api/product/attribute-values", productAttributeValueRoutes);
+app.use("/api/product/products", productRoutes);
+app.use("/api/product/product-prices", productPriceRoutes);
+app.use("/api/product/product-attribute-values", productAttributeValueProductRoutes);
+app.use("/api/product/product-logs", productLogRoutes);
+app.use("/api/product/product-image-logs", productImageLogRoutes);
+
+app.use("/api/product-management/categories", productCategoryRoutes);
+app.use("/api/product-management/sub-categories", productSubCategoryRoutes);
+app.use("/api/product-management/attributes", productAttributeRoutes);
+app.use("/api/product-management/attribute-values", productAttributeValueRoutes);
+
 app.use("/api/product-management/models", productModelRoutes);
 app.use("/api/product-management/colours", productColourRoutes);
 app.use("/api/product-management", localProductManagementRoutes);
@@ -154,13 +195,8 @@ app.use(errorHandler);
 
 function startJob(name, starter) {
   try {
-    if (typeof starter !== "function") {
-      console.warn(`[${name}]: Starter function missing.`);
-      return;
-    }
-
+    if (typeof starter !== "function") return;
     starter();
-    console.log(`[${name}]: Started successfully.`);
   } catch (error) {
     console.error(`[${name}_ERROR]:`, error.message);
   }
@@ -168,32 +204,27 @@ function startJob(name, starter) {
 
 async function syncPermissions() {
   try {
-    if (typeof accessModel.ensureAllUserPermissions !== "function") {
-      console.warn("[PERMISSION_SYNC]: ensureAllUserPermissions missing.");
-      return;
+    if (typeof accessModel.ensureAllUserPermissions === "function") {
+      await accessModel.ensureAllUserPermissions();
     }
-
-    await accessModel.ensureAllUserPermissions();
-    console.log("[PERMISSION_SYNC]: User page permissions synced successfully.");
   } catch (error) {
-    console.error("[PERMISSION_SYNC_ERROR]:", error.message);
+    // Keep terminal clean. Permission sync errors are handled from access pages/logs.
   }
 }
 
 async function startServer() {
+  await pool.query("SELECT 1");
+  console.log("Database connected successfully.");
+
   await syncPermissions();
 
   app.listen(PORT, () => {
-    console.log(`Backend running: http://localhost:${PORT}`);
-
-    if (String(process.env.DISABLE_JOBS || "").toLowerCase() === "true") {
-      console.log("[JOBS]: Disabled by DISABLE_JOBS=true");
-      return;
+    if (String(process.env.ENABLE_JOBS || "").toLowerCase() === "true") {
+      startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
+      startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
+      startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
+      console.log("Background jobs enabled.");
     }
-
-    startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
-    startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
-    startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
   });
 }
 

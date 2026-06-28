@@ -1,9 +1,27 @@
 import axios from "axios";
 import { getToken, logout } from "./auth";
 
+function cleanBaseUrl(value) {
+  const raw = String(value || "").trim();
+
+  if (!raw) return "http://localhost:5000/api";
+
+  const withoutTrailingSlash = raw.replace(/\/+$/, "");
+
+  if (withoutTrailingSlash === "/api" || withoutTrailingSlash.endsWith("/api")) {
+    return withoutTrailingSlash;
+  }
+
+  return `${withoutTrailingSlash}/api`;
+}
+
+const apiBaseUrl = cleanBaseUrl(
+  import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL
+);
+
 const api = axios.create({
-  baseURL:"https://backend.teckvora.com/api",
-  timeout: 15000,
+  baseURL: apiBaseUrl,
+  timeout: 20000,
 });
 
 api.interceptors.request.use((config) => {
@@ -23,7 +41,16 @@ api.interceptors.response.use(
 );
 
 export function getApiError(error, fallback = "Something went wrong. Please try again.") {
-  return error.response?.data?.message || error.message || fallback;
+  return (
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message ||
+    fallback
+  );
+}
+
+export function getApiBaseUrl() {
+  return apiBaseUrl;
 }
 
 export default api;

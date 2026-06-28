@@ -9,6 +9,7 @@ export const erpApi = {
   businessDashboard(params = {}) { return api.get('/erp/business-dashboard', { params }); },
   priceDashboard(params = {}) { return api.get('/erp/price-dashboard', { params }); },
   recalculatePrices() { return api.post('/erp/price-dashboard/recalculate'); },
+  savePrice(data = {}) { return api.post('/erp/price-dashboard/save', data); },
   imageDashboard(params = {}) { return api.get('/erp/image-dashboard', { params }); },
   runImageAudit() { return api.post('/erp/image-dashboard/audit'); },
   updateImageUrl(id, data = {}) { return api.patch(`/erp/image-dashboard/${encodeURIComponent(id)}/url`, data); },
@@ -29,6 +30,8 @@ export const erpApi = {
   autoStockSettings() { return api.get('/erp/inventory/auto-stock-settings'); },
   saveAutoStockSettings(data = {}) { return api.put('/erp/inventory/auto-stock-settings', data); },
   transfer(data = {}) { return api.post('/erp/marketplace/transfer', data); },
+  skuMappings(params = {}) { return api.get('/marketplace/sku-mappings', { params }); },
+  saveSkuMapping(data = {}) { return api.post('/marketplace/sku-mappings', data); },
 };
 
 export default erpApi;

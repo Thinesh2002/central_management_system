@@ -9,6 +9,7 @@ router.get('/business-dashboard', controller.businessDashboard);
 
 router.get('/price-dashboard', controller.priceDashboard);
 router.post('/price-dashboard/recalculate', controller.recalculatePrices);
+router.post('/price-dashboard/save', controller.savePrice);
 
 router.get('/image-dashboard', controller.imageDashboard);
 router.post('/image-dashboard/audit', controller.runImageAudit);

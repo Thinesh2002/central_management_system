@@ -6,14 +6,27 @@ function safeLimit(value) {
   return Math.min(Math.max(limit, 1), 500);
 }
 
+async function hasColumn(tableName, columnName) {
+  try {
+    const [rows] = await pool.query(`SHOW COLUMNS FROM \`${tableName}\` LIKE ?`, [columnName]);
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function listLoginLogs(limit = 100) {
+  const loginUserExpr = (await hasColumn("login_logs", "login_user_id"))
+    ? "login_user_id"
+    : "NULL AS login_user_id";
+
   const [rows] = await pool.query(
     `
     SELECT 
       id AS row_id,
       'login' AS log_type,
       user_id,
-      login_user_id,
+      ${loginUserExpr},
       email,
       login_identifier,
       action,
@@ -44,6 +57,7 @@ async function listSystemLogs(limit = 100) {
       user_email AS email,
       NULL AS login_identifier,
       action,
+      module,
       status,
       NULL AS failure_reason,
       message,
@@ -64,19 +78,13 @@ async function listLogs({ limit = 100 } = {}) {
   const safe = safeLimit(limit);
 
   const [loginLogs, systemLogs] = await Promise.all([
-    listLoginLogs(safe),
-    listSystemLogs(safe),
+    listLoginLogs(safe).catch(() => []),
+    listSystemLogs(safe).catch(() => []),
   ]);
 
-  const logs = [...loginLogs, ...systemLogs]
+  return [...loginLogs, ...systemLogs]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, safe);
-
-  return logs;
 }
 
-module.exports = {
-  listLoginLogs,
-  listSystemLogs,
-  listLogs,
-};
+module.exports = { listLoginLogs, listSystemLogs, listLogs };

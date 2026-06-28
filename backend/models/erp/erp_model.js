@@ -125,6 +125,11 @@ function selectExpr(meta, candidates, alias, fallback = 'NULL') {
   return column ? `${qid(column)} AS ${qid(alias)}` : `${fallback} AS ${qid(alias)}`;
 }
 
+function selectExprWithAlias(tableAlias, meta, candidates, alias, fallback = 'NULL') {
+  const column = firstColumn(meta, candidates);
+  return column ? `${tableAlias}.${qid(column)} AS ${qid(alias)}` : `${fallback} AS ${qid(alias)}`;
+}
+
 async function safeQuery(db, sql, params = [], fallback = []) {
   try {
     const [rows] = await db.query(sql, params);
@@ -555,9 +560,19 @@ async function getPriceDashboard(params = {}) {
   if (params.status) { where.push('p.status = ?'); values.push(params.status); }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
-  const rows = await safeQuery(productDb, `SELECT p.*, l.title, l.category_name, l.image_url, i.stock_qty, i.reserved_qty, i.low_stock_alert_qty, GREATEST(COALESCE(i.stock_qty,0) - COALESCE(i.reserved_qty,0), 0) AS available_stock FROM marketplace_listing_prices p LEFT JOIN marketplace_listings l ON l.id = p.listing_id LEFT JOIN product_inventory i ON i.sku = p.local_sku ${whereSql} ORDER BY p.updated_at DESC, p.id DESC LIMIT ? OFFSET ?`, [...values, limit, offset], []);
+  const invMeta = await getMeta(productDb, 'product_inventory');
+  const invSku = firstColumn(invMeta, ['sku', 'local_sku', 'product_sku', 'seller_sku', 'variant_sku']);
+  const invStock = firstColumn(invMeta, ['stock_qty', 'qty', 'quantity', 'stock']);
+  const invReserved = firstColumn(invMeta, ['reserved_qty', 'reserved_stock']);
+  const invLow = firstColumn(invMeta, ['low_stock_alert_qty', 'low_stock_qty', 'alert_qty']);
+  const invJoin = invMeta.exists && invSku ? `LEFT JOIN product_inventory i ON i.${qid(invSku)} = p.local_sku` : '';
+  const invSelect = invMeta.exists && invSku
+    ? `, ${invStock ? `i.${qid(invStock)}` : '0'} AS stock_qty, ${invReserved ? `i.${qid(invReserved)}` : '0'} AS reserved_qty, ${invLow ? `i.${qid(invLow)}` : '5'} AS low_stock_alert_qty, ${invStock ? `GREATEST(COALESCE(i.${qid(invStock)},0) - ${invReserved ? `COALESCE(i.${qid(invReserved)},0)` : '0'}, 0)` : '0'} AS available_stock`
+    : `, 0 AS stock_qty, 0 AS reserved_qty, 5 AS low_stock_alert_qty, 0 AS available_stock`;
+
+  const rows = await safeQuery(productDb, `SELECT p.*, l.title, l.category_name, l.image_url AS listing_image_url ${invSelect} FROM marketplace_listing_prices p LEFT JOIN marketplace_listings l ON l.id = p.listing_id ${invJoin} ${whereSql} ORDER BY p.updated_at DESC, p.id DESC LIMIT ? OFFSET ?`, [...values, limit, offset], []);
   const countRow = await safeOne(productDb, `SELECT COUNT(*) AS total FROM marketplace_listing_prices p LEFT JOIN marketplace_listings l ON l.id = p.listing_id ${whereSql}`, values, { total: 0 });
-  const calculated = rows.map((row) => ({ ...row, ...calcPrice(row) }));
+  const calculated = rows.map((row) => ({ ...row, image_url: row.listing_image_url || row.image_url, ...calcPrice(row) }));
   const summary = calculated.reduce((acc, row) => {
     acc.total_items += 1;
     acc.total_net_sales += money(row.net_sales);
@@ -605,20 +620,20 @@ async function readProductImageRows() {
   const productMeta = await getMeta(productDb, 'products');
   const productIdColumn = firstColumn(imageMeta, ['product_id', 'local_product_id']);
   const imagePk = imageMeta.primaryKey;
-  const imageUrl = selectExpr(imageMeta, ['image_url', 'url', 'image_path', 'path', 'file_url', 'file_path', 'src'], 'image_url', 'NULL');
-  const sku = selectExpr(imageMeta, ['sku', 'local_sku', 'product_sku', 'variant_sku'], 'image_sku', 'NULL');
-  const variantId = selectExpr(imageMeta, ['variant_id', 'product_variant_id'], 'variant_id', 'NULL');
-  const isMain = selectExpr(imageMeta, ['is_main', 'is_primary', 'is_featured'], 'is_main', '0');
-  const width = selectExpr(imageMeta, ['width'], 'width', 'NULL');
-  const height = selectExpr(imageMeta, ['height'], 'height', 'NULL');
-  const updated = selectExpr(imageMeta, ['updated_at', 'created_at'], 'updated_at', 'NULL');
+  const imageUrl = selectExprWithAlias('i', imageMeta, ['image_url', 'url', 'image_path', 'path', 'file_url', 'file_path', 'src'], 'image_url', 'NULL');
+  const sku = selectExprWithAlias('i', imageMeta, ['sku', 'local_sku', 'product_sku', 'variant_sku'], 'image_sku', 'NULL');
+  const variantId = selectExprWithAlias('i', imageMeta, ['variant_id', 'product_variant_id'], 'variant_id', 'NULL');
+  const isMain = selectExprWithAlias('i', imageMeta, ['is_main', 'is_primary', 'is_featured'], 'is_main', '0');
+  const width = selectExprWithAlias('i', imageMeta, ['width'], 'width', 'NULL');
+  const height = selectExprWithAlias('i', imageMeta, ['height'], 'height', 'NULL');
+  const updated = selectExprWithAlias('i', imageMeta, ['updated_at', 'created_at'], 'updated_at', 'NULL');
 
   if (productMeta.exists && productIdColumn && has(productMeta, 'id')) {
     const productSku = firstColumn(productMeta, ['sku', 'product_sku', 'local_sku', 'seller_sku']);
     const productName = firstColumn(productMeta, ['title', 'name', 'product_name']);
     return safeQuery(productDb, `SELECT i.${qid(imagePk)} AS id, i.${qid(productIdColumn)} AS product_id, ${imageUrl}, ${sku}, ${variantId}, ${isMain}, ${width}, ${height}, ${updated}, ${productSku ? `p.${qid(productSku)}` : 'NULL'} AS product_sku, ${productName ? `p.${qid(productName)}` : 'NULL'} AS product_name FROM product_images i LEFT JOIN products p ON p.id = i.${qid(productIdColumn)} ORDER BY i.${qid(imagePk)} DESC LIMIT 2000`, [], []);
   }
-  return safeQuery(productDb, `SELECT ${qid(imagePk)} AS id, NULL AS product_id, ${imageUrl}, ${sku}, ${variantId}, ${isMain}, ${width}, ${height}, ${updated}, NULL AS product_sku, NULL AS product_name FROM product_images ORDER BY ${qid(imagePk)} DESC LIMIT 2000`, [], []);
+  return safeQuery(productDb, `SELECT i.${qid(imagePk)} AS id, NULL AS product_id, ${imageUrl}, ${sku}, ${variantId}, ${isMain}, ${width}, ${height}, ${updated}, NULL AS product_sku, NULL AS product_name FROM product_images i ORDER BY i.${qid(imagePk)} DESC LIMIT 2000`, [], []);
 }
 
 async function runImageAudit() {
@@ -736,6 +751,124 @@ async function pushImage(payload = {}) {
   return { id: insertedId, local_sku: sku, marketplace, status: 'pending', message: 'Image push added to queue. Daraz/Woo API worker can process this queue.' };
 }
 
+async function getSkuImageSummary(sku) {
+  const out = { product_image: null, sku_images: [], marketplace_images: [] };
+  const imageMeta = await getMeta(productDb, 'product_images');
+  if (imageMeta.exists) {
+    const skuCol = firstColumn(imageMeta, ['sku', 'local_sku', 'product_sku', 'variant_sku']);
+    const urlCol = firstColumn(imageMeta, ['image_url', 'url', 'image_path', 'path', 'file_url', 'file_path', 'src']);
+    const mainCol = firstColumn(imageMeta, ['is_main', 'is_primary', 'is_featured']);
+    const typeCol = firstColumn(imageMeta, ['image_type', 'type']);
+    if (urlCol) {
+      const values = [];
+      const where = [];
+      if (skuCol) { where.push(`${qid(skuCol)} = ?`); values.push(sku); }
+      // Also try product SKU through products table when image table does not store SKU.
+      const productIdCol = firstColumn(imageMeta, ['product_id', 'local_product_id']);
+      const productMeta = await getMeta(productDb, 'products');
+      const productSkuCol = firstColumn(productMeta, ['sku', 'product_sku', 'local_sku', 'seller_sku']);
+      let rows = [];
+      if (where.length) {
+        rows = await safeQuery(productDb, `SELECT ${qid(imageMeta.primaryKey)} AS id, ${qid(urlCol)} AS image_url, ${mainCol ? qid(mainCol) : '0'} AS is_main, ${typeCol ? qid(typeCol) : "'image'"} AS image_type, ${skuCol ? qid(skuCol) : "''"} AS local_sku FROM product_images WHERE ${where.join(' OR ')} ORDER BY ${mainCol ? `${qid(mainCol)} DESC,` : ''} ${qid(imageMeta.primaryKey)} DESC LIMIT 20`, values, []);
+      }
+      if (!rows.length && productIdCol && productMeta.exists && productSkuCol) {
+        rows = await safeQuery(productDb, `SELECT i.${qid(imageMeta.primaryKey)} AS id, i.${qid(urlCol)} AS image_url, ${mainCol ? `i.${qid(mainCol)}` : '0'} AS is_main, ${typeCol ? `i.${qid(typeCol)}` : "'image'"} AS image_type, p.${qid(productSkuCol)} AS local_sku FROM product_images i INNER JOIN products p ON p.id = i.${qid(productIdCol)} WHERE p.${qid(productSkuCol)} = ? ORDER BY ${mainCol ? `i.${qid(mainCol)} DESC,` : ''} i.${qid(imageMeta.primaryKey)} DESC LIMIT 20`, [sku], []);
+      }
+      out.sku_images = rows;
+      out.product_image = rows.find((row) => Number(row.is_main || 0) === 1)?.image_url || rows[0]?.image_url || null;
+    }
+  }
+  const listingMeta = await getMeta(productDb, 'marketplace_listings');
+  if (listingMeta.exists) {
+    const skuCol = firstColumn(listingMeta, ['local_sku', 'sku']);
+    const urlCol = firstColumn(listingMeta, ['image_url', 'image', 'thumbnail']);
+    if (skuCol && urlCol) {
+      out.marketplace_images = await safeQuery(productDb, `SELECT id, marketplace, account_id, account_code, marketplace_sku, ${qid(urlCol)} AS image_url, listing_url, marketplace_product_id, title FROM marketplace_listings WHERE ${qid(skuCol)} = ? ORDER BY marketplace, account_code LIMIT 30`, [sku], []);
+    }
+  }
+  return out;
+}
+
+async function savePrice(payload = {}, userId = null) {
+  if (!(await tableExists(productDb, 'marketplace_listing_prices'))) throw new Error('marketplace_listing_prices table missing. Run Phase 3 database upgrade SQL.');
+  const sku = normalizeSku(payload.local_sku || payload.sku);
+  if (!sku) throw new Error('SKU is required.');
+
+  const marketplace = String(payload.marketplace || 'DARAZ').toUpperCase();
+  const marketplaceSku = clean(payload.marketplace_sku || sku);
+  const accountCode = clean(payload.account_code || '');
+  let accountId = payload.account_id || null;
+
+  if (!accountId && accountCode && (await tableExists(productDb, 'marketplace_accounts'))) {
+    const account = await safeOne(productDb, 'SELECT id FROM marketplace_accounts WHERE account_code = ? OR code = ? LIMIT 1', [accountCode, accountCode], null);
+    accountId = account?.id || null;
+  }
+
+  const currentPrice = money(payload.current_price ?? payload.price ?? payload.selling_price);
+  const row = {
+    marketplace,
+    account_id: accountId,
+    local_sku: sku,
+    marketplace_sku: marketplaceSku,
+    currency: payload.currency || 'LKR',
+    current_price: currentPrice,
+    min_price: money(payload.min_price),
+    max_price: money(payload.max_price),
+    shipping_paid_by_buyer: money(payload.shipping_paid_by_buyer),
+    marketplace_fee: money(payload.marketplace_fee),
+    payment_fee: money(payload.payment_fee),
+    ppc_cost: money(payload.ppc_cost),
+    promotion_cost: money(payload.promotion_cost),
+    courier_cost: money(payload.courier_cost),
+    packaging_cost: money(payload.packaging_cost),
+    refund_amount: money(payload.refund_amount),
+    product_cost: money(payload.product_cost),
+    target_margin_percent: money(payload.target_margin_percent || 20),
+  };
+  const calc = calcPrice(row);
+
+  const existing = await safeOne(
+    productDb,
+    `SELECT id, current_price FROM marketplace_listing_prices
+     WHERE marketplace = ?
+       AND COALESCE(account_id, 0) = COALESCE(?, 0)
+       AND local_sku = ?
+       AND COALESCE(marketplace_sku, '') = COALESCE(?, '')
+     ORDER BY id DESC
+     LIMIT 1`,
+    [row.marketplace, row.account_id, row.local_sku, row.marketplace_sku],
+    null
+  );
+
+  let priceId = existing?.id || null;
+  if (priceId) {
+    await productDb.query(
+      `UPDATE marketplace_listing_prices
+       SET currency=?, current_price=?, min_price=?, max_price=?, shipping_paid_by_buyer=?, marketplace_fee=?, payment_fee=?, ppc_cost=?, promotion_cost=?, courier_cost=?, packaging_cost=?, refund_amount=?, product_cost=?, target_margin_percent=?, suggested_price=?, profit_amount=?, margin_percent=?, status=?, last_calculated_at=NOW(), updated_at=NOW()
+       WHERE id=?`,
+      [row.currency, row.current_price, row.min_price, row.max_price, row.shipping_paid_by_buyer, row.marketplace_fee, row.payment_fee, row.ppc_cost, row.promotion_cost, row.courier_cost, row.packaging_cost, row.refund_amount, row.product_cost, row.target_margin_percent, calc.suggested_price, calc.profit_amount, calc.margin_percent, calc.status, priceId]
+    );
+  } else {
+    const [result] = await productDb.query(
+      `INSERT INTO marketplace_listing_prices
+        (marketplace, account_id, local_sku, marketplace_sku, currency, current_price, min_price, max_price, shipping_paid_by_buyer, marketplace_fee, payment_fee, ppc_cost, promotion_cost, courier_cost, packaging_cost, refund_amount, product_cost, target_margin_percent, suggested_price, profit_amount, margin_percent, status, last_calculated_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
+      [row.marketplace, row.account_id, row.local_sku, row.marketplace_sku, row.currency, row.current_price, row.min_price, row.max_price, row.shipping_paid_by_buyer, row.marketplace_fee, row.payment_fee, row.ppc_cost, row.promotion_cost, row.courier_cost, row.packaging_cost, row.refund_amount, row.product_cost, row.target_margin_percent, calc.suggested_price, calc.profit_amount, calc.margin_percent, calc.status]
+    );
+    priceId = result.insertId || null;
+  }
+
+  if (await tableExists(productDb, 'marketplace_price_history')) {
+    await productDb.query(
+      `INSERT INTO marketplace_price_history (price_id, local_sku, marketplace, old_price, new_price, reason, changed_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [priceId, sku, marketplace, existing?.current_price ?? money(payload.old_price), currentPrice, payload.reason || 'Manual price save from Price Dashboard', userId]
+    );
+  }
+
+  return { id: priceId, ...row, ...calc, account_code: accountCode };
+}
+
 async function getSkuEconomics(skuInput) {
   const sku = normalizeSku(skuInput);
   if (!sku) throw new Error('SKU is required.');
@@ -764,7 +897,12 @@ async function getSkuEconomics(skuInput) {
   if (!listings.length) issues.push('No marketplace listing mapping');
   if (prices.some((p) => calcPrice(p).status === 'loss')) issues.push('Loss making listing');
   if (!toInt(metrics.sales_30_days, 0)) issues.push('No sales in last 30 days');
-  return { sku, inventory: metrics, sales, listings, prices: prices.map((p) => ({ ...p, ...calcPrice(p) })), suppliers: [], daily_sales: [], issues };
+  const image_summary = await getSkuImageSummary(sku);
+  const listingsWithUrls = listings.map((listing) => ({
+    ...listing,
+    open_url: listing.listing_url || listing.url || listing.permalink || listing.product_url || '',
+  }));
+  return { sku, inventory: metrics, sales, listings: listingsWithUrls, prices: prices.map((p) => ({ ...p, ...calcPrice(p) })), suppliers: [], daily_sales: [], issues, image_summary, product_image: image_summary.product_image, sku_images: image_summary.sku_images, marketplace_images: image_summary.marketplace_images };
 }
 
 async function getDemandAnalysis(params = {}) {
@@ -873,6 +1011,7 @@ module.exports = {
   getBusinessDashboard,
   getPriceDashboard,
   recalculatePrices,
+  savePrice,
   getImageDashboard,
   runImageAudit,
   updateImageUrl,

@@ -15,7 +15,6 @@ import LocalProductViewPage from "../../pages/product_management/products/produc
 
 import LocalProductsDashboard from "../../pages/product_management/products/product_dashboard/index";
 import LocalProductAddPage from "../../pages/product_management/products/add_product/index";
-import ProductAddWizardPage from "../../pages/product_management/products/add_product_wizard/ProductAddWizardPage";
 import LocalProductBasicPage from "../../pages/product_management/products/LocalProductBasicPage";
 import LocalProductPriceInventoryPage from "../../pages/product_management/products/LocalProductInventoryPage";
 import LocalProductAttributesPage from "../../pages/product_management/products/LocalProductAttributesPage";
@@ -111,7 +110,7 @@ export default function ProductManagementRoutes() {
         path="/product/local-products/create"
         element={
           <ProtectedProductPage>
-            <ProductAddWizardPage />
+            <LocalProductAddPage />
           </ProtectedProductPage>
         }
       />

@@ -6,6 +6,7 @@ import ProtectedRoute from "../../../config/ProtectedRoute";
 
 import DarazProductsPreviewPage from "../../../pages/daraz/product_management/index";
 import DarazProductViewPage from "../../../pages/daraz/product_management/daraz_detail_view/index";
+import DarazProductEditPage from "../../../pages/daraz/product_management/daraz_edit_page/index";
 import DarazProductLogsPage from "../../../pages/daraz/daraz_logs/daraz_sync_logs_page";
 
 function ProtectedMarketplacePage({ children }) {
@@ -33,6 +34,15 @@ export default function MarketplaceManagementRoutes() {
         element={
           <ProtectedMarketplacePage>
             <DarazProductViewPage />
+          </ProtectedMarketplacePage>
+        }
+      />
+
+      <Route
+        path="/daraz-products/edit/:id"
+        element={
+          <ProtectedMarketplacePage>
+            <DarazProductEditPage />
           </ProtectedMarketplacePage>
         }
       />

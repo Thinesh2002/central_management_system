@@ -24,6 +24,11 @@ const recalculatePrices = asyncHandler(async (req, res) => {
   return ok(res, 'Price calculation completed.', data);
 });
 
+const savePrice = asyncHandler(async (req, res) => {
+  const data = await erpModel.savePrice(req.body || {}, userId(req));
+  return ok(res, 'SKU price saved and calculated successfully.', data);
+});
+
 const imageDashboard = asyncHandler(async (req, res) => {
   const result = await erpModel.getImageDashboard(req.query || {});
   return ok(res, 'Image dashboard loaded.', result.rows, { rows: result.rows, summary: result.summary, pagination: result.pagination });
@@ -98,6 +103,7 @@ module.exports = {
   businessDashboard,
   priceDashboard,
   recalculatePrices,
+  savePrice,
   imageDashboard,
   runImageAudit,
   updateImageUrl,

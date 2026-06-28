@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Image, RefreshCw, Search, ScanLine, Star, UploadCloud } from 'lucide-react';
+import { ExternalLink, Image, Search, ScanLine, Star, UploadCloud } from 'lucide-react';
 import erpApi from '../../config/sub_api/erp_api/erpApi';
 import { getApiError } from '../../config/api';
 import PageLoader from '../../components/ui/PageLoader';
@@ -125,7 +125,6 @@ export default function ImageDashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={audit} disabled={busy === 'audit'} className="erp-btn-primary"><ScanLine size={14} /> Run Audit</button>
-          <button onClick={load} className="erp-btn-secondary"><RefreshCw size={14} /> Refresh</button>
         </div>
       </div>
 

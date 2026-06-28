@@ -24,6 +24,7 @@ import SkuSearchPage from "./pages/inventory/sku_search/SkuSearchPage";
 import SkuEconomicsPage from "./pages/reports/SkuEconomicsPage";
 import DemandAnalysisPage from "./pages/reports/DemandAnalysisPage";
 import MarketplaceTransferWizardPage from "./pages/marketplace_transfer/MarketplaceTransferWizardPage";
+import SkuMappingPage from "./pages/marketplace_mapping/SkuMappingPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 
 import Layout from "./components/Layout";
@@ -62,6 +63,7 @@ export default function App() {
       <Route path="/reports/sku-economics/:sku" element={<ProtectedLayout><SkuEconomicsPage /></ProtectedLayout>} />
       <Route path="/reports/demand-analysis" element={<ProtectedLayout><DemandAnalysisPage /></ProtectedLayout>} />
       <Route path="/marketplace/transfer" element={<ProtectedLayout><MarketplaceTransferWizardPage /></ProtectedLayout>} />
+      <Route path="/marketplace/sku-mappings" element={<ProtectedLayout><SkuMappingPage /></ProtectedLayout>} />
 
       <Route path="/users" element={<ProtectedLayout><UsersPage /></ProtectedLayout>} />
       <Route path="/access-control" element={<ProtectedLayout><AccessControlPage /></ProtectedLayout>} />
