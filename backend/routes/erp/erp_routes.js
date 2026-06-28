@@ -15,6 +15,7 @@ router.get('/image-dashboard', controller.imageDashboard);
 router.post('/image-dashboard/audit', controller.runImageAudit);
 router.patch('/image-dashboard/:id/url', controller.updateImageUrl);
 router.post('/image-dashboard/:id/set-main', controller.setMainImage);
+router.delete('/image-dashboard/:id', controller.deleteImage);
 router.post('/image-dashboard/push-image', controller.pushImage);
 
 router.get('/products/metrics', controller.productMetrics);

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Image, Search, ScanLine, Star, UploadCloud } from 'lucide-react';
+import { ExternalLink, Image, Search, ScanLine, Star, Trash2, UploadCloud } from 'lucide-react';
 import erpApi from '../../config/sub_api/erp_api/erpApi';
 import { getApiError } from '../../config/api';
 import PageLoader from '../../components/ui/PageLoader';
@@ -66,8 +66,9 @@ export default function ImageDashboardPage() {
     const nextUrl = window.prompt('Paste correct image URL/path', row.image_url || '');
     if (!nextUrl) return;
     try {
+      const imageId = row.product_image_id || row.source_image_id || row.id;
       setBusy(`url-${row.id}`);
-      await erpApi.updateImageUrl(row.id, { image_url: nextUrl });
+      await erpApi.updateImageUrl(imageId, { image_url: nextUrl });
       setMessage('Image URL updated.');
       await load();
     } catch (err) {
@@ -78,13 +79,37 @@ export default function ImageDashboardPage() {
   }
 
   async function setMain(row) {
+    const imageId = row.product_image_id || row.source_image_id || row.id;
     try {
       setBusy(`main-${row.id}`);
-      await erpApi.setMainImage(row.id);
+      await erpApi.setMainImage(imageId);
       setMessage('Main image updated.');
       await load();
     } catch (err) {
       setError(getApiError(err, 'Set main image failed.'));
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function deleteImage(row) {
+    const imageId = row.product_image_id || row.source_image_id;
+    if (!imageId) {
+      setError('This image check is not linked to a local product image record, so it cannot be deleted here.');
+      return;
+    }
+
+    const ok = window.confirm('Delete this local image record? If another product uses this same image URL, system will block the delete.');
+    if (!ok) return;
+
+    try {
+      setBusy(`delete-${row.id}`);
+      setError('');
+      await erpApi.deleteImage(imageId);
+      setMessage('Image deleted successfully.');
+      await load();
+    } catch (err) {
+      setError(getApiError(err, 'Image delete failed.'));
     } finally {
       setBusy('');
     }
@@ -175,6 +200,7 @@ export default function ImageDashboardPage() {
                         <button className="erp-btn-secondary" onClick={() => resolved && window.open(resolved, '_blank', 'noopener,noreferrer')}><ExternalLink size={13} /> View</button>
                         <button className="erp-btn-secondary" onClick={() => updateUrl(row)}>Fix URL</button>
                         <button className="erp-btn-secondary" onClick={() => setMain(row)} disabled={busy === `main-${row.id}`}><Star size={13} /> Main</button>
+                        <button className="erp-btn-secondary" onClick={() => deleteImage(row)} disabled={busy === `delete-${row.id}`}><Trash2 size={13} /> Delete</button>
                         <button className="erp-btn-secondary" onClick={() => pushImage(row, 'DARAZ')} disabled={busy === `DARAZ-${row.id}`}><UploadCloud size={13} /> Daraz</button>
                         <button className="erp-btn-secondary" onClick={() => pushImage(row, 'WOO')} disabled={busy === `WOO-${row.id}`}><UploadCloud size={13} /> Woo</button>
                       </div>

@@ -49,6 +49,12 @@ const setMainImage = asyncHandler(async (req, res) => {
   return ok(res, 'Main image updated successfully.', data);
 });
 
+
+const deleteImage = asyncHandler(async (req, res) => {
+  const data = await erpModel.deleteImage(req.params.id, userId(req));
+  return ok(res, 'Image deleted successfully.', data);
+});
+
 const pushImage = asyncHandler(async (req, res) => {
   const data = await erpModel.pushImage(req.body || {});
   return res.status(201).json({ success: true, message: data.message || 'Image push added to queue.', data });
@@ -108,6 +114,7 @@ module.exports = {
   runImageAudit,
   updateImageUrl,
   setMainImage,
+  deleteImage,
   pushImage,
   productMetrics,
   skuEconomics,

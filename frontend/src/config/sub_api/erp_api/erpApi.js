@@ -14,6 +14,7 @@ export const erpApi = {
   runImageAudit() { return api.post('/erp/image-dashboard/audit'); },
   updateImageUrl(id, data = {}) { return api.patch(`/erp/image-dashboard/${encodeURIComponent(id)}/url`, data); },
   setMainImage(id) { return api.post(`/erp/image-dashboard/${encodeURIComponent(id)}/set-main`); },
+  deleteImage(id) { return api.delete(`/erp/image-dashboard/${encodeURIComponent(id)}`); },
   pushImage(data = {}) { return api.post('/erp/image-dashboard/push-image', data); },
   productMetrics(params = {}) { return api.get('/erp/products/metrics', { params }); },
   suppliersDashboard() { return api.get('/erp/suppliers/dashboard'); },

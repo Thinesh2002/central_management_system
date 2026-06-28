@@ -7,6 +7,10 @@ const rateLimit = require("express-rate-limit");
 const path = require("path");
 
 const pool = require("./config/db");
+const productManagementDb = require("./config/product_management_db/product_management_db");
+const orderManagementDb = require("./config/order_management_db/cm_order_management");
+const marketplaceManagementDb = require("./config/marketplace_management_db/cm_marketplace_management");
+const financeManagementDb = require("./config/finance_management_db/cm_finance_management");
 const accessModel = require("./models/accessModel");
 
 const authRoutes = require("./routes/authRoutes");
@@ -202,6 +206,30 @@ function startJob(name, starter) {
   }
 }
 
+
+async function getDbConnectionName(label, dbPool) {
+  try {
+    const [rows] = await dbPool.query("SELECT DATABASE() AS db_name");
+    return `${label}: ${rows?.[0]?.db_name || "not selected"}`;
+  } catch (error) {
+    return `${label}: not connected (${error.message})`;
+  }
+}
+
+async function printStartupSummary() {
+  const connections = await Promise.all([
+    getDbConnectionName("Auth DB", pool),
+    getDbConnectionName("Product DB", productManagementDb),
+    getDbConnectionName("Order DB", orderManagementDb),
+    getDbConnectionName("Marketplace DB", marketplaceManagementDb),
+    getDbConnectionName("Finance DB", financeManagementDb),
+  ]);
+
+  console.log("Database connected successfully.");
+  console.log(`Server running: http://localhost:${PORT}`);
+  console.log(`Connected backends: ${connections.join(" | ")}`);
+}
+
 async function syncPermissions() {
   try {
     if (typeof accessModel.ensureAllUserPermissions === "function") {
@@ -214,7 +242,7 @@ async function syncPermissions() {
 
 async function startServer() {
   await pool.query("SELECT 1");
-  console.log("Database connected successfully.");
+  await printStartupSummary();
 
   await syncPermissions();
 

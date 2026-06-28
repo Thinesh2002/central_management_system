@@ -676,19 +676,42 @@ async function runImageAudit() {
       checkType = 'duplicate';
       message = 'Same image URL is used more than once.';
     }
-    checks.push({ local_sku: sku, product_name: productName, image_url: url, image_type: image.variant_id ? 'variant' : isMain ? 'main' : 'gallery', width: width || null, height: height || null, marketplace: 'LOCAL', check_type: checkType, status, message });
+    checks.push({ source_image_id: image.id || null, product_image_id: image.id || null, product_id: image.product_id || null, local_sku: sku, product_name: productName, image_url: url, image_type: image.variant_id ? 'variant' : isMain ? 'main' : 'gallery', width: width || null, height: height || null, marketplace: 'LOCAL', check_type: checkType, status, message });
   });
 
   const listingMeta = await getMeta(productDb, 'marketplace_listings');
   if (listingMeta.exists) {
     const rows = await safeQuery(productDb, `SELECT local_sku, title AS product_name, image_url, marketplace FROM marketplace_listings WHERE image_url IS NULL OR image_url = '' LIMIT 500`, [], []);
-    rows.forEach((row) => checks.push({ local_sku: normalizeSku(row.local_sku) || '-', product_name: row.product_name || row.local_sku, image_url: '', image_type: 'marketplace', width: null, height: null, marketplace: row.marketplace || 'LOCAL', check_type: 'marketplace_missing', status: 'fail', message: 'Marketplace listing image is missing.' }));
+    rows.forEach((row) => checks.push({ source_image_id: null, product_image_id: null, product_id: null, local_sku: normalizeSku(row.local_sku) || '-', product_name: row.product_name || row.local_sku, image_url: '', image_type: 'marketplace', width: null, height: null, marketplace: row.marketplace || 'LOCAL', check_type: 'marketplace_missing', status: 'fail', message: 'Marketplace listing image is missing.' }));
   }
 
   if (await tableExists(productDb, 'image_dashboard_checks')) {
     await productDb.query('DELETE FROM image_dashboard_checks');
+    const checkMeta = await getMeta(productDb, 'image_dashboard_checks');
     for (const check of checks) {
-      await productDb.query(`INSERT INTO image_dashboard_checks (local_sku, product_name, image_url, image_type, width, height, marketplace, check_type, status, message, checked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`, [check.local_sku, check.product_name, check.image_url || null, check.image_type, check.width, check.height, check.marketplace, check.check_type, check.status, check.message]);
+      const columns = [];
+      const values = [];
+      const add = (column, value) => {
+        if (!has(checkMeta, column)) return;
+        columns.push(column);
+        values.push(value);
+      };
+      add('source_image_id', check.source_image_id || null);
+      add('product_image_id', check.product_image_id || null);
+      add('product_id', check.product_id || null);
+      add('local_sku', check.local_sku);
+      add('product_name', check.product_name);
+      add('image_url', check.image_url || null);
+      add('image_type', check.image_type);
+      add('width', check.width);
+      add('height', check.height);
+      add('marketplace', check.marketplace);
+      add('check_type', check.check_type);
+      add('status', check.status);
+      add('message', check.message);
+      if (has(checkMeta, 'checked_at')) columns.push('checked_at');
+      const placeholders = columns.map((column) => (column === 'checked_at' ? 'NOW()' : '?'));
+      await productDb.query(`INSERT INTO image_dashboard_checks (${columns.map(qid).join(', ')}) VALUES (${placeholders.join(', ')})`, values);
     }
   }
   return { total_checked: checks.length, success: true };
@@ -706,12 +729,78 @@ async function getImageDashboard(params = {}) {
     if (params.status) { where.push('status = ?'); values.push(params.status); }
     if (params.check_type) { where.push('check_type = ?'); values.push(params.check_type); }
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-    const rows = await safeQuery(productDb, `SELECT * FROM image_dashboard_checks ${whereSql} ORDER BY FIELD(status,'fail','warning','pass'), checked_at DESC, id DESC LIMIT ? OFFSET ?`, [...values, limit, offset], []);
+    let rows = await safeQuery(productDb, `SELECT * FROM image_dashboard_checks ${whereSql} ORDER BY FIELD(status,'fail','warning','pass'), checked_at DESC, id DESC LIMIT ? OFFSET ?`, [...values, limit, offset], []);
+    rows = await enrichImageDashboardRows(rows);
     const countRow = await safeOne(productDb, `SELECT COUNT(*) AS total FROM image_dashboard_checks ${whereSql}`, values, { total: 0 });
     const summary = await safeOne(productDb, `SELECT COUNT(*) AS total_checks, COALESCE(SUM(CASE WHEN status='fail' THEN 1 ELSE 0 END),0) AS failed, COALESCE(SUM(CASE WHEN status='warning' THEN 1 ELSE 0 END),0) AS warning, COALESCE(SUM(CASE WHEN check_type='missing_main' THEN 1 ELSE 0 END),0) AS missing_main, COALESCE(SUM(CASE WHEN check_type='low_resolution' THEN 1 ELSE 0 END),0) AS low_resolution, COALESCE(SUM(CASE WHEN check_type='sync_failed' THEN 1 ELSE 0 END),0) AS sync_failed FROM image_dashboard_checks`, [], { total_checks: 0, failed: 0, warning: 0, missing_main: 0, low_resolution: 0, sync_failed: 0 });
     return { rows, summary, pagination: emptyPagination(page, limit, offset, countRow.total) };
   }
   return { rows: [], summary: { total_checks: 0, failed: 0, warning: 0, missing_main: 0, low_resolution: 0, sync_failed: 0 }, pagination: emptyPagination(page, limit, offset, 0) };
+}
+
+
+async function enrichImageDashboardRows(rows = []) {
+  const imageMeta = await getMeta(productDb, 'product_images');
+  if (!imageMeta.exists || !rows.length) return rows;
+  const urlCol = firstColumn(imageMeta, ['image_url', 'url', 'image_path', 'path', 'file_url', 'file_path', 'src']);
+  const skuCol = firstColumn(imageMeta, ['sku', 'local_sku', 'product_sku', 'variant_sku']);
+  if (!urlCol) return rows;
+
+  const unresolved = rows.filter((row) => !(row.product_image_id || row.source_image_id) && row.image_url);
+  if (!unresolved.length) return rows.map((row) => ({ ...row, product_image_id: row.product_image_id || row.source_image_id || null }));
+
+  for (const row of unresolved) {
+    const values = [row.image_url];
+    let extraWhere = '';
+    if (skuCol && row.local_sku) {
+      extraWhere = ` AND (${qid(skuCol)} = ? OR ${qid(skuCol)} IS NULL OR ${qid(skuCol)} = '')`;
+      values.push(row.local_sku);
+    }
+    const match = await safeOne(productDb, `SELECT ${qid(imageMeta.primaryKey)} AS id FROM product_images WHERE ${qid(urlCol)} = ?${extraWhere} ORDER BY ${qid(imageMeta.primaryKey)} DESC LIMIT 1`, values, null);
+    if (match?.id) {
+      row.product_image_id = match.id;
+      row.source_image_id = match.id;
+    }
+  }
+  return rows.map((row) => ({ ...row, product_image_id: row.product_image_id || row.source_image_id || null }));
+}
+
+async function deleteImage(id, userId = null) {
+  const meta = await getMeta(productDb, 'product_images');
+  if (!meta.exists) throw new Error('product_images table missing.');
+  const urlColumn = firstColumn(meta, ['image_url', 'url', 'image_path', 'path', 'file_url', 'file_path', 'src']);
+  if (!urlColumn) throw new Error('No image URL column found in product_images table.');
+
+  const rows = await safeQuery(productDb, `SELECT * FROM product_images WHERE ${qid(meta.primaryKey)} = ? LIMIT 1`, [id], []);
+  const image = rows[0];
+  if (!image) throw new Error('Image not found.');
+
+  const imageUrl = image[urlColumn];
+  if (imageUrl) {
+    const deletedFilter = has(meta, 'deleted_at') ? ` AND deleted_at IS NULL` : '';
+    const usage = await safeOne(productDb, `SELECT COUNT(*) AS total FROM product_images WHERE ${qid(urlColumn)} = ? AND ${qid(meta.primaryKey)} <> ?${deletedFilter}`, [imageUrl, id], { total: 0 });
+    if (Number(usage.total || 0) > 0) {
+      const err = new Error('This image URL is used by another product. Remove that usage first, then delete.');
+      err.statusCode = 409;
+      throw err;
+    }
+  }
+
+  if (has(meta, 'deleted_at')) {
+    const updates = ['deleted_at = NOW()'];
+    const values = [];
+    if (has(meta, 'updated_by')) { updates.push('updated_by = ?'); values.push(userId); }
+    if (has(meta, 'updated_at')) updates.push('updated_at = NOW()');
+    await productDb.query(`UPDATE product_images SET ${updates.join(', ')} WHERE ${qid(meta.primaryKey)} = ?`, [...values, id]);
+  } else {
+    await productDb.query(`DELETE FROM product_images WHERE ${qid(meta.primaryKey)} = ?`, [id]);
+  }
+
+  if (await tableExists(productDb, 'image_sync_logs')) {
+    await productDb.query(`INSERT INTO image_sync_logs (local_sku, marketplace, image_url, action, status, created_at) VALUES (?, 'LOCAL', ?, 'delete_image', 'success', NOW())`, [normalizeSku(image.sku || image.local_sku || '-') || '-', imageUrl || null]);
+  }
+  await runImageAudit();
+  return { id, deleted: true, image_url: imageUrl || null };
 }
 
 async function updateImageUrl(id, imageUrl, userId = null) {
@@ -908,9 +997,15 @@ async function getSkuEconomics(skuInput) {
 async function getDemandAnalysis(params = {}) {
   const { page, limit, offset } = listParams(params, 25, 300);
   const allRows = await buildSkuMetrics();
-  const filtered = allRows.map((row) => {
+  const search = clean(params.search || '').toLowerCase();
+  const priorityFilter = clean(params.priority || '').toLowerCase();
+  const stockStatus = clean(params.stock_status || '').toLowerCase();
+  const minSales30 = params.min_sales_30 === undefined || params.min_sales_30 === '' ? null : Number(params.min_sales_30);
+  const minReorderQty = params.min_reorder_qty === undefined || params.min_reorder_qty === '' ? null : Number(params.min_reorder_qty);
+
+  const calculated = allRows.map((row) => {
     const avg = money(Number(row.sales_30_days || 0) / 30);
-    const leadTime = 7;
+    const leadTime = toInt(params.lead_time_days, 7);
     const safetyDays = toInt(params.safety_days, 7);
     const available = toInt(row.available_stock, 0);
     const reorderQty = Math.max(Math.ceil(avg * leadTime + avg * safetyDays - available), 0);
@@ -918,6 +1013,21 @@ async function getDemandAnalysis(params = {}) {
     const reason = priority === 'urgent' ? 'Low stock and reorder required.' : priority === 'need_order' ? 'Stock may finish before next replenishment.' : priority === 'slow_moving' ? 'No sales in last 90 days.' : 'Stock level is okay.';
     return { ...row, average_daily_sales: avg, supplier_lead_time_days: leadTime, safety_days: safetyDays, suggested_reorder_qty: reorderQty, priority, reason };
   });
+
+  const filtered = calculated.filter((row) => {
+    if (search) {
+      const haystack = `${row.local_sku || ''} ${row.product_name || ''}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    if (priorityFilter && String(row.priority || '').toLowerCase() !== priorityFilter) return false;
+    if (minSales30 !== null && Number(row.sales_30_days || 0) < minSales30) return false;
+    if (minReorderQty !== null && Number(row.suggested_reorder_qty || 0) < minReorderQty) return false;
+    if (stockStatus === 'out_of_stock' && Number(row.available_stock || 0) > 0) return false;
+    if (stockStatus === 'low_stock' && !(Number(row.available_stock || 0) > 0 && Number(row.available_stock || 0) <= Number(row.low_stock_alert_qty || 5))) return false;
+    if (stockStatus === 'in_stock' && Number(row.available_stock || 0) <= Number(row.low_stock_alert_qty || 5)) return false;
+    return true;
+  });
+
   const rows = filtered.slice(offset, offset + limit);
   return { rows, pagination: emptyPagination(page, limit, offset, filtered.length) };
 }
@@ -1016,6 +1126,7 @@ module.exports = {
   runImageAudit,
   updateImageUrl,
   setMainImage,
+  deleteImage,
   pushImage,
   getSkuEconomics,
   getDemandAnalysis,
