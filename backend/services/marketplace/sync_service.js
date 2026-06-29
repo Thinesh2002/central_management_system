@@ -28,17 +28,6 @@ function getPayload(response) {
   return response?.data || response || {};
 }
 
-function getDarazOrdersFromPayload(payload) {
-  const data = payload?.data || payload;
-
-  if (Array.isArray(data?.orders)) return data.orders;
-  if (Array.isArray(data?.order)) return data.order;
-  if (Array.isArray(payload?.orders)) return payload.orders;
-  if (Array.isArray(payload)) return payload;
-
-  return [];
-}
-
 function getDarazProductsFromPayload(payload) {
   const data = payload?.data || payload;
 
@@ -215,10 +204,6 @@ async function manualSyncAccount({ accountId, syncType, userId = null }) {
 async function runDarazSync({ account, credentials, syncType, jobId }) {
   const type = String(syncType || "").toLowerCase();
 
-  if (type === "orders") {
-    return syncDarazOrders({ account, credentials, jobId });
-  }
-
   if (type === "products") {
     return syncDarazProducts({ account, credentials, jobId });
   }
@@ -227,17 +212,13 @@ async function runDarazSync({ account, credentials, syncType, jobId }) {
     return syncDarazCategories({ account, credentials, jobId });
   }
 
-  if (type === "brands") {
-    return syncDarazBrands({ account, credentials, jobId });
-  }
-
-  if (type === "inventory" || type === "price") {
+  if (["inventory", "price", "images", "full_sync"].includes(type)) {
     return {
       total_records: 0,
       success_records: 0,
       failed_records: 0,
       skipped_records: 0,
-      message: `${syncType} sync placeholder ready. Add local product push logic next.`,
+      message: `${syncType} sync placeholder ready for listing/product management. Orders and finance are disabled in this project.`,
     };
   }
 
@@ -246,50 +227,6 @@ async function runDarazSync({ account, credentials, syncType, jobId }) {
     400,
     "UNSUPPORTED_DARAZ_SYNC_TYPE"
   );
-}
-
-async function syncDarazOrders({ account, credentials, jobId }) {
-  const response = await darazApiService.callDarazApi({
-    account,
-    credentials,
-    apiPath: "/orders/get",
-    method: "GET",
-    requestType: "orders",
-    query: {
-      sort_direction: "DESC",
-      limit: 50,
-    },
-  });
-
-  const payload = getPayload(response);
-  const orders = getDarazOrdersFromPayload(payload);
-
-  const total = orders.length;
-
-  for (const order of orders) {
-    await safeCreateSyncJobItem({
-      job_id: jobId,
-      account_id: account.id,
-      item_type: "order",
-      marketplace_reference:
-        order.order_id ||
-        order.order_number ||
-        order.orderNumber ||
-        order.id ||
-        null,
-      status: "success",
-      message: "Order fetched from Daraz.",
-    });
-  }
-
-  return {
-    total_records: total,
-    success_records: total,
-    failed_records: 0,
-    skipped_records: 0,
-    message: `Daraz orders sync completed successfully. ${total} orders fetched.`,
-    request_uid: response?.request_uid || null,
-  };
 }
 
 async function syncDarazProducts({ account, credentials, jobId }) {

@@ -5,12 +5,7 @@ const ROLE_LEVEL = {
   user: 1,
   admin: 2,
   master_admin: 3,
-  super_admin: 3,
 };
-
-function normalizeRole(role) {
-  return String(role || 'user').toLowerCase().replace(/[\s-]+/g, '_');
-}
 
 async function protect(req, res, next) {
   try {
@@ -50,10 +45,8 @@ function allowRoles(...roles) {
 }
 
 function canManageRole(actorRole, targetRole) {
-  const actor = normalizeRole(actorRole);
-  const target = normalizeRole(targetRole);
-  if (actor === "master_admin" || actor === "super_admin") return true;
-  if (actor === "admin") return target === "user";
+  if (actorRole === "master_admin") return true;
+  if (actorRole === "admin") return targetRole === "user";
   return false;
 }
 

@@ -1,12 +1,13 @@
 {
   "name": "cm-auth-management-backend",
   "version": "1.0.0",
-  "description": "Backend only: login, users, page-level access, logs, security for cm_auth_management",
+  "description": "Central Management backend: auth, product, inventory, listing, marketplace accounts. No order/finance modules.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "check": "node --check index.js"
+    "check": "node --check index.js",
+    "setup-db": "node scripts/setup-db.js"
   },
   "author": "",
   "license": "ISC",

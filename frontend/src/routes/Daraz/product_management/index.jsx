@@ -1,15 +1,14 @@
 import React from "react";
-import { Route } from "react-router-dom";
+import { Navigate, Route, useParams } from "react-router-dom";
 
 import Layout from "../../../components/Layout";
 import ProtectedRoute from "../../../config/ProtectedRoute";
 
 import DarazProductsPreviewPage from "../../../pages/daraz/product_management/index";
 import DarazProductViewPage from "../../../pages/daraz/product_management/daraz_detail_view/index";
-import DarazProductEditPage from "../../../pages/daraz/product_management/daraz_edit_page/index";
 import DarazProductLogsPage from "../../../pages/daraz/daraz_logs/daraz_sync_logs_page";
 
-function ProtectedMarketplacePage({ children }) {
+function ProtectedProductPage({ children }) {
   return (
     <ProtectedRoute>
       <Layout>{children}</Layout>
@@ -17,44 +16,46 @@ function ProtectedMarketplacePage({ children }) {
   );
 }
 
-export default function MarketplaceManagementRoutes() {
+function RedirectDarazView() {
+  const { id } = useParams();
+  return <Navigate to={`/product/daraz-products/view/${id}`} replace />;
+}
+
+export default function DarazProductRoutes() {
   return (
     <>
       <Route
-        path="/daraz/products"
+        path="/product/daraz-products"
         element={
-          <ProtectedMarketplacePage>
+          <ProtectedProductPage>
             <DarazProductsPreviewPage />
-          </ProtectedMarketplacePage>
+          </ProtectedProductPage>
         }
       />
 
       <Route
-        path="/daraz-products/view/:id"
+        path="/product/daraz-products/view/:id"
         element={
-          <ProtectedMarketplacePage>
+          <ProtectedProductPage>
             <DarazProductViewPage />
-          </ProtectedMarketplacePage>
+          </ProtectedProductPage>
         }
       />
 
       <Route
-        path="/daraz-products/edit/:id"
+        path="/product/sync-logs"
         element={
-          <ProtectedMarketplacePage>
-            <DarazProductEditPage />
-          </ProtectedMarketplacePage>
-        }
-      />
-
-      <Route
-        path="/daraz-products/logs"
-        element={
-          <ProtectedMarketplacePage>
+          <ProtectedProductPage>
             <DarazProductLogsPage />
-          </ProtectedMarketplacePage>
+          </ProtectedProductPage>
         }
       />
+
+      {/* Old paths redirect to new Product Management section */}
+      <Route path="/daraz/products" element={<Navigate to="/product/daraz-products" replace />} />
+      <Route path="/Daraz/products" element={<Navigate to="/product/daraz-products" replace />} />
+      <Route path="/daraz-products/logs" element={<Navigate to="/product/sync-logs" replace />} />
+      <Route path="/daraz-products/view/:id" element={<RedirectDarazView />} />
     </>
   );
 }

@@ -1072,101 +1072,10 @@ async function countProducts({ account_id } = {}) {
  * Daraz order list page-ku required.
  * This attaches all rows from daraz_order_items for each order.
  */
-async function listOrderItemsForOrders(orders = []) {
-  if (!Array.isArray(orders) || orders.length === 0) return [];
-
-  const orderIds = [];
-  const darazOrderIds = [];
-
-  orders.forEach((order) => {
-    const localOrderId =
-      order?.id ||
-      order?.order_id ||
-      order?.order_db_id ||
-      order?.local_order_id ||
-      order?.localOrderId;
-
-    const darazOrderId =
-      order?.daraz_order_id ||
-      order?.darazOrderId ||
-      order?.order_number ||
-      order?.orderNumber ||
-      order?.daraz_order_number ||
-      order?.darazOrderNumber;
-
-    if (localOrderId !== undefined && localOrderId !== null && localOrderId !== "") {
-      orderIds.push(String(localOrderId));
-    }
-
-    if (darazOrderId !== undefined && darazOrderId !== null && darazOrderId !== "") {
-      darazOrderIds.push(String(darazOrderId));
-    }
-  });
-
-  const uniqueOrderIds = [...new Set(orderIds)];
-  const uniqueDarazOrderIds = [...new Set(darazOrderIds)];
-
-  const whereParts = [];
-  const params = [];
-
-  if (uniqueOrderIds.length > 0) {
-    whereParts.push(
-      `CAST(order_id AS CHAR) IN (${uniqueOrderIds.map(() => "?").join(",")})`
-    );
-    params.push(...uniqueOrderIds);
-  }
-
-  if (uniqueDarazOrderIds.length > 0) {
-    whereParts.push(
-      `CAST(daraz_order_id AS CHAR) IN (${uniqueDarazOrderIds
-        .map(() => "?")
-        .join(",")})`
-    );
-    params.push(...uniqueDarazOrderIds);
-  }
-
-  if (whereParts.length === 0) return [];
-
-  const [rows] = await pool.query(
-    `
-    SELECT
-      id,
-      order_id,
-      account_code,
-      daraz_order_id,
-      order_item_id,
-      package_id,
-      product_id,
-      sku,
-      shop_sku,
-      seller_sku,
-      product_name,
-      variation,
-      product_main_image,
-      product_url,
-      item_status,
-      local_item_status,
-      quantity,
-      currency,
-      unit_price,
-      paid_price,
-      shipping_fee,
-      voucher_amount,
-      tax_amount,
-      total_amount,
-      tracking_number,
-      shipment_provider,
-      raw_item_json,
-      created_at,
-      updated_at
-    FROM daraz_order_items
-    WHERE ${whereParts.join(" OR ")}
-    ORDER BY order_id ASC, id ASC
-    `,
-    params
-  );
-
-  return rows;
+async function listOrderItemsForOrders() {
+  // Order management is intentionally removed from this project.
+  // Keep this compatibility function so old callers do not crash, but do not query order tables.
+  return [];
 }
 
 module.exports = {

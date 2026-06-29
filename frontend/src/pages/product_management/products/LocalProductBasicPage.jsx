@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Save } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
+import { getStoredUser } from "../../../config/auth";
 import ProductPageLayout from "./components/ProductPageLayout";
 import {
   generateProductSku,
+  getCode,
   getErrorMessage,
   getName,
   makeSlug,
@@ -40,6 +42,19 @@ function getOptionId(item) {
     item?.colour_id ??
     ""
   );
+}
+
+
+function getCurrentUserId() {
+  const user = getStoredUser?.();
+  return user?.id || user?.user_id || user?.user_uid || 1;
+}
+
+function formatMasterOption(item, type) {
+  const code = getCode(item, type);
+  const name = getName(item, type);
+  if (code && name) return `${code} - ${name}`;
+  return code || name || "Unnamed";
 }
 
 function getAllIds(item) {
@@ -371,6 +386,7 @@ export default function LocalProductBasicPage() {
   const categoryValue = asText(form.category_id || form.product_category_id);
   const subCategoryValue = asText(form.sub_category_id || form.product_sub_category_id);
   const modelValue = asText(form.model_id || form.product_model_id);
+  const currentUser = useMemo(() => getStoredUser?.() || null, []);
 
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -427,6 +443,30 @@ export default function LocalProductBasicPage() {
     if (!modelValue) return true;
     return models.some((item) => isSame(getOptionId(item), modelValue));
   }, [models, modelValue]);
+
+  const selectedCategory = useMemo(
+    () => findByFlexibleId(categories, categoryValue),
+    [categories, categoryValue]
+  );
+
+  const selectedSubCategory = useMemo(
+    () => findByFlexibleId(subCategories, subCategoryValue),
+    [subCategories, subCategoryValue]
+  );
+
+  const selectedModel = useMemo(
+    () => findByFlexibleId(models, modelValue),
+    [models, modelValue]
+  );
+
+  const generatedSkuPreview = useMemo(() => {
+    if (!selectedCategory || !selectedSubCategory || !selectedModel) return "";
+    return generateProductSku({
+      category: selectedCategory,
+      subCategory: selectedSubCategory,
+      model: selectedModel,
+    });
+  }, [selectedCategory, selectedSubCategory, selectedModel]);
 
   function regenerateSku(customForm = form) {
     const category = findByFlexibleId(categories, categoryValue);
@@ -506,7 +546,7 @@ export default function LocalProductBasicPage() {
         product_model_id: modelValue,
 
         has_variants: Number(form.has_variants || 0),
-        updated_by: form.updated_by || 1,
+        updated_by: getCurrentUserId(),
       };
 
       const response = await localProductsApi.updateProduct(productId, payload);
@@ -552,6 +592,31 @@ export default function LocalProductBasicPage() {
           </div>
         ) : (
           <>
+            <div className="mb-4 rounded-2xl border border-slate-800 bg-[#070b16] p-4">
+              <div className="grid grid-cols-1 gap-3 text-xs font-bold text-slate-400 md:grid-cols-4">
+                <div>
+                  <p className="uppercase tracking-wide text-slate-500">Category Code</p>
+                  <p className="mt-1 text-orange-300">{getCode(selectedCategory, "category") || "-"}</p>
+                </div>
+                <div>
+                  <p className="uppercase tracking-wide text-slate-500">Sub Category Code</p>
+                  <p className="mt-1 text-orange-300">{getCode(selectedSubCategory, "subCategory") || "-"}</p>
+                </div>
+                <div>
+                  <p className="uppercase tracking-wide text-slate-500">Model Code</p>
+                  <p className="mt-1 text-orange-300">{getCode(selectedModel, "model") || "-"}</p>
+                </div>
+                <div>
+                  <p className="uppercase tracking-wide text-slate-500">Login User</p>
+                  <p className="mt-1 text-cyan-300">{currentUser?.user_uid || currentUser?.name || currentUser?.email || "User"}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-slate-800 bg-[#0b1220] px-3 py-2 md:flex-row md:items-center md:justify-between">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Code Based SKU</p>
+                <p className="font-mono text-sm font-black text-emerald-300">{generatedSkuPreview || "Select category + sub category + model"}</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DarkInput
                 label="Product Title"
@@ -581,7 +646,7 @@ export default function LocalProductBasicPage() {
                     key={getOptionId(item) || `category-${index}`}
                     value={getOptionId(item)}
                   >
-                    {getName(item)}
+                    {formatMasterOption(item, "category")}
                   </option>
                 ))}
               </DarkSelect>
@@ -599,7 +664,7 @@ export default function LocalProductBasicPage() {
                     key={getOptionId(item) || `sub-category-${index}`}
                     value={getOptionId(item)}
                   >
-                    {getName(item)}
+                    {formatMasterOption(item, "subCategory")}
                   </option>
                 ))}
               </DarkSelect>
@@ -623,7 +688,7 @@ export default function LocalProductBasicPage() {
                     key={getOptionId(item) || `model-${index}`}
                     value={getOptionId(item)}
                   >
-                    {getName(item)}
+                    {formatMasterOption(item, "model")}
                   </option>
                 ))}
               </DarkSelect>

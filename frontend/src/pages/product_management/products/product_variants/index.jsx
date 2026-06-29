@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
+import { getStoredUser } from "../../../../config/auth";
 import ProductPageLayout from "./../components/ProductPageLayout";
 import {
   generateVariantSku,
+  getCode,
   getErrorMessage,
   getName,
   normalizeList,
@@ -28,6 +30,21 @@ import {
 } from "./utils/variantPageHelpers";
 
 const LKR = "LKR";
+
+function getCurrentUserId() {
+  const user = getStoredUser?.();
+  return user?.id || user?.user_id || user?.user_uid || 1;
+}
+
+function getProductTitle(product = {}) {
+  return product?.title || product?.name || product?.product_name || "Product";
+}
+
+function buildVariantTitle(product, colour) {
+  const colourName = getName(colour, "colour") || colour?.colour || colour?.color || "Variant";
+  return `${getProductTitle(product)} - ${colourName}`;
+}
+
 
 const REMOVE_PRICE_FIELDS = [
   "price",
@@ -163,6 +180,8 @@ function getEmptyVariant(productId) {
   return {
     ...removeUnwantedPriceFields(EMPTY_VARIANT),
     product_id: productId,
+    title: "",
+    variant_name: "",
     selling_price: "",
     stock_qty: 0,
   };
@@ -306,6 +325,8 @@ export default function LocalProductVariantsPage() {
       price_id: getPriceRowId(priceRow) || variant.price_id || "",
       colour_id: variant.colour_id || variant.product_colour_id || "",
       colour: safeText(variant.colour || variant.color || ""),
+      title: safeText(variant.title || variant.variant_title || variant.variant_name || "", ""),
+      variant_name: safeText(variant.variant_name || variant.variant_title || variant.title || "", ""),
       selling_price: getSellingPrice(variant) || getSellingPrice(priceRow) || "",
       stock_qty:
         variant.stock_qty ??
@@ -339,14 +360,18 @@ export default function LocalProductVariantsPage() {
       colour,
     });
 
-    setForm((prev) =>
-      removeUnwantedPriceFields({
+    setForm((prev) => {
+      const nextTitle = prev.title || prev.variant_name || buildVariantTitle(product, colour);
+
+      return removeUnwantedPriceFields({
         ...prev,
         colour_id: colourId,
         colour: getName(colour) || prev.colour,
+        title: nextTitle,
+        variant_name: nextTitle,
         variant_sku: sku,
-      })
-    );
+      });
+    });
   }
 
   function handleColourChange(value) {
@@ -361,14 +386,18 @@ export default function LocalProductVariantsPage() {
         })
       : "";
 
-    setForm((prev) =>
-      removeUnwantedPriceFields({
+    setForm((prev) => {
+      const nextTitle = prev.title || prev.variant_name || buildVariantTitle(product, colour);
+
+      return removeUnwantedPriceFields({
         ...prev,
         colour_id: value,
         colour: getName(colour),
+        title: nextTitle,
+        variant_name: nextTitle,
         variant_sku: sku || prev.variant_sku,
-      })
-    );
+      });
+    });
   }
 
   async function saveSellingPrice({
@@ -388,8 +417,8 @@ export default function LocalProductVariantsPage() {
       sale_price: cleanPrice,
       currency: LKR,
       status: "active",
-      created_by: 1,
-      updated_by: 1,
+      created_by: getCurrentUserId(),
+      updated_by: getCurrentUserId(),
     };
 
     if (priceId) {
@@ -422,10 +451,14 @@ export default function LocalProductVariantsPage() {
         variant_sku: variantSku,
         colour_id: safeForm.colour_id || null,
         colour: safeForm.colour || getName(selectedColour) || "",
+        title: safeForm.title || safeForm.variant_name || buildVariantTitle(product, selectedColour),
+        variant_title: safeForm.variant_title || safeForm.title || safeForm.variant_name || buildVariantTitle(product, selectedColour),
+        variant_name: safeForm.variant_name || safeForm.title || buildVariantTitle(product, selectedColour),
         selling_price: sellingPrice,
         stock_qty: stockQty,
         status: safeForm.status || "active",
-        updated_by: 1,
+        created_by: getCurrentUserId(),
+        updated_by: getCurrentUserId(),
       });
 
       let savedVariantId = safeForm.id;
@@ -485,7 +518,8 @@ export default function LocalProductVariantsPage() {
           ...product,
           has_variants: 1,
           product_type: "variable",
-          updated_by: 1,
+          created_by: getCurrentUserId(),
+        updated_by: getCurrentUserId(),
         })
         .catch(() => null);
 
@@ -546,8 +580,8 @@ export default function LocalProductVariantsPage() {
     formData.append("is_main", isMain ? "1" : "0");
     formData.append("sort_order", String(sortOrder));
     formData.append("image_type", isMain ? "main" : "sub");
-    formData.append("created_by", "1");
-    formData.append("updated_by", "1");
+    formData.append("created_by", String(getCurrentUserId()));
+    formData.append("updated_by", String(getCurrentUserId()));
 
     if (existingImage?.id) {
       await localProductsApi.updateImage(existingImage.id, formData);
@@ -638,6 +672,11 @@ export default function LocalProductVariantsPage() {
         saving={saving}
         loading={loading}
         colours={colours}
+        selectedCategory={selectedCategory}
+        selectedSubCategory={selectedSubCategory}
+        selectedModel={selectedModel}
+        selectedColour={selectedColour}
+        getCode={getCode}
         onClose={() => {
           setFormOpen(false);
           resetForm();

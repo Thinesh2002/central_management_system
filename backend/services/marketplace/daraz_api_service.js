@@ -400,7 +400,7 @@ const commonParams = cleanParams({
 
   const url = `${baseUrl}${apiPath}`;
 
-  if (String(process.env.DEBUG_DARAZ_API || "").toLowerCase() === "true") console.log(
+  console.log(
     "[DARAZ_API_REQUEST]",
     safeRequestLog({
       requestUid,
@@ -478,7 +478,7 @@ const commonParams = cleanParams({
       duration_ms: Date.now() - startedAt,
     });
 
-    if (String(process.env.DEBUG_DARAZ_API || "").toLowerCase() === "true") console.log("[DARAZ_API_RESPONSE_SUCCESS]", {
+    console.log("[DARAZ_API_RESPONSE_SUCCESS]", {
       request_uid: requestUid,
       account_code: account.account_code,
       api_path: apiPath,
@@ -577,7 +577,7 @@ async function callDarazApiWithoutAccessToken({
 
   const url = `${baseUrl}${apiPath}`;
 
-  if (String(process.env.DEBUG_DARAZ_API || "").toLowerCase() === "true") console.log(
+  console.log(
     "[DARAZ_AUTH_API_REQUEST]",
     safeRequestLog({
       requestUid,
@@ -654,7 +654,7 @@ async function callDarazApiWithoutAccessToken({
       duration_ms: Date.now() - startedAt,
     });
 
-    if (String(process.env.DEBUG_DARAZ_API || "").toLowerCase() === "true") console.log("[DARAZ_AUTH_API_RESPONSE_SUCCESS]", {
+    console.log("[DARAZ_AUTH_API_RESPONSE_SUCCESS]", {
       request_uid: requestUid,
       account_code: account?.account_code || null,
       api_path: apiPath,
@@ -742,7 +742,7 @@ async function refreshDarazToken(account, credentials) {
     account,
     credentials,
     apiPath: "/auth/token/refresh",
-    method: process.env.DARAZ_TOKEN_REFRESH_METHOD || "POST",
+    method: "GET",
     requestType: "token_refresh",
     query: {
       refresh_token: refreshToken,

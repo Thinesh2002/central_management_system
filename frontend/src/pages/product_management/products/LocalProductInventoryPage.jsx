@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Lock, RefreshCw, Save } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
+import { getStoredUser } from "../../../config/auth";
 import ProductPageLayout from "./components/ProductPageLayout";
 import { getErrorMessage, normalizeList } from "./utils/productSku";
+
+
+function getCurrentUserId() {
+  const user = getStoredUser?.();
+  return user?.id || user?.user_id || user?.user_uid || 1;
+}
 
 const emptyInventory = {
   sku: "",
@@ -15,7 +22,7 @@ const emptyInventory = {
   reserved_qty: 0,
   available_qty: 0,
   low_stock_alert_qty: 0,
-  updated_by: 1,
+  updated_by: getCurrentUserId(),
 };
 
 function unwrapOne(response) {
@@ -472,7 +479,8 @@ export default function LocalProductPriceInventoryPage() {
         reserved_qty: reservedStock,
         available_qty: availableStock,
         low_stock_alert_qty: cleanNumber(inventoryForm.reorder_level),
-        updated_by: 1,
+        updated_by: getCurrentUserId(),
+        created_by: getCurrentUserId(),
       };
 
       if (inventoryForm.id) {

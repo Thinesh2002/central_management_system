@@ -86,13 +86,14 @@ export function getVariantSku(variant = {}) {
 
 export function getVariantName(variant = {}) {
   return (
+    variant.variant_title ||
+    variant.variant_name ||
+    variant.title ||
+    variant.name ||
     variant.colour ||
     variant.color ||
     variant.colour_name ||
     variant.color_name ||
-    variant.variant_name ||
-    variant.name ||
-    variant.title ||
     variant.size ||
     "Variant"
   );

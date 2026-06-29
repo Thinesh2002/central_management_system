@@ -1,6 +1,6 @@
 const crypto = require("crypto");
-const productPool = require("../../../config/product_management_db/product_management_db");
 const marketplacePool = require("../../../config/marketplace_management_db/cm_marketplace_management");
+const productPool = require("../../../config/product_management_db/product_management_db");
 
 function uid(prefix) {
   return `${prefix}_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;

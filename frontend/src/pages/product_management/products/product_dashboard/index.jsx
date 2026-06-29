@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
-import erpApi from "../../../../config/sub_api/erp_api/erpApi";
 import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
 import FilterModal from "./components/FilterModal";
 import ImagePreviewModal from "./components/ImagePreviewModal";
@@ -351,21 +350,6 @@ function sortLatestProductsFirst(list = []) {
   return [...list].sort((a, b) => getLatestSortValue(b) - getLatestSortValue(a));
 }
 
-function mergeProductsWithMetrics(products = [], metricsBySku = {}) {
-  return products.map((product) => {
-    const sku = getProductSku(product).toUpperCase();
-    const metrics = metricsBySku[sku] || {};
-    return {
-      ...product,
-      metrics,
-      total_inventory: metrics.available_stock ?? product.available_qty ?? product.stock_qty ?? 0,
-      sales_30_days: metrics.sales_30_days ?? 0,
-      sales_90_days: metrics.sales_90_days ?? 0,
-      pending_orders: metrics.pending_orders ?? 0,
-    };
-  });
-}
-
 export default function LocalProductsDashboard() {
   const navigate = useNavigate();
 
@@ -375,7 +359,6 @@ export default function LocalProductsDashboard() {
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [models, setModels] = useState([]);
-  const [productMetrics, setProductMetrics] = useState({});
   const [expandedRows, setExpandedRows] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -395,7 +378,6 @@ export default function LocalProductsDashboard() {
         categoryRes,
         subCategoryRes,
         modelRes,
-        metricsRes,
       ] = await Promise.all([
         localProductsApi.getProducts(),
         localProductsApi.getImages().catch(() => ({ data: [] })),
@@ -403,17 +385,13 @@ export default function LocalProductsDashboard() {
         localProductsApi.getCategories().catch(() => []),
         localProductsApi.getSubCategories().catch(() => []),
         localProductsApi.getProductModels().catch(() => []),
-        erpApi.productMetrics().catch(() => ({ data: { by_sku: {} } })),
       ]);
 
       const productRows = normalizeProductList(productRes);
       const inventoryRows = normalizeList(inventoryRes);
       const productsWithInventory = mergeProductsWithInventory(productRows, inventoryRows);
-      const metricsBySku = metricsRes?.data?.by_sku || {};
-      const productsWithMetrics = mergeProductsWithMetrics(productsWithInventory, metricsBySku);
 
-      setProductMetrics(metricsBySku);
-      setProducts(sortLatestProductsFirst(productsWithMetrics));
+      setProducts(sortLatestProductsFirst(productsWithInventory));
       setProductImages(normalizeList(imageRes));
       setCategories(normalizeList(categoryRes));
       setSubCategories(normalizeList(subCategoryRes));
@@ -526,6 +504,8 @@ export default function LocalProductsDashboard() {
   return (
     <div className="min-h-screen bg-[#070b16] p-2 text-slate-100 lg:p-3">
       <div className="mx-auto max-w-[1680px] space-y-3">
+ 
+
         <ProductFilterBar
           filters={filters}
           setFilters={setFilters}
@@ -549,7 +529,6 @@ export default function LocalProductsDashboard() {
           goToProductSection={goToProductSection}
           handleDelete={handleDelete}
           setImagePreview={setImagePreview}
-          onReload={loadData}
         />
       </div>
 

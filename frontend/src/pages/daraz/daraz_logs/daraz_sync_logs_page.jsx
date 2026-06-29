@@ -91,6 +91,7 @@ export default function DarazProductLogsPage() {
   return (
     <div className="w-full p-4 text-slate-100">
       <div className="space-y-4">
+
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">

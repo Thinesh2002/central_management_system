@@ -10,6 +10,11 @@ export default function VariantModal({
   saving,
   loading,
   colours,
+  selectedCategory,
+  selectedSubCategory,
+  selectedModel,
+  selectedColour,
+  getCode,
   onClose,
   onSubmit,
   onChange,
@@ -49,6 +54,27 @@ export default function VariantModal({
         </div>
 
         <div className="max-h-[72vh] overflow-y-auto px-5 py-5">
+          <div className="mb-4 rounded-xl border border-slate-700 bg-[#0a101d] p-3">
+            <div className="grid grid-cols-2 gap-3 text-[11px] font-black text-slate-400 md:grid-cols-4">
+              <div>
+                <p className="uppercase tracking-wide text-slate-500">Category</p>
+                <p className="mt-1 text-orange-300">{getCode?.(selectedCategory, "category") || "-"}</p>
+              </div>
+              <div>
+                <p className="uppercase tracking-wide text-slate-500">Sub Category</p>
+                <p className="mt-1 text-orange-300">{getCode?.(selectedSubCategory, "subCategory") || "-"}</p>
+              </div>
+              <div>
+                <p className="uppercase tracking-wide text-slate-500">Model</p>
+                <p className="mt-1 text-orange-300">{getCode?.(selectedModel, "model") || "-"}</p>
+              </div>
+              <div>
+                <p className="uppercase tracking-wide text-slate-500">Colour</p>
+                <p className="mt-1 text-cyan-300">{getCode?.(selectedColour, "colour") || "-"}</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <DarkSelect
               label="Colour Code"
@@ -65,6 +91,18 @@ export default function VariantModal({
                 </option>
               ))}
             </DarkSelect>
+
+            <DarkInput
+              label="Variant Title"
+              value={form.title || form.variant_title || form.variant_name || ""}
+              onChange={(value) => {
+                onChange("title", value);
+                onChange("variant_title", value);
+                onChange("variant_name", value);
+              }}
+              required
+              placeholder="Example: LED Bulb 10W - Black"
+            />
 
             <div className="grid grid-cols-[1fr_auto] gap-2">
               <DarkInput

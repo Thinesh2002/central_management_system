@@ -8,19 +8,16 @@ async function manualSync(req, res) {
     if (!sync_type) {
       return res.status(400).json({
         success: false,
-        message: "sync_type is required. Example: orders, products, categories, brands",
+        message: "sync_type is required. Example: products, categories, inventory, price, images",
       });
     }
 
     const allowedSyncTypes = [
-      "orders",
       "products",
       "inventory",
       "price",
       "images",
       "categories",
-      "brands",
-      "finance",
       "full_sync",
     ];
 

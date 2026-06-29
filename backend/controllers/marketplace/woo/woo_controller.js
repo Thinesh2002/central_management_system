@@ -190,61 +190,6 @@ async function getWooProducts(req, res) {
   }
 }
 
-async function getWooOrders(req, res) {
-  const startedAt = new Date();
-  const accountId = req.params.accountId;
-
-  try {
-    const credentials = await wooModel.getWooCredentials(accountId);
-    const result = await wooApi.getOrders(credentials, req.query);
-
-    await wooModel.logApiRequest({
-      account_id: accountId,
-      endpoint: "/orders",
-      http_method: "GET",
-      request_type: "orders",
-      response_status_code: 200,
-      api_status: "success",
-      request_summary: req.query,
-      response_summary: {
-        total: result.total,
-        total_pages: result.total_pages,
-      },
-      request_time: startedAt,
-      response_time: new Date(),
-      duration_ms: new Date() - startedAt,
-    });
-
-    return res.json({
-      success: true,
-      total: result.total,
-      total_pages: result.total_pages,
-      data: result.data,
-    });
-  } catch (error) {
-    console.error("[GET_WOO_ORDERS_ERROR]:", error);
-
-    await wooModel.logApiRequest({
-      account_id: accountId,
-      endpoint: "/orders",
-      http_method: "GET",
-      request_type: "orders",
-      api_status: "failed",
-      error_message: error.message,
-      request_summary: req.query,
-      request_time: startedAt,
-      response_time: new Date(),
-      duration_ms: new Date() - startedAt,
-    });
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to load WooCommerce orders.",
-      error: error.message,
-    });
-  }
-}
-
 async function getWooCategories(req, res) {
   const startedAt = new Date();
   const accountId = req.params.accountId;
@@ -292,6 +237,5 @@ module.exports = {
   listWooAccounts,
   testWooAccount,
   getWooProducts,
-  getWooOrders,
   getWooCategories,
 };

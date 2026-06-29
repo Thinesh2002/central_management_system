@@ -198,13 +198,10 @@ async function createOrUpdateWooAccount(payload) {
         (
           account_id,
           sync_products_enabled,
-          sync_orders_enabled,
           sync_inventory_enabled,
           sync_price_enabled,
           sync_images_enabled,
-          sync_finance_enabled,
           product_sync_interval_minutes,
-          order_sync_interval_minutes,
           inventory_sync_interval_minutes,
           price_sync_interval_minutes,
           auto_token_refresh_enabled,
@@ -213,7 +210,7 @@ async function createOrUpdateWooAccount(payload) {
           updated_at
         )
        VALUES
-        (?, 1, 1, 1, 1, 1, 0, 15, 15, 30, 30, 0, 0, NOW(), NOW())
+        (?, 1, 1, 1, 1, 15, 30, 30, 0, 0, NOW(), NOW())
        ON DUPLICATE KEY UPDATE
           sync_products_enabled = VALUES(sync_products_enabled),
           product_sync_interval_minutes = VALUES(product_sync_interval_minutes),
@@ -276,8 +273,7 @@ async function listWooAccounts() {
         h.connection_status AS health_connection_status,
         h.token_status AS health_token_status,
         h.last_product_sync_at,
-        h.last_order_sync_at,
-        h.last_checked_at,
+          h.last_checked_at,
         h.error_count_today,
         h.success_count_today,
         h.last_error AS health_last_error
@@ -330,7 +326,6 @@ async function listWooAccounts() {
       last_connected_at: row.last_connected_at,
       last_sync_at: row.last_sync_at,
       last_product_sync_at: row.last_product_sync_at,
-      last_order_sync_at: row.last_order_sync_at,
       last_checked_at: row.last_checked_at,
       last_validated_at: row.last_validated_at,
       error_count_today: row.error_count_today,

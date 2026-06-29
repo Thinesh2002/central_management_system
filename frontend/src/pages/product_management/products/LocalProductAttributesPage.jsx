@@ -2,9 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
+import { getStoredUser } from "../../../config/auth";
 import ProductPageLayout from "./components/ProductPageLayout";
 import { FormInput, FormSelect } from "./components/FormInput";
 import { getErrorMessage, getName, normalizeList } from "./utils/productSku";
+
+
+function getCurrentUserId() {
+  const user = getStoredUser?.();
+  return user?.id || user?.user_id || user?.user_uid || 1;
+}
 
 export default function LocalProductAttributesPage() {
   const { productId } = useParams();
@@ -53,7 +60,7 @@ export default function LocalProductAttributesPage() {
   async function addNewAttribute() {
     if (!newAttributeName.trim()) return alert("Enter attribute name.");
     try {
-      const created = await localProductsApi.createAttribute({ name: newAttributeName, attribute_name: newAttributeName, created_by: 1, updated_by: 1 });
+      const created = await localProductsApi.createAttribute({ name: newAttributeName, attribute_name: newAttributeName, created_by: getCurrentUserId(), updated_by: getCurrentUserId() });
       const item = created?.data?.data || created?.data || created;
       setNewAttributeName("");
       await loadData();
@@ -71,8 +78,8 @@ export default function LocalProductAttributesPage() {
         value: newValue.value,
         attribute_value: newValue.value,
         name: newValue.value,
-        created_by: 1,
-        updated_by: 1,
+        created_by: getCurrentUserId(),
+        updated_by: getCurrentUserId(),
       };
       const created = await localProductsApi.createAttributeValue(payload);
       const item = created?.data?.data || created?.data || created;
@@ -95,8 +102,8 @@ export default function LocalProductAttributesPage() {
           attribute_id: row.attribute_id,
           attribute_value_id: row.attribute_value_id || null,
           custom_value: row.custom_value || null,
-          updated_by: 1,
-          created_by: row.created_by || 1,
+          updated_by: getCurrentUserId(),
+          created_by: row.created_by || getCurrentUserId(),
         };
         if (row.id) await localProductsApi.updateProductAttributeValue(row.id, payload);
         else await localProductsApi.createProductAttributeValue(payload);

@@ -7,14 +7,7 @@ const rateLimit = require("express-rate-limit");
 const path = require("path");
 
 const pool = require("./config/db");
-const productManagementDb = require("./config/product_management_db/product_management_db");
-const orderManagementDb = require("./config/order_management_db/cm_order_management");
-const marketplaceManagementDb = require("./config/marketplace_management_db/cm_marketplace_management");
-const financeManagementDb = require("./config/finance_management_db/cm_finance_management");
 const accessModel = require("./models/accessModel");
-const { auditLogger, ensureAuditTable } = require("./middleware/auditLogger");
-const { ensureAutomationLogTables } = require("./services/system/automation_log_service");
-const stockAutomationService = require("./services/inventory/marketplace_stock_service");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -28,30 +21,10 @@ const localProductManagementRoutes = require("./routes/product_management/produc
 const productVariantRoutes = require("./routes/product_management/product/product_variants_routes");
 const productCategoryRoutes = require("./routes/product_management/category/category_route");
 const productSubCategoryRoutes = require("./routes/product_management/category/sub_category_route");
-const productAttributeRoutes = require("./routes/product_management/attribute/attribute_route");
-const productAttributeValueRoutes = require("./routes/product_management/attribute/attributeValue_route");
-const productRoutes = require("./routes/product_management/product/products_routes");
-const productPriceRoutes = require("./routes/product_management/product/product_prices_routes");
-const productAttributeValueProductRoutes = require("./routes/product_management/product/product_attribute_values_routes");
-const productLogRoutes = require("./routes/product_management/product/product_logs_routes");
-const productImageLogRoutes = require("./routes/product_management/product/product_image_logs_routes");
 
 const marketplaceRoutes = require("./routes/marketplace/marketplace_routes");
 const darazProductSyncRoutes = require("./routes/daraz/product_management/daraz_product_sync_route");
 const wooRoutes = require("./routes/woo/woo_route");
-const darazFinanceRoutes = require("./routes/daraz/daraz_finance/daraz_finance_route");
-const darazOrderRoutes = require("./routes/daraz/order_management/daraz_order_routes");
-const manualOrderRoutes = require("./routes/order_management/order_routes");
-const inventoryRoutes = require("./routes/inventory/inventory_routes");
-const financeRoutes = require("./routes/finance/finance_routes");
-const wooOrderRoutes = require("./routes/woo/woo_orders_routes");
-const darazOrderStatusRoutes = require("./routes/daraz/order_management/daraz_order_status_routes");
-const marketplaceSkuMappingRoutes = require("./routes/marketplace/sku_mapping_routes");
-const productInventoryRoutes = require("./routes/product_management/product/product_inventory_routes");
-const productImageRoutes = require("./routes/product_management/product/product_images_routes");
-const erpRoutes = require("./routes/erp/erp_routes");
-const phase4Routes = require("./routes/phase4/phase4_routes");
-
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -63,45 +36,16 @@ const {
   startDarazProductSyncJob,
 } = require("./jobs/daraz/product_management/daraz_product_sync_job");
 
-const {
-  startDarazOrderSyncJob,
-} = require("./jobs/daraz/daraz_orders/daraz_order_sync_job");
-
-const {
-  startWooProductSyncJob,
-} = require("./jobs/woo/product/woo_product_sync_job");
-
-const {
-  startWooOrderSyncJob,
-} = require("./jobs/woo/orders/woo_order_sync_job");
-
-const {
-  startStockPushJob,
-} = require("./jobs/inventory/stock_push_job");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
 app.set("trust proxy", 1);
 
-const defaultAllowedOrigins = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "https://system.teckvora.com",
-  "https://www.system.teckvora.com",
-];
-
-const allowedOrigins = Array.from(
-  new Set([
-    ...defaultAllowedOrigins,
-    ...String(process.env.CORS_ORIGIN || "")
-      .split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean),
-  ])
-);
+const allowedOrigins = String(process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(
   helmet({
@@ -126,10 +70,6 @@ app.use(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-// Audit all create/update/delete requests. req.user is attached later by protected routes,
-// but res.finish runs after route middleware, so user details are captured correctly.
-app.use(auditLogger);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
@@ -170,26 +110,6 @@ app.use("/api/access", accessRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
-// Product API compatibility mounts.
-// Old frontend pages use /api/product/*, while newer pages use /api/product-management/*.
-// Keep both path styles working so local product pages do not fail with 404.
-app.use("/api/product/categories", productCategoryRoutes);
-app.use("/api/product/category", productCategoryRoutes);
-app.use("/api/product/sub-categories", productSubCategoryRoutes);
-app.use("/api/product/sub_categories", productSubCategoryRoutes);
-app.use("/api/product/attributes", productAttributeRoutes);
-app.use("/api/product/attribute-values", productAttributeValueRoutes);
-app.use("/api/product/products", productRoutes);
-app.use("/api/product/product-prices", productPriceRoutes);
-app.use("/api/product/product-attribute-values", productAttributeValueProductRoutes);
-app.use("/api/product/product-logs", productLogRoutes);
-app.use("/api/product/product-image-logs", productImageLogRoutes);
-
-app.use("/api/product-management/categories", productCategoryRoutes);
-app.use("/api/product-management/sub-categories", productSubCategoryRoutes);
-app.use("/api/product-management/attributes", productAttributeRoutes);
-app.use("/api/product-management/attribute-values", productAttributeValueRoutes);
-
 app.use("/api/product-management/models", productModelRoutes);
 app.use("/api/product-management/colours", productColourRoutes);
 app.use("/api/product-management", localProductManagementRoutes);
@@ -199,96 +119,51 @@ app.use("/api/product/sub-categories", productSubCategoryRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
 app.use("/api/daraz-products", darazProductSyncRoutes);
 app.use("/api/marketplace/woo", wooRoutes);
-app.use("/api/marketplace/daraz/finance", darazFinanceRoutes);
-app.use("/api/daraz/orders", darazOrderRoutes);
-app.use("/api/orders", manualOrderRoutes);
-app.use("/api/inventory", inventoryRoutes);
-app.use("/api/finance", financeRoutes);
-app.use("/api/woo", wooOrderRoutes);
-app.use("/api/daraz/order-status", darazOrderStatusRoutes);
-// SKU mappings are stored in Product Management DB. Keep marketplace URL as legacy alias.
-app.use("/api/product/sku-mappings", marketplaceSkuMappingRoutes);
-app.use("/api/product-management/sku-mappings", marketplaceSkuMappingRoutes);
-app.use("/api/marketplace/sku-mappings", marketplaceSkuMappingRoutes);
-
-// Backward-compatible direct product API mounts used by current frontend files.
-app.use("/api/product/product-inventory", productInventoryRoutes);
-app.use("/api/product/product-images", productImageRoutes);
-app.use("/api/erp", erpRoutes);
-app.use("/api/phase4", phase4Routes);
-
 
 app.use(notFound);
 app.use(errorHandler);
 
 function startJob(name, starter) {
   try {
-    if (typeof starter !== "function") return;
+    if (typeof starter !== "function") {
+      console.warn(`[${name}]: Starter function missing.`);
+      return;
+    }
+
     starter();
+    console.log(`[${name}]: Started successfully.`);
   } catch (error) {
     console.error(`[${name}_ERROR]:`, error.message);
   }
 }
 
-
-async function getDbConnectionName(label, dbPool) {
-  try {
-    const [rows] = await dbPool.query("SELECT DATABASE() AS db_name");
-    return `${label}: ${rows?.[0]?.db_name || "not selected"}`;
-  } catch (error) {
-    return `${label}: not connected (${error.message})`;
-  }
-}
-
-async function printStartupSummary() {
-  const connections = await Promise.all([
-    getDbConnectionName("Auth DB", pool),
-    getDbConnectionName("Product DB", productManagementDb),
-    getDbConnectionName("Order DB", orderManagementDb),
-    getDbConnectionName("Marketplace DB", marketplaceManagementDb),
-    getDbConnectionName("Finance DB", financeManagementDb),
-  ]);
-
-  console.log("Database connected successfully.");
-  console.log(`Server running: http://localhost:${PORT}`);
-  console.log(`Connected backends: ${connections.join(" | ")}`);
-}
-
 async function syncPermissions() {
   try {
-    if (typeof accessModel.ensureAllUserPermissions === "function") {
-      await accessModel.ensureAllUserPermissions();
+    if (typeof accessModel.ensureAllUserPermissions !== "function") {
+      console.warn("[PERMISSION_SYNC]: ensureAllUserPermissions missing.");
+      return;
     }
+
+    await accessModel.ensureAllUserPermissions();
+    console.log("[PERMISSION_SYNC]: User page permissions synced successfully.");
   } catch (error) {
-    // Keep terminal clean. Permission sync errors are handled from access pages/logs.
+    console.error("[PERMISSION_SYNC_ERROR]:", error.message);
   }
 }
 
 async function startServer() {
-  await pool.query("SELECT 1");
-  await printStartupSummary();
-
-  if (typeof accessModel.ensureAccessSchema === "function") await accessModel.ensureAccessSchema();
-  await ensureAuditTable();
-  await ensureAutomationLogTables();
-  if (typeof stockAutomationService.ensureOperationalTables === "function") await stockAutomationService.ensureOperationalTables();
   await syncPermissions();
 
   app.listen(PORT, () => {
-    const jobsDisabled = String(process.env.DISABLE_JOBS || "false").toLowerCase() === "true";
-    const jobsExplicitlyEnabled = String(process.env.ENABLE_JOBS || "true").toLowerCase() === "true";
+    console.log(`Backend running: http://localhost:${PORT}`);
 
-    if (!jobsDisabled && jobsExplicitlyEnabled) {
-      startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
-      startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
-      startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
-      startJob("WOO_PRODUCT_SYNC_JOB", startWooProductSyncJob);
-      startJob("WOO_ORDER_SYNC_JOB", startWooOrderSyncJob);
-      startJob("STOCK_PUSH_JOB", startStockPushJob);
-      console.log("Background jobs enabled: tokens, Daraz products/orders, Woo products/orders, stock push.");
-    } else {
-      console.log("Background jobs disabled. Set ENABLE_JOBS=true or remove DISABLE_JOBS=true to enable auto sync.");
+    if (String(process.env.DISABLE_JOBS || "").toLowerCase() === "true") {
+      console.log("[JOBS]: Disabled by DISABLE_JOBS=true");
+      return;
     }
+
+    startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
+    startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
   });
 }
 

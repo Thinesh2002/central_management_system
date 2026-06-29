@@ -1,5 +1,5 @@
 import React from "react";
-import { Route } from "react-router-dom";
+import { Navigate, Route, useParams } from "react-router-dom";
 
 import Layout from "../../../components/Layout";
 import ProtectedRoute from "../../../config/ProtectedRoute";
@@ -15,11 +15,16 @@ function ProtectedWooProductPage({ children }) {
   );
 }
 
+function RedirectWooDetail() {
+  const { accountId, wooProductId } = useParams();
+  return <Navigate to={`/product/woo-products/${accountId}/${wooProductId}`} replace />;
+}
+
 export default function WooProductRoutes() {
   return (
     <>
       <Route
-        path="/woo-products"
+        path="/product/woo-products"
         element={
           <ProtectedWooProductPage>
             <WooProductDashboardPage />
@@ -28,13 +33,19 @@ export default function WooProductRoutes() {
       />
 
       <Route
-        path="/woo-products/:accountId/:wooProductId"
+        path="/product/woo-products/:accountId/:wooProductId"
         element={
           <ProtectedWooProductPage>
             <WooProductDetailPage />
           </ProtectedWooProductPage>
         }
       />
+
+      {/* Old Woo paths redirect to new Product Management section */}
+      <Route path="/woo-products" element={<Navigate to="/product/woo-products" replace />} />
+      <Route path="/woo-products/:accountId/:wooProductId" element={<RedirectWooDetail />} />
+      <Route path="/marketplace/woo-products" element={<Navigate to="/product/woo-products" replace />} />
+      <Route path="/marketplace/woo-products/:accountId/:wooProductId" element={<RedirectWooDetail />} />
     </>
   );
 }

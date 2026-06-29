@@ -12,7 +12,7 @@ import {
 import { Link } from "react-router-dom";
 import { wooProductApi } from "../../../config/sub_api/woo_api/woo_product_api";
 
-const DETAIL_BASE_PATH = "/woo-products";
+const DETAIL_BASE_PATH = "/product/woo-products";
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -385,6 +385,7 @@ export default function WooProductDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#070B14] px-4 py-4 text-slate-100 md:px-6">
+     
       {message && (
         <div className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200">
           {message}

@@ -1,4 +1,4 @@
-const db = require("../../../config/product_management_db/product_management_db");
+const db = require("../../../config/price_management_db/price_management_db");
 
 const TABLE_NAME = "product_prices";
 let tableMetaCache = null;

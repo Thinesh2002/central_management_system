@@ -1,4 +1,4 @@
-const db = require("../../../config/product_management_db/product_management_db");
+const db = require("../../../config/logs_management_db/logs_management_db");
 
 async function getAll({ product_id = "", variant_id = "", image_id = "", sku = "", action = "", page = 1, limit = 20 }) {
   page = Math.max(Number(page), 1);

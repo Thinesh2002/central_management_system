@@ -107,29 +107,6 @@ async function getProducts(credentials, query = {}) {
   };
 }
 
-async function getOrders(credentials, query = {}) {
-  const client = createWooClient(credentials);
-
-  const response = await client.get("/orders", {
-    params: {
-      page: query.page || 1,
-      per_page: query.per_page || 20,
-      status: query.status || undefined,
-      search: query.search || undefined,
-      after: query.after || undefined,
-      before: query.before || undefined,
-      orderby: query.orderby || "date",
-      order: query.order || "desc",
-    },
-  });
-
-  return {
-    data: response.data,
-    total: Number(response.headers["x-wp-total"] || 0),
-    total_pages: Number(response.headers["x-wp-totalpages"] || 0),
-  };
-}
-
 async function getCategories(credentials, query = {}) {
   const client = createWooClient(credentials);
 
@@ -150,45 +127,9 @@ async function getCategories(credentials, query = {}) {
   };
 }
 
-async function getProductVariations(credentials, productId, query = {}) {
-  const client = createWooClient(credentials);
-
-  const response = await client.get(`/products/${productId}/variations`, {
-    params: {
-      page: query.page || 1,
-      per_page: query.per_page || 100,
-      orderby: query.orderby || "date",
-      order: query.order || "desc",
-    },
-  });
-
-  return {
-    data: response.data,
-    total: Number(response.headers["x-wp-total"] || 0),
-    total_pages: Number(response.headers["x-wp-totalpages"] || 0),
-  };
-}
-
-async function updateProductStock(credentials, productId, quantity, variationId = null) {
-  const client = createWooClient(credentials);
-  const endpoint = variationId
-    ? `/products/${productId}/variations/${variationId}`
-    : `/products/${productId}`;
-
-  const response = await client.put(endpoint, {
-    manage_stock: true,
-    stock_quantity: Math.max(Number(quantity || 0), 0),
-  });
-
-  return response.data;
-}
-
 module.exports = {
   cleanStoreUrl,
   testConnection,
   getProducts,
-  getOrders,
   getCategories,
-  getProductVariations,
-  updateProductStock,
 };

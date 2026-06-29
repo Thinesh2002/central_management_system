@@ -10,6 +10,19 @@ import {
   getVariantSku,
 } from "../utils/localProductsTableHelpers";
 
+
+function getVariantOwnImage(variant = {}) {
+  return (
+    variant.main_image_url ||
+    variant.primary_image_url ||
+    variant.image_url ||
+    variant.variant_image_url ||
+    variant.product_image_url ||
+    variant.thumbnail_url ||
+    ""
+  );
+}
+
 function pickFirstValue(...values) {
   return values.find(
     (value) => value !== undefined && value !== null && String(value).trim() !== ""
@@ -207,7 +220,7 @@ export default function VariantTable({
               );
 
               const variantImage =
-                getMainImageFromRows(variantRows) || EMPTY_IMAGE;
+                getMainImageFromRows(variantRows) || getVariantOwnImage(variant) || EMPTY_IMAGE;
 
               const priceText = getPriceText({
                 ...product,

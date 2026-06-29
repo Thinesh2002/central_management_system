@@ -413,7 +413,7 @@ export default function DarazProductViewPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <Link
-                to="/daraz/products"
+                to="/product/daraz-products"
                 className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-950 text-slate-300 hover:border-yellow-500 hover:text-yellow-300"
               >
                 <ArrowLeft size={15} />
@@ -468,7 +468,7 @@ export default function DarazProductViewPage() {
                 {isInvalidId(darazProductId) && (
                   <button
                     type="button"
-                    onClick={() => navigate("/daraz/products")}
+                    onClick={() => navigate("/product/daraz-products")}
                     className="inline-flex h-8 items-center justify-center rounded-md bg-yellow-500 px-3 text-xs font-semibold text-slate-950 hover:bg-yellow-400"
                   >
                     Back to Products

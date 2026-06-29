@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ImagePlus, Loader2, Save, UploadCloud } from "lucide-react";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
+import { getStoredUser } from "../../../../config/auth";
 import {
   generateProductSku,
+  getCode,
   getErrorMessage,
   getName,
   makeSlug,
@@ -129,41 +131,16 @@ function getModelId(item = {}) {
   );
 }
 
-
-function getModelCategoryId(item = {}) {
-  const nestedCategory =
-    item.category && typeof item.category === "object"
-      ? item.category.id ?? item.category.category_id ?? item.category.value
-      : "";
-
-  return (
-    item.category_id ??
-    item.product_category_id ??
-    item.productCategoryId ??
-    item.categoryId ??
-    item.parent_category_id ??
-    item.parentCategoryId ??
-    nestedCategory ??
-    ""
-  );
+function getCurrentUserId() {
+  const user = getStoredUser?.();
+  return user?.id || user?.user_id || user?.user_uid || 1;
 }
 
-function getModelSubCategoryId(item = {}) {
-  const nestedSubCategory =
-    item.sub_category && typeof item.sub_category === "object"
-      ? item.sub_category.id ?? item.sub_category.sub_category_id ?? item.sub_category.value
-      : "";
-
-  return (
-    item.sub_category_id ??
-    item.subCategoryId ??
-    item.product_sub_category_id ??
-    item.productSubCategoryId ??
-    item.child_category_id ??
-    item.childCategoryId ??
-    nestedSubCategory ??
-    ""
-  );
+function formatMasterOption(item, type) {
+  const code = getCode(item, type);
+  const name = getName(item, type);
+  if (code && name) return `${code} - ${name}`;
+  return code || name || "Unnamed";
 }
 
 function extractCreatedProduct(response) {
@@ -184,7 +161,6 @@ export default function LocalProductAddPage() {
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [models, setModels] = useState([]);
-  const [pendingImages, setPendingImages] = useState([]);
 
   const [form, setForm] = useState({
     title: "",
@@ -201,8 +177,8 @@ export default function LocalProductAddPage() {
     cost_price: 0,
     sale_price: 0,
     currency: "LKR",
-    created_by: 1,
-    updated_by: 1,
+    created_by: getCurrentUserId(),
+    updated_by: getCurrentUserId(),
   });
 
   function updateField(name, value) {
@@ -262,34 +238,12 @@ export default function LocalProductAddPage() {
       (item) => String(getSubCategoryParentId(item) || "").trim() !== ""
     );
 
-    // If backend does not send category_id/parent_id with sub categories,
-    // do not hide the dropdown. Show all sub categories instead.
     if (!hasParentCategoryField) return subCategories;
 
     return subCategories.filter(
       (item) => String(getSubCategoryParentId(item)) === String(form.category_id)
     );
   }, [subCategories, form.category_id]);
-  const filteredModels = useMemo(() => {
-    if (!form.category_id) return [];
-
-    const hasCategoryField = models.some(
-      (item) => String(getModelCategoryId(item) || "").trim() !== ""
-    );
-
-    const hasSubCategoryField = models.some(
-      (item) => String(getModelSubCategoryId(item) || "").trim() !== ""
-    );
-
-    if (!hasCategoryField && !hasSubCategoryField) return models;
-
-    return models.filter((item) => {
-      const categoryMatches = !hasCategoryField || String(getModelCategoryId(item)) === String(form.category_id);
-      const subCategoryMatches = !form.sub_category_id || !hasSubCategoryField || String(getModelSubCategoryId(item)) === String(form.sub_category_id);
-      return categoryMatches && subCategoryMatches;
-    });
-  }, [models, form.category_id, form.sub_category_id]);
-
 
   useEffect(() => {
     if (!form.category_id || !form.sub_category_id || !form.model_id) return;
@@ -355,68 +309,6 @@ export default function LocalProductAddPage() {
     }));
   }
 
-  function addImageFiles(fileList = []) {
-    const nextFiles = Array.from(fileList || []).filter((file) => file && file.type?.startsWith("image/"));
-    if (!nextFiles.length) return;
-
-    setPendingImages((prev) => [
-      ...prev,
-      ...nextFiles.map((file) => ({
-        id: `${Date.now()}-${Math.random()}`,
-        type: "file",
-        file,
-        preview: URL.createObjectURL(file),
-        name: file.name,
-      })),
-    ]);
-  }
-
-  function addMediaUrl() {
-    const imageUrl = window.prompt("Paste existing image URL or /uploads path");
-    if (!imageUrl) return;
-    setPendingImages((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        type: "url",
-        image_url: imageUrl.trim(),
-        preview: imageUrl.trim(),
-        name: "Media center image",
-      },
-    ]);
-  }
-
-  function removePendingImage(id) {
-    setPendingImages((prev) => {
-      const image = prev.find((item) => item.id === id);
-      if (image?.preview?.startsWith("blob:")) URL.revokeObjectURL(image.preview);
-      return prev.filter((item) => item.id !== id);
-    });
-  }
-
-  async function uploadPendingImages(productId, sku) {
-    if (!pendingImages.length || !productId) return;
-
-    for (let index = 0; index < pendingImages.length; index += 1) {
-      const item = pendingImages[index];
-      const imageForm = new FormData();
-      imageForm.append("product_id", productId);
-      imageForm.append("sku", sku || form.sku);
-      imageForm.append("sort_order", String(index + 1));
-      imageForm.append("is_main", index === 0 ? "1" : "0");
-
-      if (item.type === "file" && item.file) {
-        imageForm.append("image", item.file);
-      } else if (item.type === "url" && item.image_url) {
-        imageForm.append("image_url", item.image_url);
-        imageForm.append("url", item.image_url);
-        imageForm.append("image_path", item.image_url);
-      }
-
-      await localProductsApi.uploadImage(imageForm);
-    }
-  }
-
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -430,6 +322,11 @@ export default function LocalProductAddPage() {
       return;
     }
 
+    if (!form.sku.trim()) {
+      alert("SKU is required.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -437,6 +334,8 @@ export default function LocalProductAddPage() {
         ...form,
         slug: form.slug || makeSlug(`${form.title}-${form.sku}`),
         has_variants: Number(form.has_variants),
+        created_by: getCurrentUserId(),
+        updated_by: getCurrentUserId(),
         main_price: Number(form.main_price || 0),
         cost_price: Number(form.cost_price || 0),
         sale_price: Number(form.sale_price || 0),
@@ -450,12 +349,6 @@ export default function LocalProductAddPage() {
         alert("Product created, but product ID was not returned. Please check dashboard.");
         navigate("/product/local-products");
         return;
-      }
-
-      try {
-        await uploadPendingImages(productId, payload.sku);
-      } catch (imageError) {
-        alert(`Product created, but image upload failed: ${getErrorMessage(imageError, "Image upload failed.")}`);
       }
 
       navigate(`/product/local-products/edit/${productId}/price-inventory`);
@@ -522,7 +415,6 @@ export default function LocalProductAddPage() {
                     ...prev,
                     category_id: value,
                     sub_category_id: "",
-                    model_id: "",
                     sku: "",
                     slug: "",
                   }))
@@ -536,7 +428,7 @@ export default function LocalProductAddPage() {
 
                   return (
                     <option key={categoryId || `category-${index}`} value={categoryId}>
-                      {getName(item)}
+                      {formatMasterOption(item, "category")}
                     </option>
                   );
                 })}
@@ -549,7 +441,6 @@ export default function LocalProductAddPage() {
                   setForm((prev) => ({
                     ...prev,
                     sub_category_id: value,
-                    model_id: "",
                     sku: "",
                     slug: "",
                   }))
@@ -566,7 +457,7 @@ export default function LocalProductAddPage() {
                       key={subCategoryId || `sub-category-${index}`}
                       value={subCategoryId}
                     >
-                      {getName(item)}
+                      {formatMasterOption(item, "subCategory")}
                     </option>
                   );
                 })}
@@ -584,19 +475,28 @@ export default function LocalProductAddPage() {
                   }))
                 }
                 required
-                disabled={!form.category_id || mastersLoading}
+                disabled={mastersLoading}
               >
                 <option value="">Select model</option>
-                {filteredModels.map((item, index) => {
+                {models.map((item, index) => {
                   const modelId = getModelId(item);
 
                   return (
                     <option key={modelId || `model-${index}`} value={modelId}>
-                      {getName(item)}
+                      {formatMasterOption(item, "model")}
                     </option>
                   );
                 })}
               </SelectField>
+
+              <TextField
+                label="SKU"
+                value={form.sku}
+                onChange={handleSkuChange}
+                required
+                placeholder="SKU"
+                hint="Auto"
+              />
 
               <SelectField
                 label="Product Type"
@@ -606,15 +506,6 @@ export default function LocalProductAddPage() {
                 <option value="single">Single Product</option>
                 <option value="variable">Variant Product</option>
               </SelectField>
-
-              <TextField
-                label="Product SKU"
-                value={form.sku}
-                onChange={handleSkuChange}
-                required
-                placeholder="Auto generated after category, sub category and model"
-                hint="Auto"
-              />
 
               <TextField
                 label="Slug"
@@ -660,64 +551,6 @@ export default function LocalProductAddPage() {
                 rows={5}
                 placeholder="Full product description..."
               />
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-slate-800 bg-[#070b16] p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-white">Product Images</p>
-                  <p className="mt-1 text-xs text-slate-500">Hover image box to upload image or add existing media URL.</p>
-                </div>
-                <span className="rounded-full border border-slate-700 px-3 py-1 text-[11px] font-bold text-slate-400">
-                  {pendingImages.length} selected
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {[...pendingImages, { id: "add-box", type: "add" }].slice(0, 10).map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-700 bg-[#0b1220]"
-                  >
-                    {item.type === "add" ? (
-                      <div className="text-center text-slate-500">
-                        <ImagePlus className="mx-auto mb-2" size={24} />
-                        <p className="text-xs font-bold">Add Image</p>
-                      </div>
-                    ) : (
-                      <img src={item.preview} alt="" className="h-full w-full object-contain bg-white" />
-                    )}
-
-                    {item.type !== "add" && (
-                      <button
-                        type="button"
-                        onClick={() => removePendingImage(item.id)}
-                        className="absolute right-2 top-2 hidden rounded-full bg-red-500 px-2 py-1 text-[10px] font-bold text-white group-hover:block"
-                      >
-                        Remove
-                      </button>
-                    )}
-
-                    <div className="absolute inset-x-2 bottom-2 hidden overflow-hidden rounded-xl border border-slate-700 bg-slate-950/95 shadow-xl group-hover:block">
-                      <label className="flex cursor-pointer items-center gap-2 px-3 py-2 text-[11px] font-bold text-slate-200 hover:bg-slate-800">
-                        <UploadCloud size={13} /> Upload Image
-                        <input type="file" accept="image/*" className="hidden" multiple onChange={(event) => addImageFiles(event.target.files)} />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={addMediaUrl}
-                        className="flex w-full items-center gap-2 border-t border-slate-800 px-3 py-2 text-left text-[11px] font-bold text-slate-200 hover:bg-slate-800"
-                      >
-                        <ImagePlus size={13} /> Media Center / Existing URL
-                      </button>
-                    </div>
-
-                    {index === 0 && item.type !== "add" && (
-                      <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-2 py-1 text-[10px] font-black text-white">Main</span>
-                    )}
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 

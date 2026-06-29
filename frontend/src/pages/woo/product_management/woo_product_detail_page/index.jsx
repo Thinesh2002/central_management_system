@@ -171,7 +171,7 @@ export default function WooProductDetailPage() {
     return (
       <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
         <Link
-          to="/woo-products"
+          to="/product/woo-products"
           className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-yellow-300"
         >
           <ArrowLeft size={16} />
@@ -189,7 +189,7 @@ export default function WooProductDetailPage() {
     <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
       <div className="mb-5">
         <Link
-          to="/marketplace/woo-products"
+          to="/product/woo-products"
           className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-yellow-300"
         >
           <ArrowLeft size={16} />

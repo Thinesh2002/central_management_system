@@ -47,7 +47,7 @@ export default function MarketplaceAccountDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [checkingToken, setCheckingToken] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncType, setSyncType] = useState("orders");
+  const [syncType, setSyncType] = useState("products");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -288,14 +288,11 @@ export default function MarketplaceAccountDetailsPage() {
               onChange={(e) => setSyncType(e.target.value)}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100"
             >
-              <option value="orders">Orders</option>
               <option value="products">Products</option>
               <option value="categories">Categories</option>
-              <option value="brands">Brands</option>
               <option value="inventory">Inventory</option>
               <option value="price">Price</option>
               <option value="images">Images</option>
-              <option value="finance">Finance</option>
               <option value="full_sync">Full Sync</option>
             </select>
 

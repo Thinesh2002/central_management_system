@@ -122,11 +122,11 @@ function normalizePriceBody(body = {}) {
   delete payload.buyingPrice;
   delete payload.purchasePrice;
 
-  // Removed / unwanted old columns
+  // Removed / unwanted old relation columns only.
+  // Do not remove currency / Daraz / Woo / product selling fields because price dashboard uses them.
   delete payload.product_id;
   delete payload.variant_id;
   delete payload.price_type;
-  delete payload.currency;
   delete payload.regular_price;
   delete payload.start_date;
   delete payload.end_date;
@@ -135,15 +135,29 @@ function normalizePriceBody(body = {}) {
 }
 
 function hasRealUpdateFields(payload = {}) {
-  return (
-    payload.sale_price !== undefined ||
-    payload.cost_price !== undefined ||
-    payload.sku !== undefined ||
-    payload.variant_sku !== undefined ||
-    payload.product_sku !== undefined ||
-    payload.item_sku !== undefined ||
-    payload.local_sku !== undefined
-  );
+  const allowedFields = [
+    "sale_price",
+    "cost_price",
+    "local_selling_price",
+    "daraz_price",
+    "woo_price",
+    "profit_percent",
+    "daraz_fee_percent",
+    "advertising_percent",
+    "packing_percent",
+    "currency",
+    "status",
+    "product_name",
+    "image_url",
+    "colour_name",
+    "sku",
+    "variant_sku",
+    "product_sku",
+    "item_sku",
+    "local_sku",
+  ];
+
+  return allowedFields.some((field) => payload[field] !== undefined);
 }
 
 function compactLogData(record) {
@@ -305,7 +319,7 @@ const update = asyncHandler(async (req, res) => {
 
   if (!hasRealUpdateFields(payload)) {
     throw badRequestError(
-      "No valid price fields supplied. Send sale_price or cost_price."
+      "No valid price fields supplied. Send cost price, product selling price, Daraz price or Woo price."
     );
   }
 
@@ -369,7 +383,7 @@ const updateBySku = asyncHandler(async (req, res) => {
 
   if (!hasRealUpdateFields(payload)) {
     throw badRequestError(
-      "No valid price fields supplied. Send sale_price or cost_price."
+      "No valid price fields supplied. Send cost price, product selling price, Daraz price or Woo price."
     );
   }
 

@@ -905,12 +905,12 @@ export default function DarazDashboardPage() {
     setOpenActionKey(null);
 
     if (row.id) {
-      navigate(`/daraz-products/view/${row.id}`);
+      navigate(`/product/daraz-products/view/${row.id}`);
       return;
     }
 
     if (row.accountId && row.listingId) {
-      navigate(`/daraz-products/item/${row.accountId}/${row.listingId}`);
+      navigate(`/product/daraz-products/item/${row.accountId}/${row.listingId}`);
       return;
     }
 
@@ -926,7 +926,7 @@ export default function DarazDashboardPage() {
       return;
     }
 
-    navigate(`/daraz-products/edit/${id}`);
+    navigate(`/product/daraz-products/edit/${id}`);
   }
 
   function openDelete(row) {
@@ -938,7 +938,7 @@ export default function DarazDashboardPage() {
       return;
     }
 
-    navigate(`/daraz-products/delete/${id}`);
+    navigate(`/product/daraz-products/delete/${id}`);
   }
 
   function goToPage(nextPage) {
@@ -1047,6 +1047,7 @@ export default function DarazDashboardPage() {
   return (
     <div className="w-full overflow-hidden text-[13px] text-zinc-200">
       <div className="space-y-3">
+
         <div className="rounded-md border border-zinc-700/60 bg-[#1c2838] shadow-sm shadow-black/20">
           <div className="flex items-center justify-between border-b border-zinc-700/60 px-3 py-2">
             <div className="flex items-center gap-2">

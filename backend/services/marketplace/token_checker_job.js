@@ -127,7 +127,14 @@ async function checkMarketplaceTokens() {
 
       await safeUpdateAccountStatus(account.id, "active", "connected", null);
 
-      // Keep terminal clean. Full per-account details are saved in marketplace health/log tables.
+      console.log("[MARKETPLACE_TOKEN_JOB_ACCOUNT_SUCCESS]:", {
+        account_id: account.id,
+        account_code: account.account_code || null,
+        token_status: tokenStatus.token_status,
+        message: result?.refreshed
+          ? "Token refreshed successfully."
+          : "Token checked successfully.",
+      });
     } catch (error) {
       failed += 1;
 
@@ -178,9 +185,11 @@ function startMarketplaceTokenCheckerJob() {
     isRunning = true;
 
     try {
+      console.log("[MARKETPLACE_TOKEN_JOB]: Checking Daraz tokens...");
+
       const summary = await checkMarketplaceTokens();
 
-      console.log(`[MARKETPLACE_TOKEN_JOB] Success: ${summary.valid + summary.refreshed} | Failed: ${summary.failed} | Checked: ${summary.checked} | Skipped: ${summary.skipped}`);
+      console.log("[MARKETPLACE_TOKEN_JOB_SUCCESS]:", summary);
     } catch (error) {
       console.error("[MARKETPLACE_TOKEN_JOB_ERROR]:", {
         message: error?.message || "Marketplace token checker failed.",

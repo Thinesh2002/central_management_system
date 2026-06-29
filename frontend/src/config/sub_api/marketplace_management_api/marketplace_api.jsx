@@ -50,9 +50,6 @@ export const marketplaceApi = {
   getWooProducts: (accountId, params = {}) =>
     api.get(`${BASE_PATH}/woo/accounts/${accountId}/products`, { params }),
 
-  getWooOrders: (accountId, params = {}) =>
-    api.get(`${BASE_PATH}/woo/accounts/${accountId}/orders`, { params }),
-
   getWooCategories: (accountId, params = {}) =>
     api.get(`${BASE_PATH}/woo/accounts/${accountId}/categories`, { params }),
 };
