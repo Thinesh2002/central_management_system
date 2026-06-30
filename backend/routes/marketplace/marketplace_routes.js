@@ -5,26 +5,18 @@ const syncController = require("../../controllers/marketplace/sync_controller");
 
 const router = express.Router();
 
-/**
- * Accounts
- */
 router.get("/accounts", accountController.listMarketplaceAccounts);
 router.post("/accounts", accountController.createMarketplaceAccount);
 
-/**
- * Token check
- */
-router.get("/accounts/:accountId/check-token", accountController.checkSingleAccountToken);
+router.get(
+  "/accounts/:accountId/check-token",
+  accountController.checkSingleAccountToken
+);
+
 router.post("/tokens/check-all-daraz", accountController.checkAllDarazTokens);
 
-/**
- * Manual sync
- */
 router.post("/accounts/:accountId/manual-sync", syncController.manualSync);
 
-/**
- * Daraz OAuth / Reauthorization
- */
 router.get(
   "/accounts/:accountId/daraz/reauth-url",
   accountController.getDarazReauthUrl
@@ -32,6 +24,11 @@ router.get(
 
 router.get(
   "/daraz/oauth/callback",
+  accountController.handleDarazOAuthCallback
+);
+
+router.get(
+  "/daraz/tokens/callback",
   accountController.handleDarazOAuthCallback
 );
 

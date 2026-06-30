@@ -1,27 +1,41 @@
 const syncService = require("../../services/marketplace/sync_service");
 
+const allowedSyncTypes = [
+  "products",
+  "inventory",
+  "price",
+  "images",
+  "categories",
+  "full_sync",
+];
+
 async function manualSync(req, res) {
   try {
-    const { accountId } = req.params;
-    const { sync_type } = req.body;
+    const accountId =
+      req.params.accountId ||
+      req.params.account_id ||
+      req.body?.account_id ||
+      req.query?.account_id;
 
-    if (!sync_type) {
+    const syncType = req.body?.sync_type || req.query?.sync_type;
+
+    if (!accountId) {
       return res.status(400).json({
         success: false,
-        message: "sync_type is required. Example: products, categories, inventory, price, images",
+        message: "account_id is required.",
       });
     }
 
-    const allowedSyncTypes = [
-      "products",
-      "inventory",
-      "price",
-      "images",
-      "categories",
-      "full_sync",
-    ];
+    if (!syncType) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "sync_type is required. Example: products, categories, inventory, price, images, full_sync",
+        allowed_sync_types: allowedSyncTypes,
+      });
+    }
 
-    if (!allowedSyncTypes.includes(sync_type)) {
+    if (!allowedSyncTypes.includes(syncType)) {
       return res.status(400).json({
         success: false,
         message: "Invalid sync_type.",
@@ -31,7 +45,7 @@ async function manualSync(req, res) {
 
     const result = await syncService.manualSyncAccount({
       accountId,
-      syncType: sync_type,
+      syncType,
       userId: req.user?.id || null,
     });
 

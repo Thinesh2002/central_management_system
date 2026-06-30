@@ -64,6 +64,51 @@ async function getAccountByIdSafe(accountId) {
   );
 }
 
+async function getAllAccountsSafe() {
+  if (typeof accountModel.getAllAccounts === "function") {
+    return accountModel.getAllAccounts({
+      platform_code: "DARAZ",
+    });
+  }
+
+  if (typeof accountModel.listAccounts === "function") {
+    return accountModel.listAccounts({
+      platform_code: "DARAZ",
+    });
+  }
+
+  throw createServiceError(
+    "account_model.js missing account list function. Need getAllAccounts().",
+    500,
+    "ACCOUNT_LIST_FUNCTION_MISSING"
+  );
+}
+
+async function getAccountByCodeSafe(accountCode) {
+  const code = String(accountCode || "").trim();
+
+  if (!code) return null;
+
+  if (typeof accountModel.getAccountByCode === "function") {
+    return accountModel.getAccountByCode(code);
+  }
+
+  if (typeof accountModel.findByAccountCode === "function") {
+    return accountModel.findByAccountCode(code);
+  }
+
+  const accounts = await getAllAccountsSafe();
+
+  return (
+    accounts.find((account) => {
+      const platformCode = String(account.platform_code || "").toUpperCase();
+      const currentCode = String(account.account_code || "").trim();
+
+      return platformCode === "DARAZ" && currentCode === code;
+    }) || null
+  );
+}
+
 async function getCredentialByAccountIdSafe(accountId) {
   if (typeof credentialModel.getDecryptedCredentials === "function") {
     return credentialModel.getDecryptedCredentials(accountId);
@@ -245,7 +290,41 @@ async function buildDarazReauthUrl(accountId) {
   }
 }
 
-async function handleDarazOAuthCallback({ code, state }) {
+async function resolveDarazCallbackAccount({ state, account_id, account_code }) {
+  let accountId = null;
+
+  if (state) {
+    let stateData;
+
+    try {
+      stateData = decodeState(state);
+    } catch (error) {
+      throw createServiceError("Invalid OAuth state.", 400, "INVALID_OAUTH_STATE");
+    }
+
+    accountId = stateData.account_id || null;
+  }
+
+  if (!accountId && account_id) {
+    accountId = account_id;
+  }
+
+  if (accountId) {
+    return getAccountByIdSafe(accountId);
+  }
+
+  if (account_code) {
+    return getAccountByCodeSafe(account_code);
+  }
+
+  throw createServiceError(
+    "Daraz OAuth state missing. Send state or account_id/account_code.",
+    400,
+    "DARAZ_OAUTH_ACCOUNT_MISSING"
+  );
+}
+
+async function handleDarazOAuthCallback({ code, state, account_id, account_code }) {
   let account = null;
 
   try {
@@ -257,33 +336,11 @@ async function handleDarazOAuthCallback({ code, state }) {
       );
     }
 
-    if (!state) {
-      throw createServiceError(
-        "Daraz OAuth state missing.",
-        400,
-        "DARAZ_OAUTH_STATE_MISSING"
-      );
-    }
-
-    let stateData;
-
-    try {
-      stateData = decodeState(state);
-    } catch (error) {
-      throw createServiceError("Invalid OAuth state.", 400, "INVALID_OAUTH_STATE");
-    }
-
-    const accountId = stateData.account_id;
-
-    if (!accountId) {
-      throw createServiceError(
-        "OAuth state missing account_id.",
-        400,
-        "OAUTH_ACCOUNT_ID_MISSING"
-      );
-    }
-
-    account = await getAccountByIdSafe(accountId);
+    account = await resolveDarazCallbackAccount({
+      state,
+      account_id,
+      account_code,
+    });
 
     if (!account) {
       throw createServiceError(
@@ -301,7 +358,7 @@ async function handleDarazOAuthCallback({ code, state }) {
       );
     }
 
-    const credentials = await getCredentialByAccountIdSafe(accountId);
+    const credentials = await getCredentialByAccountIdSafe(account.id);
 
     const appKey = getAppKey(credentials);
     const appSecret = getAppSecret(credentials);
@@ -393,6 +450,7 @@ async function handleDarazOAuthCallback({ code, state }) {
     return {
       success: true,
       message: "Daraz account reauthorized successfully.",
+      id: account.id,
       account: {
         id: account.id,
         account_uid: account.account_uid || null,

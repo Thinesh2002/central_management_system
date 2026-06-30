@@ -38,14 +38,12 @@ async function createMarketplaceAccount(req, res) {
       store_url,
       api_base_url,
       is_sandbox,
-
       app_key,
       app_secret,
       access_token,
       refresh_token,
       access_token_expires_at,
       refresh_token_expires_at,
-
       consumer_key,
       consumer_secret,
     } = body;
@@ -127,12 +125,13 @@ async function createMarketplaceAccount(req, res) {
         credential_type: "woocommerce_keys",
         consumer_key: cleanValue(consumer_key),
         consumer_secret: cleanValue(consumer_secret),
-        token_status: "valid",
+        token_status: consumer_key && consumer_secret ? "valid" : "not_created",
       });
 
       await accountModel.upsertAccountHealth(accountId, normalizedPlatform, {
-        connection_status: consumer_key && consumer_secret ? "connected" : "not_connected",
-        token_status: "valid",
+        connection_status:
+          consumer_key && consumer_secret ? "connected" : "not_connected",
+        token_status: consumer_key && consumer_secret ? "valid" : "not_created",
         last_error: null,
       });
     }
@@ -276,11 +275,20 @@ async function getDarazReauthUrl(req, res) {
 
 async function handleDarazOAuthCallback(req, res) {
   try {
-    const { code, state } = req.query;
+    const { code, state, account_id, account_code } = req.query;
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Daraz authorization code is required.",
+      });
+    }
 
     const account = await darazOAuthService.handleDarazOAuthCallback({
       code,
       state,
+      account_id,
+      account_code,
     });
 
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -291,7 +299,7 @@ async function handleDarazOAuthCallback(req, res) {
   } catch (error) {
     console.error("[DARAZ_OAUTH_CALLBACK_ERROR]:", error);
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendUrl = process.env.FRONTEND_URL;
     const message = encodeURIComponent(
       error.message || "Daraz reauthorization failed."
     );
