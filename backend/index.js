@@ -23,6 +23,8 @@ const productCategoryRoutes = require("./routes/product_management/category/cate
 const productSubCategoryRoutes = require("./routes/product_management/category/sub_category_route");
 
 const marketplaceRoutes = require("./routes/marketplace/marketplace_routes");
+const accountController = require("./controllers/marketplace/account_controller");
+
 const darazProductSyncRoutes = require("./routes/daraz/product_management/daraz_product_sync_route");
 const wooRoutes = require("./routes/woo/woo_route");
 
@@ -36,13 +38,13 @@ const {
   startDarazProductSyncJob,
 } = require("./jobs/daraz/product_management/daraz_product_sync_job");
 
-
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
 app.set("trust proxy", 1);
 
-const normalizeOrigin = (origin = "") => String(origin).trim().replace(/\/$/, "");
+const normalizeOrigin = (origin = "") =>
+  String(origin).trim().replace(/\/$/, "");
 
 const defaultAllowedOrigins = [
   "http://localhost:5173",
@@ -84,8 +86,12 @@ app.use(
       return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+
+app.options(/.*/, cors());
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -135,7 +141,19 @@ app.use("/api/product-management", localProductManagementRoutes);
 app.use("/api/product/product-variants", productVariantRoutes);
 app.use("/api/product/categories", productCategoryRoutes);
 app.use("/api/product/sub-categories", productSubCategoryRoutes);
+
 app.use("/api/marketplace", marketplaceRoutes);
+
+app.get(
+  "/api/daraz/tokens/callback",
+  accountController.handleDarazOAuthCallback
+);
+
+app.get(
+  "/api/daraz/oauth/callback",
+  accountController.handleDarazOAuthCallback
+);
+
 app.use("/api/daraz-products", darazProductSyncRoutes);
 app.use("/api/marketplace/woo", wooRoutes);
 

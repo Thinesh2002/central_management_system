@@ -36,13 +36,19 @@ function cleanStatus(value) {
   return String(value || "unknown").replaceAll("_", " ");
 }
 
+function normalizeStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function accountNeedsDarazReauth(account) {
-  if (account?.platform_code !== "DARAZ") return false;
+  if (String(account?.platform_code || "").toUpperCase() !== "DARAZ") {
+    return false;
+  }
 
   const values = [
-    account.status,
-    account.connection_status,
-    account.token_status,
+    normalizeStatus(account.status),
+    normalizeStatus(account.connection_status),
+    normalizeStatus(account.token_status),
   ];
 
   return values.some((value) =>
@@ -51,8 +57,51 @@ function accountNeedsDarazReauth(account) {
       "token_expired",
       "refresh_failed",
       "expired",
+      "connection_failed",
+      "invalid",
+      "not_created",
+      "not_connected",
+      "error",
     ].includes(value)
   );
+}
+
+function extractDarazAuthUrl(res) {
+  const payload = res?.data;
+
+  const candidates = [
+    payload?.authorization_url,
+    payload?.auth_url,
+    payload?.url,
+    payload?.data?.authorization_url,
+    payload?.data?.auth_url,
+    payload?.data?.url,
+    payload?.result?.authorization_url,
+    payload?.result?.auth_url,
+    payload?.result?.url,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+
+    if (candidate && typeof candidate === "object") {
+      const nested =
+        candidate.authorization_url ||
+        candidate.auth_url ||
+        candidate.url ||
+        candidate.data?.authorization_url ||
+        candidate.data?.auth_url ||
+        candidate.data?.url;
+
+      if (typeof nested === "string" && nested.trim()) {
+        return nested.trim();
+      }
+    }
+  }
+
+  return "";
 }
 
 function StatusBadge({ value }) {
@@ -71,9 +120,11 @@ function StatusBadge({ value }) {
     expired: "border-orange-400/30 bg-orange-400/10 text-orange-300",
     paused: "border-yellow-400/30 bg-yellow-400/10 text-yellow-300",
     valid: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+    invalid: "border-red-400/30 bg-red-400/10 text-red-300",
     refresh_failed: "border-red-400/30 bg-red-400/10 text-red-300",
     not_created: "border-slate-500/30 bg-slate-500/10 text-slate-300",
     not_connected: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+    error: "border-red-400/30 bg-red-400/10 text-red-300",
     unknown: "border-slate-500/30 bg-slate-500/10 text-slate-300",
   };
 
@@ -197,10 +248,20 @@ export default function MarketplaceAccountsPage() {
       }
 
       const res = await marketplaceApi.getDarazReauthUrl(accountId);
-      const authUrl = res?.data?.auth_url;
+      const authUrl = extractDarazAuthUrl(res);
 
       if (!authUrl) {
-        throw new Error("Daraz authorization URL not received from backend.");
+        console.error("Invalid Daraz auth URL response:", res?.data);
+
+        throw new Error(
+          "Daraz authorization URL invalid. Backend must return auth_url or authorization_url as string."
+        );
+      }
+
+      if (!authUrl.startsWith("http")) {
+        console.error("Invalid Daraz auth URL:", authUrl);
+
+        throw new Error("Daraz authorization URL is not valid.");
       }
 
       window.location.href = authUrl;
@@ -243,21 +304,38 @@ export default function MarketplaceAccountsPage() {
   const stats = useMemo(() => {
     const active = accounts.filter((item) => item.status === "active").length;
 
-    const tokenIssues = accounts.filter((item) =>
-      [
-        "token_expired",
-        "reauthorization_required",
-        "connection_failed",
-        "refresh_failed",
-      ].includes(item.status || item.token_status || item.connection_status)
-    ).length;
+    const tokenIssues = accounts.filter((item) => {
+      const values = [
+        normalizeStatus(item.status),
+        normalizeStatus(item.token_status),
+        normalizeStatus(item.connection_status),
+      ];
+
+      return values.some((value) =>
+        [
+          "token_expired",
+          "reauthorization_required",
+          "connection_failed",
+          "refresh_failed",
+          "expired",
+          "invalid",
+          "error",
+        ].includes(value)
+      );
+    }).length;
 
     return {
       total: accounts.length,
       active,
       tokenIssues,
-      daraz: accounts.filter((item) => item.platform_code === "DARAZ").length,
-      woo: accounts.filter((item) => item.platform_code === "WOO").length,
+      daraz: accounts.filter(
+        (item) => String(item.platform_code || "").toUpperCase() === "DARAZ"
+      ).length,
+      woo: accounts.filter((item) =>
+        ["WOO", "WOOCOMMERCE"].includes(
+          String(item.platform_code || "").toUpperCase()
+        )
+      ).length,
     };
   }, [accounts]);
 
@@ -329,19 +407,23 @@ export default function MarketplaceAccountsPage() {
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard title="Total Accounts" value={stats.total} icon={Database} />
+
         <StatCard
           title="Active"
           value={stats.active}
           icon={CheckCircle2}
           tone="green"
         />
+
         <StatCard
           title="Token Issues"
           value={stats.tokenIssues}
           icon={XCircle}
           tone="red"
         />
+
         <StatCard title="Daraz" value={stats.daraz} icon={Store} tone="yellow" />
+
         <StatCard title="Woo" value={stats.woo} icon={Store} />
       </div>
 
@@ -416,89 +498,97 @@ export default function MarketplaceAccountsPage() {
               </thead>
 
               <tbody className="divide-y divide-white/10">
-                {filteredAccounts.map((account) => (
-                  <tr
-                    key={account.id || account.account_uid}
-                    className="transition hover:bg-white/[0.03]"
-                  >
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-white">
-                        {account.account_name || "Unnamed Account"}
-                      </div>
+                {filteredAccounts.map((account) => {
+                  const accountId = account.id || account.account_id;
 
-                      <div className="mt-0.5 font-mono text-xs text-yellow-200/80">
-                        {account.account_uid || "-"}
-                      </div>
-
-                      {account.seller_email && (
-                        <div className="mt-0.5 text-xs text-slate-500">
-                          {account.seller_email}
+                  return (
+                    <tr
+                      key={accountId || account.account_uid}
+                      className="transition hover:bg-white/[0.03]"
+                    >
+                      <td className="px-4 py-4">
+                        <div className="font-medium text-white">
+                          {account.account_name || "Unnamed Account"}
                         </div>
-                      )}
-                    </td>
 
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-slate-200">
-                        {account.platform_name || account.platform_code || "-"}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {account.platform_code || "-"}
-                      </div>
-                    </td>
+                        <div className="mt-0.5 font-mono text-xs text-yellow-200/80">
+                          {account.account_uid || account.account_code || "-"}
+                        </div>
 
-                    <td className="px-4 py-4 text-slate-300">
-                      {account.country_code || "-"}
-                    </td>
-
-                    <td className="px-4 py-4">
-                      <StatusBadge value={account.status} />
-                    </td>
-
-                    <td className="px-4 py-4">
-                      <StatusBadge value={account.connection_status} />
-                    </td>
-
-                    <td className="px-4 py-4">
-                      <StatusBadge
-                        value={account.token_status || "not_created"}
-                      />
-                    </td>
-
-                    <td className="px-4 py-4 text-slate-400">
-                      {account.last_sync_at
-                        ? new Date(account.last_sync_at).toLocaleString()
-                        : "-"}
-                    </td>
-
-                    <td className="px-4 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        {accountNeedsDarazReauth(account) && (
-                          <button
-                            type="button"
-                            onClick={() => handleDarazReconnect(account.id)}
-                            disabled={reauthAccountId === account.id}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-yellow-400 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {reauthAccountId === account.id ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                              <ShieldCheck size={14} />
-                            )}
-                            Reconnect
-                          </button>
+                        {account.seller_email && (
+                          <div className="mt-0.5 text-xs text-slate-500">
+                            {account.seller_email}
+                          </div>
                         )}
+                      </td>
 
-                        <Link
-                          to={`/marketplace/accounts/${account.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
-                        >
-                          <Eye size={14} />
-                          View
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-4">
+                        <div className="font-medium text-slate-200">
+                          {account.platform_name || account.platform_code || "-"}
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                          {account.platform_code || "-"}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 text-slate-300">
+                        {account.country_code || "-"}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <StatusBadge value={account.status} />
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <StatusBadge value={account.connection_status} />
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <StatusBadge
+                          value={account.token_status || "not_created"}
+                        />
+                      </td>
+
+                      <td className="px-4 py-4 text-slate-400">
+                        {account.last_sync_at
+                          ? new Date(account.last_sync_at).toLocaleString()
+                          : "-"}
+                      </td>
+
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {String(account.platform_code || "").toUpperCase() ===
+                            "DARAZ" && (
+                            <button
+                              type="button"
+                              onClick={() => handleDarazReconnect(accountId)}
+                              disabled={reauthAccountId === accountId}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-yellow-400 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {reauthAccountId === accountId ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <ShieldCheck size={14} />
+                              )}
+                              {accountNeedsDarazReauth(account)
+                                ? "Reconnect"
+                                : "Connect"}
+                            </button>
+                          )}
+
+                          <Link
+                            to={`/marketplace/accounts/${accountId}`}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
+                          >
+                            <Eye size={14} />
+                            View
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -508,10 +598,11 @@ export default function MarketplaceAccountsPage() {
       <div className="mt-5 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm text-yellow-100/80">
         <div className="flex gap-3">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-yellow-300" />
+
           <p>
             Backend token checker runs every 15 minutes. If Daraz token becomes
-            expired or reauthorization required, use the Reconnect button to
-            complete seller authorization again.
+            expired or reauthorization required, use the Connect/Reconnect
+            button to complete seller authorization again.
           </p>
         </div>
       </div>
