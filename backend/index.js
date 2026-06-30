@@ -42,9 +42,26 @@ const PORT = Number(process.env.PORT || 5000);
 
 app.set("trust proxy", 1);
 
-const allowedOrigins = String(process.env.CORS_ORIGIN || "")
-  .split(",")
-  .map((origin) => origin.trim())
+const normalizeOrigin = (origin = "") => String(origin).trim().replace(/\/$/, "");
+
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://system.teckvora.com",
+  "https://www.system.teckvora.com",
+  "https://backend.teckvora.com",
+];
+
+const allowedOrigins = [
+  ...defaultAllowedOrigins,
+  ...String(process.env.CORS_ORIGIN || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+]
+  .map(normalizeOrigin)
   .filter(Boolean);
 
 app.use(
@@ -58,7 +75,9 @@ app.use(
     origin(origin, callback) {
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      const requestOrigin = normalizeOrigin(origin);
+
+      if (allowedOrigins.includes("*") || allowedOrigins.includes(requestOrigin)) {
         return callback(null, true);
       }
 
