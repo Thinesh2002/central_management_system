@@ -2,7 +2,7 @@ import axios from "axios";
 import { getToken, logout } from "./auth";
 
 const api = axios.create({
-  baseURL:"https://backend.teckvora.com/api",
+  baseURL:"http://localhost:5000/api",
   timeout: 15000,
 });
 
