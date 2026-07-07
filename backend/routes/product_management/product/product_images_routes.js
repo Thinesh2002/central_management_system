@@ -32,6 +32,8 @@ router.patch(
   productImageController.patch
 );
 
+router.patch("/:id/rename", productImageController.rename);
+
 router.delete("/:id", productImageController.remove);
 
 module.exports = router;

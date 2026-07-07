@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -7,8 +7,10 @@ import {
   Edit,
   Eye,
   MoreVertical,
+  Send,
   Trash2,
 } from "lucide-react";
+import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -19,9 +21,9 @@ import {
   hasProductVariants,
 } from "../utils/localProductsTableHelpers";
 import VariantTable from "./VariantTable";
+import TransferAccountModal from "./TransferAccountModal";
 
 const TABLE_COL_SPAN = 7;
-const ACTION_MENU_WIDTH = 176;
 
 function getProductId(product = {}) {
   return product.id || product.product_id || product.local_product_id || "";
@@ -41,43 +43,13 @@ function getProductTitle(product = {}) {
   return product.title || product.name || product.product_name || "Untitled Product";
 }
 
-function pickFirstValue(...values) {
-  return values.find(
-    (value) => value !== undefined && value !== null && String(value).trim() !== ""
-  );
-}
-
 function getPriceText(record = {}) {
-  const currency = record.currency || record.currency_code || "LKR";
-
-  const price = pickFirstValue(
-    record.main_price,
-    record.sale_price,
-    record.selling_price,
-    record.regular_price,
-    record.price,
-    record.variant_price,
-    record.unit_price,
-    record.product_price,
-    record.local_price,
-    record.amount
-  );
-
-  if (price === undefined || price === null || String(price).trim() === "") {
-    return "-";
-  }
-
-  return `${currency} ${price}`;
+  return record.price_summary?.price_text || "-";
 }
 
 function copyText(value) {
   if (!value || value === "-") return;
   navigator.clipboard?.writeText(String(value)).catch(() => {});
-}
-
-function openNewTab(path) {
-  const url = `${window.location.origin}${path}`;
-  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export default function ProductRow({
@@ -88,13 +60,27 @@ export default function ProductRow({
   expandedRows,
   toggleExpanded,
   handleDelete,
+  handleDeleteVariant,
   setImagePreview,
 }) {
+  const { canEdit, canDelete } = usePagePermission("local_products");
+  const navigate = useNavigate();
   const [actionOpen, setActionOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [transferOpen, setTransferOpen] = useState(false);
+  const actionRef = useRef(null);
 
-  const actionButtonRef = useRef(null);
-  const actionMenuRef = useRef(null);
+  useEffect(() => {
+    if (!actionOpen) return undefined;
+
+    function closeActionMenu(event) {
+      if (actionRef.current && !actionRef.current.contains(event.target)) {
+        setActionOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeActionMenu);
+    return () => document.removeEventListener("mousedown", closeActionMenu);
+  }, [actionOpen]);
 
   const productId = getProductId(product);
   const sku = getProductSku(product);
@@ -109,64 +95,17 @@ export default function ProductRow({
 
   const price = getPriceText(product);
 
-  function updateMenuPosition() {
-    const button = actionButtonRef.current;
-    if (!button) return;
-
-    const rect = button.getBoundingClientRect();
-
-    setMenuPosition({
-      top: rect.bottom + 6,
-      left: Math.max(8, rect.right - ACTION_MENU_WIDTH),
-    });
-  }
-
-  function toggleActionMenu() {
-    updateMenuPosition();
-    setActionOpen((prev) => !prev);
-  }
-
   function handleViewProduct() {
-    setActionOpen(false);
-    openNewTab(`/product/view/${productId}`);
+    navigate(`/product/view/${productId}`);
   }
 
   function handleEditProduct() {
-    setActionOpen(false);
-    openNewTab(`/product/local-products/edit/${productId}/basic`);
+    navigate(`/product/local-products/edit/${productId}/basic`);
   }
 
   function handleRemoveProduct() {
-    setActionOpen(false);
     handleDelete(product);
   }
-
-  useEffect(() => {
-    if (!actionOpen) return;
-
-    function handleOutsideClick(event) {
-      const button = actionButtonRef.current;
-      const menu = actionMenuRef.current;
-
-      if (button?.contains(event.target) || menu?.contains(event.target)) return;
-
-      setActionOpen(false);
-    }
-
-    function handleWindowChange() {
-      setActionOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    window.addEventListener("scroll", handleWindowChange, true);
-    window.addEventListener("resize", handleWindowChange);
-
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      window.removeEventListener("scroll", handleWindowChange, true);
-      window.removeEventListener("resize", handleWindowChange);
-    };
-  }, [actionOpen]);
 
   return (
     <Fragment key={productKey || productIndex}>
@@ -214,7 +153,7 @@ export default function ProductRow({
                 image: primaryImage,
               })
             }
-            className="h-10 w-10 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition hover:ring-orange-400"
+            className="h-14 w-14 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition hover:ring-orange-400"
             title="View product image"
           >
             <img
@@ -243,9 +182,20 @@ export default function ProductRow({
         {/* SKU */}
         <td className="px-3 py-3 align-middle">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-[11px] font-normal text-slate-200" title={sku}>
-              {sku}
-            </span>
+            {sku && sku !== "-" ? (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/order-management/sku-report/${encodeURIComponent(sku)}`)
+                }
+                className="cursor-pointer truncate text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
+                title={`View SKU report for ${sku}`}
+              >
+                {sku}
+              </button>
+            ) : (
+              <span className="truncate text-[11px] font-normal text-slate-200">{sku}</span>
+            )}
 
             <button
               type="button"
@@ -266,60 +216,73 @@ export default function ProductRow({
         </td>
 
         {/* Actions */}
-        <td className="px-3 py-3 text-center align-middle">
-          <button
-            ref={actionButtonRef}
-            type="button"
-            onClick={toggleActionMenu}
-            className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
-            title="Product actions"
-          >
-            <MoreVertical size={16} />
-          </button>
+        <td className="px-3 py-3 align-middle">
+          <div className="relative flex items-center justify-center" ref={actionOpen ? actionRef : null}>
+            <button
+              type="button"
+              onClick={() => setActionOpen((prev) => !prev)}
+              className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
+              title="Actions"
+            >
+              <MoreVertical size={14} />
+            </button>
+
+            {actionOpen ? (
+              <div className="absolute right-0 top-7 z-30 w-40 rounded-sm border border-zinc-800/60 bg-[#0b1220] py-1 text-left shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActionOpen(false);
+                    handleViewProduct();
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                >
+                  <Eye size={13} /> View
+                </button>
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionOpen(false);
+                      handleEditProduct();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                  >
+                    <Edit size={13} /> Edit
+                  </button>
+                )}
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionOpen(false);
+                      setTransferOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                  >
+                    <Send size={13} /> Transfer to Daraz
+                  </button>
+                )}
+
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionOpen(false);
+                      handleRemoveProduct();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-red-300 hover:bg-red-500/10 hover:text-red-200"
+                  >
+                    <Trash2 size={13} /> Delete
+                  </button>
+                )}
+              </div>
+            ) : null}
+          </div>
         </td>
       </tr>
-
-      {actionOpen &&
-        createPortal(
-          <div
-            ref={actionMenuRef}
-            style={{
-              position: "fixed",
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              width: `${ACTION_MENU_WIDTH}px`,
-            }}
-            className="z-[9999] overflow-hidden rounded-lg border border-slate-600 bg-[#0f1b2b] text-left shadow-2xl shadow-black/50"
-          >
-            <button
-              type="button"
-              onClick={handleViewProduct}
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-normal text-slate-100 transition hover:bg-orange-500/15 hover:text-orange-300"
-            >
-              <Eye size={14} />
-              View Product
-            </button>
-
-            <button
-              type="button"
-              onClick={handleEditProduct}
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-normal text-slate-100 transition hover:bg-orange-500/15 hover:text-orange-300"
-            >
-              <Edit size={14} />
-              Edit Product
-            </button>
-
-            <button
-              type="button"
-              onClick={handleRemoveProduct}
-              className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-xs font-normal text-red-300 transition hover:bg-red-500/15 hover:text-red-200"
-            >
-              <Trash2 size={14} />
-              Delete Product
-            </button>
-          </div>,
-          document.body
-        )}
 
       {isExpanded && hasVariants && (
         <tr>
@@ -331,9 +294,17 @@ export default function ProductRow({
               productKey={productKey}
               productImages={productImages}
               setImagePreview={setImagePreview}
+              onDeleteVariant={handleDeleteVariant}
             />
           </td>
         </tr>
+      )}
+
+      {transferOpen && (
+        <TransferAccountModal
+          product={{ id: productId, title }}
+          onClose={() => setTransferOpen(false)}
+        />
       )}
     </Fragment>
   );

@@ -1,0 +1,150 @@
+const db = require("../../../config/order_management_db/order_management_db");
+
+function qid(identifier) {
+  return `\`${String(identifier).replace(/`/g, "``")}\``;
+}
+
+const metaCache = new Map();
+
+async function getTableMeta(tableName) {
+  if (metaCache.has(tableName)) return metaCache.get(tableName);
+
+  const [rows] = await db.query(`SHOW COLUMNS FROM ${qid(tableName)}`);
+
+  const columns = rows.map((row) => ({
+    name: row.Field,
+    type: String(row.Type || "").toLowerCase(),
+  }));
+
+  const meta = {
+    columnNames: columns.map((column) => column.name),
+    columnSet: new Set(columns.map((column) => column.name)),
+    searchableColumns: columns
+      .filter((column) => /(char|text|json|enum)/i.test(column.type))
+      .map((column) => column.name),
+  };
+
+  metaCache.set(tableName, meta);
+  return meta;
+}
+
+function normalizeListParams(query = {}) {
+  const page = Math.max(Number(query.page || 1), 1);
+  const limit = Math.min(Math.max(Number(query.limit || 25), 1), 1000);
+
+  const offset =
+    query.offset !== undefined
+      ? Math.max(Number(query.offset || 0), 0)
+      : (page - 1) * limit;
+
+  return { page, limit, offset };
+}
+
+function buildWhere(meta, query = {}, dateColumn) {
+  const where = [];
+  const values = [];
+
+  const reserved = new Set([
+    "page",
+    "limit",
+    "offset",
+    "search",
+    "sort_by",
+    "sort_dir",
+    "date_from",
+    "date_to",
+  ]);
+
+  Object.entries(query || {}).forEach(([key, value]) => {
+    if (reserved.has(key)) return;
+    if (value === undefined || value === null || value === "") return;
+    if (!meta.columnSet.has(key)) return;
+
+    where.push(`${qid(key)} = ?`);
+    values.push(value);
+  });
+
+  const search = String(query.search || "").trim();
+
+  if (search && meta.searchableColumns.length) {
+    const columns = meta.searchableColumns.slice(0, 15);
+
+    where.push(`(${columns.map((column) => `${qid(column)} LIKE ?`).join(" OR ")})`);
+    columns.forEach(() => values.push(`%${search}%`));
+  }
+
+  if (dateColumn && meta.columnSet.has(dateColumn)) {
+    if (query.date_from) {
+      where.push(`${qid(dateColumn)} >= ?`);
+      values.push(query.date_from);
+    }
+
+    if (query.date_to) {
+      where.push(`${qid(dateColumn)} <= ?`);
+      values.push(`${query.date_to} 23:59:59`);
+    }
+  }
+
+  return {
+    clause: where.length ? `WHERE ${where.join(" AND ")}` : "",
+    values,
+  };
+}
+
+function createGenericModel(tableName, { dateColumn = "created_at", defaultSort = "id" } = {}) {
+  async function list(params = {}) {
+    const meta = await getTableMeta(tableName);
+    const { page, limit, offset } = normalizeListParams(params);
+    const where = buildWhere(meta, params, dateColumn);
+
+    const sortBy = meta.columnSet.has(params.sort_by) ? params.sort_by : defaultSort;
+    const sortDir = String(params.sort_dir || "").toUpperCase() === "ASC" ? "ASC" : "DESC";
+
+    const [rows] = await db.query(
+      `SELECT * FROM ${qid(tableName)} ${where.clause} ORDER BY ${qid(sortBy)} ${sortDir} LIMIT ? OFFSET ?`,
+      [...where.values, limit, offset]
+    );
+
+    const [countRows] = await db.query(
+      `SELECT COUNT(*) AS total FROM ${qid(tableName)} ${where.clause}`,
+      where.values
+    );
+
+    const total = Number(countRows?.[0]?.total || 0);
+
+    return {
+      data: rows,
+      pagination: {
+        page,
+        limit,
+        offset,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async function findById(id) {
+    const [rows] = await db.query(
+      `SELECT * FROM ${qid(tableName)} WHERE ${qid("id")} = ? LIMIT 1`,
+      [id]
+    );
+
+    return rows[0] || null;
+  }
+
+  async function findByColumn(column, value) {
+    if (!value) return [];
+
+    const [rows] = await db.query(
+      `SELECT * FROM ${qid(tableName)} WHERE ${qid(column)} = ?`,
+      [value]
+    );
+
+    return rows;
+  }
+
+  return { list, findById, findByColumn, tableName };
+}
+
+module.exports = { createGenericModel, db, qid };

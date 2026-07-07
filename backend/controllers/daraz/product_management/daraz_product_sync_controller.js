@@ -3,6 +3,7 @@ const credentialModel = require("../../../models/marketplace/credential_model");
 
 const darazProductSyncService = require("../../../services/daraz/product_management/daraz_product_sync_service");
 const darazProductSyncModel = require("../../../models/daraz/product_management/daraz_product_sync_model");
+const darazProductApiService = require("../../../services/marketplace/daraz_product_api_service");
 
 function parseBoolean(value, fallback = true) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -431,15 +432,164 @@ async function updateLocalLink(req, res) {
   }
 }
 
-async function deletePreviewProduct(req, res) {
+async function updateProduct(req, res) {
   try {
     const { id } = req.params;
+    const { name, short_description, brand, price, sale_price, quantity } = req.body || {};
 
     if (!id) {
       return res.status(400).json({
         success: false,
         message: "Product ID is required.",
       });
+    }
+
+    const product = await darazProductSyncModel.getPreviewById(id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Daraz product not found.",
+      });
+    }
+
+    if (!product.seller_sku) {
+      return res.status(400).json({
+        success: false,
+        message: "This Daraz product has no Seller SKU, so it cannot be edited.",
+      });
+    }
+
+    const account = await accountModel.getAccountById(product.account_id);
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: "Marketplace account for this product was not found.",
+      });
+    }
+
+    const credentials = await credentialModel.findByAccountId(product.account_id);
+
+    if (!credentials?.access_token) {
+      return res.status(401).json({
+        success: false,
+        message: "This Daraz account is not connected. Please reconnect it before editing products.",
+      });
+    }
+
+    const hasPriceOrQty =
+      price !== undefined || sale_price !== undefined || quantity !== undefined;
+    const hasNameChange =
+      (name !== undefined && String(name).trim() !== "") ||
+      (short_description !== undefined && String(short_description).trim() !== "") ||
+      (brand !== undefined && String(brand).trim() !== "");
+
+    if (!hasPriceOrQty && !hasNameChange) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide at least one field to update (name, description, brand, price, sale price or quantity).",
+      });
+    }
+
+    if (hasPriceOrQty) {
+      await darazProductApiService.updateDarazPriceQuantity({
+        account,
+        credentials,
+        itemId: product.daraz_item_id,
+        sellerSku: product.seller_sku,
+        price,
+        salePrice: sale_price,
+        quantity,
+      });
+    }
+
+    if (hasNameChange) {
+      await darazProductApiService.updateDarazProductDetails({
+        account,
+        credentials,
+        itemId: product.daraz_item_id,
+        primaryCategory: product.primary_category,
+        sellerSku: product.seller_sku,
+        name: name || product.name,
+        shortDescription: short_description,
+        brand,
+      });
+    }
+
+    const result = await darazProductSyncModel.updateLocalFields(id, {
+      name: name !== undefined ? name : undefined,
+      short_description,
+      brand,
+      price,
+      sale_price,
+      quantity,
+    });
+
+    return res.json({
+      success: true,
+      message: "Daraz product updated successfully and pushed to Daraz.",
+      data: result.product,
+    });
+  } catch (error) {
+    console.error("[DARAZ_PRODUCT_UPDATE_ERROR]", {
+      message: error?.message,
+      code: error?.code || null,
+      daraz: error?.daraz || null,
+    });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message:
+        error?.daraz?.message ||
+        error.message ||
+        "Failed to update Daraz product.",
+      error: error?.daraz || error.message,
+    });
+  }
+}
+
+async function deletePreviewProduct(req, res) {
+  try {
+    const { id } = req.params;
+    const deactivateOnDaraz = String(req.query?.deactivate_on_daraz || "true") !== "false";
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required.",
+      });
+    }
+
+    const product = await darazProductSyncModel.getPreviewById(id);
+
+    let darazDeactivationWarning = null;
+
+    if (product && deactivateOnDaraz && product.daraz_item_id) {
+      try {
+        const account = await accountModel.getAccountById(product.account_id);
+        const credentials = await credentialModel.findByAccountId(product.account_id);
+
+        if (account && credentials?.access_token) {
+          await darazProductApiService.deactivateDarazProduct({
+            account,
+            credentials,
+            itemId: product.daraz_item_id,
+          });
+        } else {
+          darazDeactivationWarning =
+            "Account not connected — product was removed from this system only, not from the live Daraz store.";
+        }
+      } catch (darazError) {
+        console.error("[DARAZ_PRODUCT_DEACTIVATE_ERROR]", {
+          message: darazError?.message,
+          daraz: darazError?.daraz || null,
+        });
+
+        darazDeactivationWarning =
+          darazError?.daraz?.message ||
+          "Could not deactivate this product on Daraz. It was removed from this system only — please check it manually in Seller Center.";
+      }
     }
 
     const result = await darazProductSyncModel.deletePreviewProduct(id);
@@ -453,7 +603,10 @@ async function deletePreviewProduct(req, res) {
 
     return res.json({
       success: true,
-      message: "Daraz preview product deleted.",
+      message: darazDeactivationWarning
+        ? "Daraz product removed from this system, with a warning."
+        : "Daraz product deactivated on Daraz and removed from this system.",
+      warning: darazDeactivationWarning,
       data: result,
     });
   } catch (error) {
@@ -516,6 +669,7 @@ module.exports = {
   productStats,
   updateSyncStatus,
   updateLocalLink,
+  updateProduct,
   deletePreviewProduct,
   bulkDeleteByAccount,
 };

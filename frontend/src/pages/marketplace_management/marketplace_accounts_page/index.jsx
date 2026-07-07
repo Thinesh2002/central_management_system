@@ -8,6 +8,8 @@ import {
   Search,
   Loader2,
   Eye,
+  Pencil,
+  Trash2,
   Activity,
   Database,
   CheckCircle2,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
+import Loader from "../../../components/common/Loader";
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -174,6 +177,7 @@ export default function MarketplaceAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [checkingAll, setCheckingAll] = useState(false);
   const [reauthAccountId, setReauthAccountId] = useState(null);
+  const [deletingAccountId, setDeletingAccountId] = useState(null);
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -276,6 +280,42 @@ export default function MarketplaceAccountsPage() {
       );
     } finally {
       setReauthAccountId(null);
+    }
+  }
+
+  async function handleDeleteAccount(account) {
+    const accountId = account?.id || account?.account_id;
+
+    if (!accountId) return;
+
+    const confirmed = window.confirm(
+      `Delete marketplace account "${account.account_name || account.account_uid}"? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingAccountId(accountId);
+      setError("");
+      setMessage("");
+
+      await marketplaceApi.deleteAccount(accountId);
+
+      setMessage(
+        `Marketplace account "${account.account_name || account.account_uid}" deleted successfully.`
+      );
+
+      await loadAccounts();
+    } catch (err) {
+      console.error("[DELETE_MARKETPLACE_ACCOUNT_ERROR]", err);
+
+      setError(
+        err?.friendlyMessage ||
+          err?.response?.data?.message ||
+          "Failed to delete marketplace account."
+      );
+    } finally {
+      setDeletingAccountId(null);
     }
   }
 
@@ -450,10 +490,7 @@ export default function MarketplaceAccountsPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-slate-400">
-            <Loader2 size={22} className="mr-2 animate-spin text-yellow-300" />
-            Loading marketplace accounts...
-          </div>
+          <Loader label="Loading marketplace accounts..." minHeight="0" className="py-16" />
         ) : filteredAccounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#070B14] text-slate-500">
@@ -584,6 +621,28 @@ export default function MarketplaceAccountsPage() {
                             <Eye size={14} />
                             View
                           </Link>
+
+                          <Link
+                            to={`/marketplace/accounts/${accountId}/edit`}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </Link>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAccount(account)}
+                            disabled={deletingAccountId === accountId}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-medium text-red-300 transition hover:border-red-400/60 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {deletingAccountId === accountId ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>

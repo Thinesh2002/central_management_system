@@ -21,12 +21,19 @@ const localProductManagementRoutes = require("./routes/product_management/produc
 const productVariantRoutes = require("./routes/product_management/product/product_variants_routes");
 const productCategoryRoutes = require("./routes/product_management/category/category_route");
 const productSubCategoryRoutes = require("./routes/product_management/category/sub_category_route");
+const attributeRoutes = require("./routes/product_management/attribute/attribute_route");
+const attributeValueRoutes = require("./routes/product_management/attribute/attributeValue_route");
 
 const marketplaceRoutes = require("./routes/marketplace/marketplace_routes");
 const accountController = require("./controllers/marketplace/account_controller");
 
 const darazProductSyncRoutes = require("./routes/daraz/product_management/daraz_product_sync_route");
+const darazTransferRoutes = require("./routes/daraz/product_management/daraz_transfer_route");
+const darazInventorySyncRoutes = require("./routes/daraz/inventory/daraz_inventory_sync_route");
+const darazCatalogRoutes = require("./routes/marketplace/daraz_catalog_route");
 const wooRoutes = require("./routes/woo/woo_route");
+
+const skuReportRoutes = require("./routes/order_management/sku_report_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -37,6 +44,10 @@ const {
 const {
   startDarazProductSyncJob,
 } = require("./jobs/daraz/product_management/daraz_product_sync_job");
+
+const {
+  startDarazInventorySyncJob,
+} = require("./jobs/daraz/inventory/daraz_inventory_sync_job");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -141,6 +152,8 @@ app.use("/api/product-management", localProductManagementRoutes);
 app.use("/api/product/product-variants", productVariantRoutes);
 app.use("/api/product/categories", productCategoryRoutes);
 app.use("/api/product/sub-categories", productSubCategoryRoutes);
+app.use("/api/product/attributes", attributeRoutes);
+app.use("/api/product/attribute-values", attributeValueRoutes);
 
 app.use("/api/marketplace", marketplaceRoutes);
 
@@ -155,7 +168,12 @@ app.get(
 );
 
 app.use("/api/daraz-products", darazProductSyncRoutes);
+app.use("/api/daraz/transfer", darazTransferRoutes);
+app.use("/api/daraz-inventory", darazInventorySyncRoutes);
+app.use("/api/daraz-catalog", darazCatalogRoutes);
 app.use("/api/marketplace/woo", wooRoutes);
+
+app.use("/api/order-management/sku-report", skuReportRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -201,6 +219,7 @@ async function startServer() {
 
     startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
     startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
+    startJob("DARAZ_INVENTORY_SYNC_JOB", startDarazInventorySyncJob);
   });
 }
 

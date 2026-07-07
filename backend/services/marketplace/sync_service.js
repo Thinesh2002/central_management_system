@@ -212,6 +212,10 @@ async function runDarazSync({ account, credentials, syncType, jobId }) {
     return syncDarazCategories({ account, credentials, jobId });
   }
 
+  if (type === "brands") {
+    return syncDarazBrands({ account, credentials, jobId });
+  }
+
   if (["inventory", "price", "images", "full_sync"].includes(type)) {
     return {
       total_records: 0,
@@ -308,12 +312,16 @@ async function syncDarazCategories({ account, credentials, jobId }) {
 }
 
 async function syncDarazBrands({ account, credentials, jobId }) {
-  const response = await darazApiService.callDarazApi({
+  const response = await darazApiService.callDarazApiWithoutAccessToken({
     account,
     credentials,
-    apiPath: "/brands/get",
+    apiPath: "/category/brands/query",
     method: "GET",
     requestType: "brands",
+    query: {
+      startRow: 0,
+      pageSize: 200,
+    },
   });
 
   await safeCreateSyncJobItem({

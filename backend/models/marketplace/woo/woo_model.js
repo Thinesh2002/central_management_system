@@ -145,8 +145,8 @@ async function createOrUpdateWooAccount(payload) {
         (
           account_id,
           credential_type,
-          consumer_key_encrypted,
-          consumer_secret_encrypted,
+          consumer_key,
+          consumer_secret,
           token_status,
           last_validated_at,
           credentials_version,
@@ -157,8 +157,8 @@ async function createOrUpdateWooAccount(payload) {
         (?, 'woocommerce_keys', ?, ?, 'valid', NOW(), 1, NOW(), NOW())
        ON DUPLICATE KEY UPDATE
           credential_type = 'woocommerce_keys',
-          consumer_key_encrypted = VALUES(consumer_key_encrypted),
-          consumer_secret_encrypted = VALUES(consumer_secret_encrypted),
+          consumer_key = VALUES(consumer_key),
+          consumer_secret = VALUES(consumer_secret),
           token_status = 'valid',
           last_validated_at = NOW(),
           credentials_version = credentials_version + 1,
@@ -258,7 +258,6 @@ async function listWooAccounts() {
         a.last_sync_at,
         a.last_error,
         a.created_by,
-        a.updated_by,
         a.created_at,
         a.updated_at,
 
@@ -266,7 +265,7 @@ async function listWooAccounts() {
         p.platform_name,
 
         c.credential_type,
-        c.consumer_key_encrypted,
+        c.consumer_key,
         c.token_status AS credential_token_status,
         c.last_validated_at,
 
@@ -292,8 +291,8 @@ async function listWooAccounts() {
     let consumerKey = "";
 
     try {
-      if (row.consumer_key_encrypted) {
-        consumerKey = row.consumer_key_encrypted;
+      if (row.consumer_key) {
+        consumerKey = row.consumer_key;
       }
     } catch (_) {
       consumerKey = "";
@@ -332,7 +331,6 @@ async function listWooAccounts() {
       success_count_today: row.success_count_today,
       last_error: row.last_error || row.health_last_error,
       created_by: row.created_by,
-      updated_by: row.updated_by,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -346,8 +344,8 @@ async function getWooCredentials(accountId) {
         a.account_name,
         a.account_code,
         a.store_url,
-        c.consumer_key_encrypted,
-        c.consumer_secret_encrypted
+        c.consumer_key,
+        c.consumer_secret
      FROM accounts a
      INNER JOIN platforms p ON p.id = a.platform_id
      INNER JOIN account_credentials c
@@ -370,8 +368,8 @@ async function getWooCredentials(accountId) {
     account_name: row.account_name,
     account_code: row.account_code,
     store_url: row.store_url,
-    consumer_key: row.consumer_key_encrypted,
-    consumer_secret: row.consumer_secret_encrypted,
+    consumer_key: row.consumer_key,
+    consumer_secret: row.consumer_secret,
   };
 }
 

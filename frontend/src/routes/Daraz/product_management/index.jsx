@@ -6,6 +6,10 @@ import ProtectedRoute from "../../../config/ProtectedRoute";
 
 import DarazProductsPreviewPage from "../../../pages/daraz/product_management/index";
 import DarazProductViewPage from "../../../pages/daraz/product_management/daraz_detail_view/index";
+import DarazEditProductPage from "../../../pages/daraz/product_management/daraz_edit_product_page/index";
+import DarazCreateProductPage from "../../../pages/daraz/product_management/daraz_create_product_page/index";
+import DarazTransferProductPage from "../../../pages/daraz/product_management/daraz_transfer_product_page/index";
+import DarazTransferPreviewPage from "../../../pages/daraz/product_management/daraz_transfer_preview_page/index";
 import DarazProductLogsPage from "../../../pages/daraz/daraz_logs/daraz_sync_logs_page";
 
 function ProtectedProductPage({ children }) {
@@ -38,6 +42,42 @@ export default function DarazProductRoutes() {
         element={
           <ProtectedProductPage>
             <DarazProductViewPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/daraz-products/edit/:id"
+        element={
+          <ProtectedProductPage>
+            <DarazEditProductPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/daraz-products/create"
+        element={
+          <ProtectedProductPage>
+            <DarazCreateProductPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/daraz-products/transfer"
+        element={
+          <ProtectedProductPage>
+            <DarazTransferProductPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/daraz-products/transfer-preview/:productId"
+        element={
+          <ProtectedProductPage>
+            <DarazTransferPreviewPage />
           </ProtectedProductPage>
         }
       />

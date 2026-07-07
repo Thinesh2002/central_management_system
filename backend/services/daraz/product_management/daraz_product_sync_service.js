@@ -7,10 +7,10 @@ const PRODUCT_FILTERS = [
   "live",
   "inactive",
   "deleted",
+  "image-missing",
   "pending",
   "rejected",
-  "draft",
-  "violation",
+  "sold-out",
 ];
 
 const DARAZ_CREATED_TIME_KEYS = [
@@ -454,6 +454,46 @@ async function getProductDetail({ account, credentials, item_id }) {
   return response;
 }
 
+async function syncSingleDarazProductByItemId({ account, credentials, item_id }) {
+  if (!account?.id) {
+    throw createProductSyncError(
+      "Daraz account missing.",
+      400,
+      "DARAZ_ACCOUNT_MISSING"
+    );
+  }
+
+  if (!item_id) {
+    throw createProductSyncError(
+      "Daraz item_id is required to sync a single product.",
+      400,
+      "DARAZ_ITEM_ID_REQUIRED"
+    );
+  }
+
+  const detailResponse = await getProductDetail({ account, credentials, item_id });
+  const detailPayload = extractDetailPayload(detailResponse);
+  const finalProduct = mergeProductWithDetail({}, detailPayload, "manual_create");
+
+  const darazItemId = getDarazItemId(finalProduct) || item_id;
+
+  const saveResult = await darazProductSyncModel.upsertDarazProduct({
+    account_id: account.id,
+    product: finalProduct,
+  });
+
+  await darazProductSyncModel.upsertDarazVariants({
+    account_id: account.id,
+    daraz_item_id: darazItemId,
+    product: finalProduct,
+  });
+
+  return {
+    item_id: darazItemId,
+    sync_action: resolveSyncAction(saveResult),
+  };
+}
+
 async function syncDarazProducts({
   account,
   credentials,
@@ -682,7 +722,7 @@ async function syncDarazProducts({
 
     const finalStatus =
       totalFailedSyncedListing > 0 || filterErrors.length > 0
-        ? "partial_success"
+        ? "partial"
         : "success";
 
     await safeFinishSyncRun({
@@ -778,6 +818,7 @@ async function syncDarazProducts({
 
 module.exports = {
   syncDarazProducts,
+  syncSingleDarazProductByItemId,
   extractProducts,
   extractTotal,
   getDarazItemId,

@@ -108,16 +108,9 @@ export function formatPrice(record = {}) {
 
 export function getVariantName(variant = {}) {
   return (
-    variant.variant_title ||
     variant.variant_name ||
-    variant.title ||
-    variant.name ||
     variant.colour_name ||
     variant.color_name ||
-    variant.colour ||
-    variant.color ||
-    variant.size ||
-    variant.option_name ||
     "Variant"
   );
 }

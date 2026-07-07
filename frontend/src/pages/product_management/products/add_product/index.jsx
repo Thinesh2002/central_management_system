@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import { getStoredUser } from "../../../../config/auth";
+import { RichTextField } from "../../../../components/common/rich_text_editor/RichTextEditor";
 import {
   generateProductSku,
   getCode,
@@ -13,13 +14,13 @@ import {
 } from "../utils/productSku";
 
 const FIELD_CLASS =
-  "h-11 w-full rounded-xl border border-slate-700 bg-[#0b1220] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-11 w-full border border-slate-700 bg-[#0a101d] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60";
 
 function FieldWrap({ label, required, children, hint }) {
   return (
     <label className="block">
       <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-[12px] font-bold uppercase tracking-wide text-slate-300">
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
           {label} {required && <span className="text-orange-300">*</span>}
         </span>
         {hint && <span className="text-[11px] font-medium text-slate-500">{hint}</span>}
@@ -60,20 +61,6 @@ function SelectField({ label, value, onChange, required, disabled, children, hin
   );
 }
 
-function TextareaField({ label, value, onChange, rows = 4, placeholder }) {
-  return (
-    <FieldWrap label={label}>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        rows={rows}
-        placeholder={placeholder}
-        className="w-full resize-none rounded-xl border border-slate-700 bg-[#0b1220] px-3 py-3 text-sm font-medium text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-orange-400"
-      />
-    </FieldWrap>
-  );
-}
-
 function getCategoryId(item = {}) {
   return (
     item.id ??
@@ -98,26 +85,12 @@ function getSubCategoryId(item = {}) {
   );
 }
 
-function getSubCategoryParentId(item = {}) {
-  const nestedCategory =
-    item.category && typeof item.category === "object"
-      ? item.category.id ?? item.category.category_id ?? item.category.value
-      : "";
+function getSubCategoryCode(item = {}) {
+  return String(item.category_code ?? "").trim();
+}
 
-  return (
-    item.category_id ??
-    item.product_category_id ??
-    item.productCategoryId ??
-    item.categoryId ??
-    item.parent_category_id ??
-    item.parentCategoryId ??
-    item.parent_id ??
-    item.parentId ??
-    item.main_category_id ??
-    item.mainCategoryId ??
-    nestedCategory ??
-    ""
-  );
+function getCategoryCode(item = {}) {
+  return String(item.category_code ?? "").trim();
 }
 
 function getModelId(item = {}) {
@@ -232,18 +205,15 @@ export default function LocalProductAddPage() {
   );
 
   const filteredSubCategories = useMemo(() => {
-    if (!form.category_id) return subCategories;
+    if (!form.category_id || !selectedCategory) return [];
 
-    const hasParentCategoryField = subCategories.some(
-      (item) => String(getSubCategoryParentId(item) || "").trim() !== ""
-    );
-
-    if (!hasParentCategoryField) return subCategories;
+    const categoryCode = getCategoryCode(selectedCategory);
+    if (!categoryCode) return [];
 
     return subCategories.filter(
-      (item) => String(getSubCategoryParentId(item)) === String(form.category_id)
+      (item) => getSubCategoryCode(item) === categoryCode
     );
-  }, [subCategories, form.category_id]);
+  }, [subCategories, form.category_id, selectedCategory]);
 
   useEffect(() => {
     if (!form.category_id || !form.sub_category_id || !form.model_id) return;
@@ -364,7 +334,7 @@ export default function LocalProductAddPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.22em] text-orange-300">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-300">
               Local Product
             </p>
             <h1 className="mt-1 text-xl font-black text-white">Create Product</h1>
@@ -373,7 +343,7 @@ export default function LocalProductAddPage() {
           <button
             type="button"
             onClick={() => navigate("/product/local-products")}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-[#0b1220] px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
+            className="inline-flex cursor-pointer items-center gap-2 border border-slate-700 bg-[#0b1220] px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
           >
             <ArrowLeft size={16} /> Back
           </button>
@@ -381,9 +351,9 @@ export default function LocalProductAddPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0b1220] shadow-2xl shadow-black/20"
+          className="border border-slate-800 bg-[#0b1220]"
         >
-          <div className="border-b border-slate-800 px-4 py-3">
+          <div className="border-b border-slate-800 bg-[#07101f] px-4 py-3">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-black text-white">Basic Details</p>
 
@@ -536,29 +506,31 @@ export default function LocalProductAddPage() {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4">
-              <TextareaField
+              <RichTextField
                 label="Short Description"
                 value={form.short_description}
                 onChange={(value) => updateField("short_description", value)}
-                rows={2}
-                placeholder="Short product note..."
+                minHeight={90}
+                placeholder="Short product note (shown on listing cards)..."
+                hint="HTML"
               />
 
-              <TextareaField
+              <RichTextField
                 label="Description"
                 value={form.description}
                 onChange={(value) => updateField("description", value)}
-                rows={5}
-                placeholder="Full product description..."
+                minHeight={220}
+                placeholder="Full product description — formatting, images, links and tables are supported..."
+                hint="HTML"
               />
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-slate-800 bg-[#09101d] px-4 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-800 bg-[#07101f] px-4 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => navigate("/product/local-products")}
-              className="rounded-xl border border-slate-700 bg-[#0b1220] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-slate-500 hover:text-white"
+              className="border border-slate-700 bg-[#0b1220] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-slate-500 hover:text-white"
             >
               Cancel
             </button>
@@ -566,7 +538,7 @@ export default function LocalProductAddPage() {
             <button
               disabled={saving || mastersLoading}
               type="submit"
-              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex cursor-pointer items-center justify-center gap-2 bg-orange-500 px-5 py-2.5 text-sm font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {saving ? "Saving..." : "Create Product"}

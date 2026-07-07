@@ -6,7 +6,8 @@ function cleanValue(value, fallback = null) {
 }
 
 function cleanString(value, fallback = null) {
-  if (value === undefined || value === null || value === "") return fallback;
+  if (value === undefined) return fallback;
+  if (value === null) return null;
   return String(value).trim();
 }
 
@@ -238,6 +239,49 @@ async function updateAccountStatus(
   );
 }
 
+async function updateAccount(accountId, data = {}) {
+  if (!accountId) {
+    throw new Error("account_id is required for updating account");
+  }
+
+  const existing = await getAccountById(accountId);
+
+  if (!existing) {
+    throw new Error("Account not found");
+  }
+
+  await db.query(
+    `
+    UPDATE accounts
+    SET account_uid = ?,
+        account_name = ?,
+        account_code = ?,
+        country_code = ?,
+        seller_id = ?,
+        seller_email = ?,
+        store_url = ?,
+        api_base_url = ?,
+        is_sandbox = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+    `,
+    [
+      cleanString(data.account_uid, existing.account_uid),
+      cleanString(data.account_name, existing.account_name),
+      cleanString(data.account_code, existing.account_code),
+      cleanString(data.country_code, existing.country_code || "LK"),
+      cleanString(data.seller_id, existing.seller_id),
+      cleanString(data.seller_email, existing.seller_email),
+      cleanString(data.store_url, existing.store_url),
+      cleanString(data.api_base_url, existing.api_base_url),
+      data.is_sandbox === undefined ? existing.is_sandbox : (data.is_sandbox ? 1 : 0),
+      accountId,
+    ]
+  );
+
+  return getAccountById(accountId);
+}
+
 async function updateLastSync(accountId) {
   if (!accountId) {
     throw new Error("account_id is required for updating last sync");
@@ -315,6 +359,7 @@ module.exports = {
   findById,
   listActiveDarazAccounts,
 
+  updateAccount,
   updateAccountStatus,
   updateLastSync,
   upsertAccountHealth,

@@ -1,6 +1,7 @@
 const asyncHandler = require("../../../middleware/async_handler.js");
 const model = require("../../../models/product_management/product/product_inventory_model.js");
 const productLogModel = require("../../../models/product_management/product/product_log_model.js");
+const darazInventorySyncService = require("../../../services/daraz/inventory/daraz_inventory_sync_service.js");
 
 const TABLE_LABEL = "Product inventory";
 
@@ -53,6 +54,38 @@ function notFoundError() {
 
 function skuRequiredError() {
   return makeError("SKU is required for product inventory.", 400);
+}
+
+
+function queueInventorySyncToDaraz(req, saved) {
+  const shouldSync = String(
+    req?.body?.sync_daraz ??
+      req?.body?.syncDaraz ??
+      req?.query?.sync_daraz ??
+      "true"
+  ).toLowerCase() !== "false";
+
+  if (!shouldSync || !saved?.sku) {
+    return { queued: false, skipped: true, message: "Daraz stock sync skipped." };
+  }
+
+  darazInventorySyncService
+    .pushSkuStockToDaraz({
+      sku: saved.sku,
+      quantity: saved.stock_qty ?? saved.total_stock ?? saved.quantity ?? 0,
+      source: "inventory_update",
+      userId: getUserId(req),
+    })
+    .catch((error) => {
+      console.error("[INVENTORY_DARAZ_STOCK_SYNC_ERROR]", {
+        sku: saved.sku,
+        message: error?.message,
+        code: error?.code || null,
+        daraz: error?.daraz || null,
+      });
+    });
+
+  return { queued: true, message: "Daraz stock sync queued in background." };
 }
 
 async function writeProductLog(req, action, recordId, beforeData, afterData) {
@@ -135,13 +168,16 @@ const create = asyncHandler(async (req, res) => {
     saved
   );
 
+  const darazSync = queueInventorySyncToDaraz(req, saved);
+
   return sendSuccess(
     res,
     before ? 200 : 201,
     before
       ? `${TABLE_LABEL} updated successfully`
       : `${TABLE_LABEL} created successfully`,
-    saved
+    saved,
+    { daraz_sync: darazSync }
   );
 });
 
@@ -164,7 +200,11 @@ const update = asyncHandler(async (req, res) => {
     updated
   );
 
-  return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated);
+  const darazSync = queueInventorySyncToDaraz(req, updated);
+
+  return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated, {
+    daraz_sync: darazSync,
+  });
 });
 
 const updateBySku = asyncHandler(async (req, res) => {
@@ -195,7 +235,11 @@ const updateBySku = asyncHandler(async (req, res) => {
     updated
   );
 
-  return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated);
+  const darazSync = queueInventorySyncToDaraz(req, updated);
+
+  return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated, {
+    daraz_sync: darazSync,
+  });
 });
 
 const patch = update;

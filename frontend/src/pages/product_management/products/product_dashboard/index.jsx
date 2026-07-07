@@ -12,6 +12,9 @@ import {
   applyViewFilter,
   normalizeProductList,
 } from "./utils/localProductsTableHelpers";
+import { useToast } from "../../../../components/common/toast/ToastProvider";
+import ExportCsvModal from "../../../../components/common/export/ExportCsvModal";
+import { exportRowsAsCsv } from "../../../../utils/csvExport";
 
 function toNumber(value) {
   const number = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
@@ -112,15 +115,113 @@ function uniqueRows(rows = []) {
 
 function getProductPrice(product = {}) {
   return toNumber(
-    product.main_price ??
+    product.price_summary?.min_price ??
+      product.main_price ??
       product.sale_price ??
       product.price ??
-      product.regular_price ??
-      product.selling_price ??
-      product.variant_price ??
-      product.unit_price ??
       0
   );
+}
+
+function getPriceSku(row = {}) {
+  return clean(
+    row.sku ||
+      row.variant_sku ||
+      row.product_sku ||
+      row.local_sku ||
+      row.seller_sku ||
+      ""
+  );
+}
+
+function getPriceValue(row = {}) {
+  return toNumber(row.local_selling_price ?? row.sale_price ?? row.price ?? 0);
+}
+
+function money(value) {
+  return Number(value).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function isVariableProduct(product = {}) {
+  return (
+    Number(product.has_variants) === 1 ||
+    String(product.product_type || "").toLowerCase() === "variable" ||
+    getProductVariants(product).length > 0
+  );
+}
+
+function getPriceSummary(rows = [], currency = "LKR") {
+  const prices = rows.map(getPriceValue).filter((value) => value > 0);
+
+  if (!prices.length) {
+    return {
+      has_price: false,
+      min_price: null,
+      max_price: null,
+      price_text: "-",
+    };
+  }
+
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+
+  return {
+    has_price: true,
+    min_price: minPrice,
+    max_price: maxPrice,
+    price_text:
+      minPrice === maxPrice
+        ? `${currency} ${money(minPrice)}`
+        : `${currency} ${money(minPrice)} - ${money(maxPrice)}`,
+  };
+}
+
+function uniquePriceRows(rows = []) {
+  const map = new Map();
+
+  rows.forEach((row, index) => {
+    const sku = getPriceSku(row).toLowerCase();
+    const key = row.id || `${sku}-${index}`;
+
+    if (!key) return;
+
+    map.set(key, row);
+  });
+
+  return Array.from(map.values());
+}
+
+function mergeProductsWithPrices(products = [], priceRows = []) {
+  const cleanPriceRows = uniquePriceRows(priceRows);
+
+  return products.map((product) => {
+    const productSku = getProductSku(product);
+    const currency = product.currency || product.currency_code || "LKR";
+
+    // Variable products carry no price of their own — only their variants
+    // do, so the parent row shows a range across variant prices instead of
+    // pretending the parent has a single price.
+    const matchedRows = isVariableProduct(product)
+      ? cleanPriceRows.filter((row) => {
+          const variantSkus = new Set(
+            getProductVariants(product).map((variant) =>
+              getVariantSku(variant).toLowerCase()
+            )
+          );
+          return variantSkus.has(getPriceSku(row).toLowerCase());
+        })
+      : cleanPriceRows.filter((row) => sameSku(getPriceSku(row), productSku));
+
+    const priceSummary = getPriceSummary(matchedRows, currency);
+
+    return {
+      ...product,
+      price_summary: priceSummary,
+    };
+  });
 }
 
 function getProductDateTime(product = {}) {
@@ -283,6 +384,45 @@ function isInsideDateRange(product = {}, dateRange = "all") {
   return productTime >= start.getTime() && productTime <= now.getTime();
 }
 
+function isInsideCustomDateRange(product = {}, start = "", end = "") {
+  if (!start && !end) return true;
+
+  const productTime = getProductDateTime(product);
+  if (!productTime) return false;
+
+  if (start) {
+    const startTime = new Date(start).setHours(0, 0, 0, 0);
+    if (productTime < startTime) return false;
+  }
+
+  if (end) {
+    const endTime = new Date(end).setHours(23, 59, 59, 999);
+    if (productTime > endTime) return false;
+  }
+
+  return true;
+}
+
+function getProductTitleForExport(product = {}) {
+  return product.title || product.name || product.product_name || "Untitled Product";
+}
+
+function formatDateForExport(product = {}) {
+  const time = getProductDateTime(product);
+  if (!time) return "-";
+  return new Date(time).toLocaleDateString();
+}
+
+const LOCAL_PRODUCT_EXPORT_COLUMNS = [
+  { key: "sku", label: "SKU", value: (p) => getProductSku(p) },
+  { key: "title", label: "Title", value: (p) => getProductTitleForExport(p) },
+  { key: "price", label: "Price", value: (p) => p.price_summary?.price_text || "-" },
+  { key: "stock", label: "Stock Qty", value: (p) => (p.stock_qty !== undefined ? p.stock_qty : "-") },
+  { key: "stock_status", label: "Stock Status", value: (p) => p.stock_status || "-" },
+  { key: "status", label: "Status", value: (p) => p.status || "-" },
+  { key: "created", label: "Created Date", value: (p) => formatDateForExport(p) },
+];
+
 function buildQuickSearchText(product = {}) {
   return [
     product.sku,
@@ -352,6 +492,7 @@ function sortLatestProductsFirst(list = []) {
 
 export default function LocalProductsDashboard() {
   const navigate = useNavigate();
+  const showToast = useToast();
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -366,6 +507,30 @@ export default function LocalProductsDashboard() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
   const [draftView, setDraftView] = useState("all");
+  const [exportOpen, setExportOpen] = useState(false);
+
+  function handleExportCsv(config) {
+    const rows = filteredProducts.filter((product) => {
+      const price = getProductPrice(product);
+
+      const dateOk =
+        config.datePreset === "custom"
+          ? isInsideCustomDateRange(product, config.customStart, config.customEnd)
+          : isInsideDateRange(product, config.datePreset);
+
+      const minOk = config.minPrice === null || price >= config.minPrice;
+      const maxOk = config.maxPrice === null || price <= config.maxPrice;
+
+      return dateOk && minOk && maxOk;
+    });
+
+    const selectedColumns = LOCAL_PRODUCT_EXPORT_COLUMNS.filter((column) =>
+      config.columnKeys.includes(column.key)
+    );
+
+    exportRowsAsCsv(rows, selectedColumns, `local-products-${Date.now()}.csv`);
+    showToast(`Exported ${rows.length} product${rows.length === 1 ? "" : "s"} to CSV.`);
+  }
 
   async function loadData() {
     setLoading(true);
@@ -375,6 +540,7 @@ export default function LocalProductsDashboard() {
         productRes,
         imageRes,
         inventoryRes,
+        priceRes,
         categoryRes,
         subCategoryRes,
         modelRes,
@@ -382,6 +548,7 @@ export default function LocalProductsDashboard() {
         localProductsApi.getProducts(),
         localProductsApi.getImages().catch(() => ({ data: [] })),
         localProductsApi.getInventory({ limit: 500 }).catch(() => ({ data: [] })),
+        localProductsApi.getPrices({ limit: 2000 }).catch(() => ({ data: [] })),
         localProductsApi.getCategories().catch(() => []),
         localProductsApi.getSubCategories().catch(() => []),
         localProductsApi.getProductModels().catch(() => []),
@@ -389,9 +556,11 @@ export default function LocalProductsDashboard() {
 
       const productRows = normalizeProductList(productRes);
       const inventoryRows = normalizeList(inventoryRes);
+      const priceRows = normalizeList(priceRes);
       const productsWithInventory = mergeProductsWithInventory(productRows, inventoryRows);
+      const productsWithPrices = mergeProductsWithPrices(productsWithInventory, priceRows);
 
-      setProducts(sortLatestProductsFirst(productsWithInventory));
+      setProducts(sortLatestProductsFirst(productsWithPrices));
       setProductImages(normalizeList(imageRes));
       setCategories(normalizeList(categoryRes));
       setSubCategories(normalizeList(subCategoryRes));
@@ -460,9 +629,34 @@ export default function LocalProductsDashboard() {
 
     try {
       await localProductsApi.deleteProduct(productId);
+      showToast("Product deleted successfully.");
       await loadData();
     } catch (error) {
       alert(getErrorMessage(error, "Unable to delete product."));
+    }
+  }
+
+  async function handleDeleteVariant(variant) {
+    const variantId =
+      variant.id || variant.variant_id || variant.product_variant_id || variant.local_variant_id;
+
+    if (!variantId) {
+      alert("Variant ID missing. Cannot delete this variant.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete variant ${variant.variant_sku || variant.sku || variantId}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await localProductsApi.deleteVariant(variantId);
+      showToast("Variant deleted successfully.");
+      await loadData();
+    } catch (error) {
+      alert(getErrorMessage(error, "Unable to delete variant."));
     }
   }
 
@@ -514,6 +708,7 @@ export default function LocalProductsDashboard() {
           activePopupFilterCount={activePopupFilterCount}
           onOpenFilter={openFilterModal}
           onClear={clearAllFilters}
+          onOpenExport={() => setExportOpen(true)}
         />
 
         <ProductsTable
@@ -528,6 +723,7 @@ export default function LocalProductsDashboard() {
           toggleExpanded={toggleExpanded}
           goToProductSection={goToProductSection}
           handleDelete={handleDelete}
+          handleDeleteVariant={handleDeleteVariant}
           setImagePreview={setImagePreview}
         />
       </div>
@@ -550,6 +746,15 @@ export default function LocalProductsDashboard() {
       <ImagePreviewModal
         imagePreview={imagePreview}
         onClose={() => setImagePreview(null)}
+      />
+
+      <ExportCsvModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title="Export Local Products CSV"
+        columns={LOCAL_PRODUCT_EXPORT_COLUMNS}
+        buttonColor="orange"
+        onExport={handleExportCsv}
       />
     </div>
   );

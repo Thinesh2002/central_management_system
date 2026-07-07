@@ -14,12 +14,18 @@ import LocalProductViewPage from "../../pages/product_management/products/produc
 
 
 import LocalProductsDashboard from "../../pages/product_management/products/product_dashboard/index";
+import ImagesDashboardPage from "../../pages/product_management/images_dashboard/index";
 import LocalProductAddPage from "../../pages/product_management/products/add_product/index";
 import LocalProductBasicPage from "../../pages/product_management/products/LocalProductBasicPage";
 import LocalProductPriceInventoryPage from "../../pages/product_management/products/LocalProductInventoryPage";
 import LocalProductAttributesPage from "../../pages/product_management/products/LocalProductAttributesPage";
 import LocalProductVariantsPage from "../../pages/product_management/products/product_variants/index";
 import LocalProductImagesPage from "../../pages/product_management/products/LocalProductImagesPage";
+import VariantBasicPage from "../../pages/product_management/products/product_variants/variant_pages/VariantBasicPage";
+import VariantPriceInventoryPage from "../../pages/product_management/products/product_variants/variant_pages/VariantPriceInventoryPage";
+import VariantImagesPage from "../../pages/product_management/products/product_variants/variant_pages/VariantImagesPage";
+import VariantAttributesPage from "../../pages/product_management/products/product_variants/variant_pages/VariantAttributesPage";
+import VariantViewPage from "../../pages/product_management/products/product_variants/variant_pages/VariantViewPage";
 
 function ProtectedProductPage({ children }) {
   return (
@@ -93,6 +99,15 @@ export default function ProductManagementRoutes() {
         element={
           <ProtectedProductPage>
             <LocalProductsDashboard />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/images"
+        element={
+          <ProtectedProductPage>
+            <ImagesDashboardPage />
           </ProtectedProductPage>
         }
       />
@@ -172,6 +187,66 @@ export default function ProductManagementRoutes() {
         element={
           <ProtectedProductPage>
             <LocalProductImagesPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      {/* Dedicated variant pages */}
+      <Route
+        path="/product/local-products/edit/:productId/variants/create"
+        element={
+          <ProtectedProductPage>
+            <VariantBasicPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/variants/:variantId/edit"
+        element={<Navigate to="basic" replace />}
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/variants/:variantId/edit/basic"
+        element={
+          <ProtectedProductPage>
+            <VariantBasicPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/variants/:variantId/edit/price-inventory"
+        element={
+          <ProtectedProductPage>
+            <VariantPriceInventoryPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/variants/:variantId/edit/images"
+        element={
+          <ProtectedProductPage>
+            <VariantImagesPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/variants/:variantId/edit/attributes"
+        element={
+          <ProtectedProductPage>
+            <VariantAttributesPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/variants/:variantId/view"
+        element={
+          <ProtectedProductPage>
+            <VariantViewPage />
           </ProtectedProductPage>
         }
       />

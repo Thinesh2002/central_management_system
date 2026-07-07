@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { KeyRound, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import api, { getApiError } from "../../config/api";
 import { getStoredUser } from "../../config/auth";
+import { usePagePermission } from "../../components/common/permissions/PermissionsProvider";
 import { Link } from "react-router-dom";
 
 const emptyForm = {
@@ -20,6 +21,7 @@ function isLocked(user) {
 
 export default function UsersPage() {
   const currentUser = getStoredUser();
+  const { canEdit, canDelete } = usePagePermission("users");
 
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -385,27 +387,31 @@ export default function UsersPage() {
                     </td>
 
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(user)}
-                        className="mr-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
-                      >
-                        Edit
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(user)}
+                          className="mr-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                        >
+                          Edit
+                        </button>
+                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => removeUser(user)}
-                        disabled={
-                          user.is_master_locked === 1 ||
-                          user.role === "master_admin" ||
-                          user.id === currentUser?.id
-                        }
-                        className="inline-flex items-center gap-2 rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <Trash2 size={15} />
-                        Delete
-                      </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => removeUser(user)}
+                          disabled={
+                            user.is_master_locked === 1 ||
+                            user.role === "master_admin" ||
+                            user.id === currentUser?.id
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Trash2 size={15} />
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

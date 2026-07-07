@@ -13,6 +13,11 @@ router.get(
   accountController.checkSingleAccountToken
 );
 
+router.get("/accounts/:accountId", accountController.getMarketplaceAccountById);
+router.put("/accounts/:accountId", accountController.updateMarketplaceAccount);
+router.patch("/accounts/:accountId", accountController.updateMarketplaceAccount);
+router.delete("/accounts/:accountId", accountController.deleteMarketplaceAccount);
+
 router.post("/tokens/check-all-daraz", accountController.checkAllDarazTokens);
 
 router.post("/accounts/:accountId/manual-sync", syncController.manualSync);

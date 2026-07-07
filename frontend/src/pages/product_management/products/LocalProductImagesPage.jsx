@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ImagePlus,
   RefreshCw,
-  Trash2,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
 import { getStoredUser } from "../../../config/auth";
+import Loader from "../../../components/common/Loader";
 import ProductPageLayout from "./components/ProductPageLayout";
 import { getErrorMessage, normalizeList } from "./utils/productSku";
+import ImageUploadBox from "../../../components/common/image_picker/ImageUploadBox";
+import ImagePickerModal from "../../../components/common/image_picker/ImagePickerModal";
 
 
 function getCurrentUserId() {
@@ -251,66 +253,26 @@ async function validateImage(file) {
   });
 }
 
-function SmallImageBox({ image, label, onPick, onRemove, disabled = false }) {
-  const inputRef = useRef(null);
+function SmallImageBox({
+  image,
+  label,
+  onPick,
+  onSelectExisting,
+  onRemove,
+  disabled = false,
+}) {
   const preview = getImageUrl(image);
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
+    <div className="w-24" title={label}>
+      <ImageUploadBox
+        preview={preview}
+        placeholderSize={18}
         disabled={disabled}
-        onClick={() => inputRef.current?.click()}
-        className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden border border-slate-700 bg-[#0a101d] transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
-        title={label}
-      >
-        {preview ? (
-          <img
-            src={preview}
-            alt={label}
-            className="h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.src =
-                "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
-            }}
-          />
-        ) : (
-          <ImagePlus size={18} className="text-slate-500" />
-        )}
-      </button>
-
-      <div className="min-w-[70px]">
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
-          className="block cursor-pointer text-left text-xs font-bold text-slate-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {preview ? "Edit" : "Add"}
-        </button>
-
-        {preview ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={onRemove}
-            className="mt-1 block cursor-pointer text-left text-xs font-bold text-slate-500 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Remove
-          </button>
-        ) : null}
-      </div>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/gif,image/webp"
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0] || null;
-          event.target.value = "";
-          onPick(file);
-        }}
+        onUploadFile={onPick}
+        onSelectExisting={onSelectExisting}
+        onRemove={onRemove}
+        boxClassName="h-20 w-24"
       />
     </div>
   );
@@ -384,10 +346,9 @@ function ExtraImagesPopup({
   uploading,
   onClose,
   onUploadExtra,
+  onSelectExtra,
   onRemoveExtra,
 }) {
-  const inputRefs = useRef([]);
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
@@ -418,60 +379,18 @@ function ExtraImagesPopup({
 
             return (
               <div key={`popup-extra-${index}`} className="border border-slate-800 bg-[#07101f] p-2">
-                <button
-                  type="button"
+                <p className="mb-1.5 text-center text-[10px] font-bold text-slate-500">
+                  Sub {index + 1}
+                </p>
+
+                <ImageUploadBox
+                  preview={preview}
+                  placeholderSize={18}
                   disabled={uploading}
-                  onClick={() => inputRefs.current[index]?.click()}
-                  className="flex aspect-square w-full cursor-pointer items-center justify-center overflow-hidden border border-slate-700 bg-[#0a101d] hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {preview ? (
-                    <img
-                      src={preview}
-                      alt={`Sub ${index + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-center text-slate-500">
-                      <ImagePlus className="mx-auto mb-1" size={18} />
-                      <p className="text-[11px] font-bold">Sub {index + 1}</p>
-                    </div>
-                  )}
-                </button>
-
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
-                    disabled={uploading}
-                    onClick={() => inputRefs.current[index]?.click()}
-                    className="flex-1 cursor-pointer border border-slate-700 py-1 text-xs font-bold text-slate-300 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {preview ? "Edit" : "Add"}
-                  </button>
-
-                  {preview ? (
-                    <button
-                      type="button"
-                      disabled={uploading}
-                      onClick={() => onRemoveExtra(image, index)}
-                      className="cursor-pointer border border-slate-700 px-2 py-1 text-xs font-bold text-slate-500 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  ) : null}
-                </div>
-
-                <input
-                  ref={(node) => {
-                    inputRefs.current[index] = node;
-                  }}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  hidden
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] || null;
-                    event.target.value = "";
-                    onUploadExtra(file, index);
-                  }}
+                  onUploadFile={(file) => onUploadExtra(file, index)}
+                  onSelectExisting={() => onSelectExtra(index)}
+                  onRemove={() => onRemoveExtra(image, index)}
+                  boxClassName="aspect-square w-full"
                 />
               </div>
             );
@@ -491,6 +410,7 @@ export default function LocalProductImagesPage() {
   const [allImages, setAllImages] = useState([]);
   const [variants, setVariants] = useState([]);
   const [extraPopup, setExtraPopup] = useState(null);
+  const [picker, setPicker] = useState(null);
 
   const parentImages = useMemo(() => {
     return allImages.filter(
@@ -608,10 +528,56 @@ export default function LocalProductImagesPage() {
 
     try {
       setUploadingKey(`delete-${image.id}`);
-      await localProductsApi.deleteImage(image.id);
+      await localProductsApi.deleteImage(image.id, { force: true });
       await loadData();
     } catch (error) {
       alert(getErrorMessage(error, "Unable to remove image."));
+    } finally {
+      setUploadingKey("");
+    }
+  }
+
+  function openPicker(context) {
+    setPicker(context);
+  }
+
+  async function handlePickerSelect(libraryImage) {
+    const context = picker;
+    setPicker(null);
+    if (!context) return;
+
+    const { isMain, sortOrder, existingImage = null, variantId = "" } = context;
+    const uploadKey = `${variantId || "parent"}-${isMain ? "main" : sortOrder}`;
+    setUploadingKey(uploadKey);
+
+    try {
+      const payload = {
+        product_id: productId,
+        is_main: isMain ? 1 : 0,
+        sort_order: sortOrder,
+        image_type: isMain ? "main" : "sub",
+        image_path: libraryImage.image_path,
+        image_url: libraryImage.image_url || libraryImage.image_path,
+        file_name: libraryImage.file_name,
+        file_type: libraryImage.file_type,
+        created_by: getCurrentUserId(),
+        updated_by: getCurrentUserId(),
+      };
+
+      if (variantId) {
+        payload.variant_id = variantId;
+        payload.product_variant_id = variantId;
+      }
+
+      if (existingImage?.id) {
+        await localProductsApi.reassignImage(existingImage.id, payload);
+      } else {
+        await localProductsApi.attachExistingImage(payload);
+      }
+
+      await loadData();
+    } catch (error) {
+      alert(getErrorMessage(error, "Unable to attach selected image."));
     } finally {
       setUploadingKey("");
     }
@@ -655,10 +621,7 @@ export default function LocalProductImagesPage() {
         </div>
 
         {loading ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-slate-500">
-            <RefreshCw size={24} className="animate-spin text-slate-300" />
-            <span className="text-sm font-semibold">Loading product images...</span>
-          </div>
+          <Loader label="Loading product images..." minHeight="320px" />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-[1180px] w-full text-sm">
@@ -696,6 +659,14 @@ export default function LocalProductImagesPage() {
                       onPick={(file) =>
                         uploadFile({
                           file,
+                          isMain: true,
+                          sortOrder: 0,
+                          existingImage: parentImageSet.main,
+                          variantId: "",
+                        })
+                      }
+                      onSelectExisting={() =>
+                        openPicker({
                           isMain: true,
                           sortOrder: 0,
                           existingImage: parentImageSet.main,
@@ -760,6 +731,14 @@ export default function LocalProductImagesPage() {
                                 variantId,
                               })
                             }
+                            onSelectExisting={() =>
+                              openPicker({
+                                isMain: true,
+                                sortOrder: 0,
+                                existingImage: imageSet.main,
+                                variantId,
+                              })
+                            }
                             onRemove={() => removeImage(imageSet.main)}
                           />
                         </td>
@@ -811,9 +790,23 @@ export default function LocalProductImagesPage() {
               variantId: extraPopup.variantId,
             })
           }
+          onSelectExtra={(index) =>
+            openPicker({
+              isMain: false,
+              sortOrder: index + 1,
+              existingImage: extraPopup.images[index],
+              variantId: extraPopup.variantId,
+            })
+          }
           onRemoveExtra={(image) => removeImage(image)}
         />
       ) : null}
+
+      <ImagePickerModal
+        open={Boolean(picker)}
+        onClose={() => setPicker(null)}
+        onSelect={handlePickerSelect}
+      />
     </ProductPageLayout>
   );
 }

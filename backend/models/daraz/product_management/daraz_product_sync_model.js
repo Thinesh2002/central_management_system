@@ -1005,6 +1005,61 @@ async function updateProductLocalLink({
   };
 }
 
+async function updateLocalFields(id, { name, short_description, brand, price, sale_price, quantity } = {}) {
+  const existing = await getPreviewById(id);
+
+  if (!existing) {
+    return { updated: false, reason: "Product not found" };
+  }
+
+  const sets = [];
+  const values = [];
+
+  if (name !== undefined && name !== null) {
+    sets.push("name = ?");
+    values.push(name);
+  }
+
+  if (short_description !== undefined && short_description !== null) {
+    sets.push("short_description = ?");
+    values.push(short_description);
+  }
+
+  if (brand !== undefined && brand !== null && brand !== "") {
+    sets.push("brand = ?");
+    values.push(brand);
+  }
+
+  if (price !== undefined && price !== null) {
+    sets.push("price = ?");
+    values.push(price);
+  }
+
+  if (sale_price !== undefined && sale_price !== null) {
+    sets.push("sale_price = ?");
+    values.push(sale_price);
+  }
+
+  if (quantity !== undefined && quantity !== null) {
+    sets.push("quantity = ?");
+    values.push(quantity);
+  }
+
+  if (!sets.length) {
+    return { updated: false, reason: "No fields to update" };
+  }
+
+  sets.push("last_synced_at = NOW()", "updated_at = NOW()");
+  values.push(id);
+
+  await pool.query(
+    `UPDATE daraz_products SET ${sets.join(", ")} WHERE id = ?`,
+    values
+  );
+
+  return { updated: true, product: await getPreviewById(id) };
+}
+
 async function deletePreviewProduct(id) {
   const product = await getPreviewById(id);
 
@@ -1096,6 +1151,7 @@ module.exports = {
   updateProductSyncStatus,
   updateLocalLink: updateProductLocalLink,
   updateProductLocalLink,
+  updateLocalFields,
   deletePreviewProduct,
   bulkDeleteByAccount,
   countProducts,

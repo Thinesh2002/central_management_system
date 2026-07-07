@@ -1,6 +1,8 @@
-import { AlertTriangle, Loader2, PackageOpen } from "lucide-react";
+import { AlertTriangle, PackageOpen } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import Loader from "../../../../components/common/Loader";
 import LocalProductDescriptionCard from "./components/LocalProductDescriptionCard";
+import LocalProductDarazInfoCard from "./components/LocalProductDarazInfoCard";
 import LocalProductOverviewCard from "./components/LocalProductOverviewCard";
 import LocalProductStockCard from "./components/LocalProductStockCard";
 import LocalProductVariationsCard from "./components/LocalProductVariationsCard";
@@ -48,11 +50,8 @@ export default function LocalProductViewPage() {
         />
 
         {loading && (
-          <section className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-xl border border-slate-800 bg-[#0b1019] shadow-xl shadow-black/20">
-            <Loader2 size={30} className="animate-spin text-orange-400" />
-            <p className="text-sm font-semibold text-slate-300">
-              Loading product details...
-            </p>
+          <section className="rounded-xl border border-slate-800 bg-[#0b1019] shadow-xl shadow-black/20">
+            <Loader label="Loading product details..." minHeight="420px" />
           </section>
         )}
 
@@ -120,6 +119,7 @@ export default function LocalProductViewPage() {
           <div className="space-y-4">
             <LocalProductOverviewCard product={product} />
             <LocalProductDescriptionCard product={product} />
+            <LocalProductDarazInfoCard product={product} />
 
             {/* Parent product only */}
             {showVariations && <LocalProductVariationsCard product={product} />}

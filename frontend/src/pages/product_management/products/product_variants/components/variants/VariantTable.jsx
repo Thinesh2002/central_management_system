@@ -1,12 +1,12 @@
-import { Edit, RefreshCw, Trash2 } from "lucide-react";
+import { Edit, Eye, Trash2 } from "lucide-react";
+import { usePagePermission } from "../../../../../../components/common/permissions/PermissionsProvider";
+import Loader from "../../../../../../components/common/Loader";
 import {
   getRecordId,
   getVariantName,
   getVariantSku,
   getVariantStock,
 } from "../../utils/variantPageHelpers";
-import RowImagePreview from "./RowImagePreview";
-import SubImagesCell from "./SubImagesCell";
 
 function safeText(value, fallback = "-") {
   if (value === null || value === undefined || value === "") {
@@ -49,33 +49,21 @@ function getSellingPrice(variant = {}) {
   return numberValue.toFixed(2);
 }
 
-export default function VariantTable({
-  loading,
-  variants,
-  getVariantImageSet,
-  onEdit,
-  onDelete,
-  onOpenImagePopup,
-}) {
+export default function VariantTable({ loading, variants, onView, onEdit, onDelete }) {
+  const { canEdit, canDelete } = usePagePermission("local_products");
+
   if (loading) {
-    return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-slate-500">
-        <RefreshCw size={24} className="animate-spin text-slate-300" />
-        <span className="text-sm font-semibold">Loading variations...</span>
-      </div>
-    );
+    return <Loader label="Loading variations..." minHeight="320px" />;
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1280px] text-sm">
+      <table className="w-full min-w-[900px] text-sm">
         <thead className="border-b border-slate-800 bg-[#0a101d] text-left text-xs font-black uppercase tracking-wide text-slate-400">
           <tr>
-            <th className="w-[70px] px-3 py-3">Edit</th>
             <th className="w-[150px] px-3 py-3">Colour</th>
             <th className="w-[220px] px-3 py-3">SKU</th>
-            <th className="w-[190px] px-3 py-3">Main Image</th>
-            <th className="w-[270px] px-3 py-3">Sub Images</th>
+            <th className="w-[260px] px-3 py-3">Title</th>
             <th className="w-[150px] px-3 py-3">Selling Price</th>
             <th className="w-[110px] px-3 py-3">Stock</th>
             <th className="w-[160px] px-3 py-3 text-right">Actions</th>
@@ -86,21 +74,9 @@ export default function VariantTable({
           {variants.length ? (
             variants.map((variant, index) => {
               const variantId = getRecordId(variant) || `variant-${index}`;
-              const imageSet = getVariantImageSet(variant);
 
               return (
                 <tr key={variantId} className="hover:bg-slate-900/40">
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      onClick={() => onEdit(variant)}
-                      className="cursor-pointer text-orange-300 transition hover:text-orange-200"
-                      title="Edit variant"
-                    >
-                      <Edit size={17} />
-                    </button>
-                  </td>
-
                   <td className="px-3 py-3">
                     <span className="border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-bold text-slate-300">
                       {safeText(getVariantName(variant))}
@@ -111,43 +87,12 @@ export default function VariantTable({
                     <p className="font-bold text-slate-100">
                       {safeText(getVariantSku(variant))}
                     </p>
-
-                    {variant.size || variant.material ? (
-                      <p className="mt-1 text-xs font-semibold text-slate-500">
-                        {[variant.size, variant.material]
-                          .filter(Boolean)
-                          .map((item) => safeText(item))
-                          .join(" • ")}
-                      </p>
-                    ) : null}
                   </td>
 
                   <td className="px-3 py-3">
-                    <RowImagePreview
-                      image={imageSet.main}
-                      onOpen={() =>
-                        onOpenImagePopup({
-                          mode: "main",
-                          title: safeText(getVariantSku(variant)),
-                          variantId,
-                          imageSet,
-                        })
-                      }
-                    />
-                  </td>
-
-                  <td className="px-3 py-3">
-                    <SubImagesCell
-                      images={imageSet.extras}
-                      onOpen={() =>
-                        onOpenImagePopup({
-                          mode: "sub",
-                          title: safeText(getVariantSku(variant)),
-                          variantId,
-                          imageSet,
-                        })
-                      }
-                    />
+                    <p className="max-w-[250px] truncate font-semibold text-slate-300">
+                      {safeText(variant.variant_name, "-")}
+                    </p>
                   </td>
 
                   <td className="px-3 py-3 font-bold text-emerald-300">
@@ -159,24 +104,37 @@ export default function VariantTable({
                   </td>
 
                   <td className="px-3 py-3">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1.5">
                       <button
                         type="button"
-                        onClick={() => onEdit(variant)}
-                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-sky-500/40 bg-sky-500/10 text-sky-300 transition hover:bg-sky-500/20 hover:text-sky-200"
-                        title="Edit variant"
+                        onClick={() => onView(variant)}
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-slate-700 text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
+                        title="View variant"
                       >
-                        <Edit size={15} />
+                        <Eye size={14} />
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => onDelete(variant)}
-                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-rose-500/40 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200"
-                        title="Delete variant"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => onEdit(variant)}
+                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-sky-500/40 bg-sky-500/10 text-sky-300 transition hover:bg-sky-500/20 hover:text-sky-200"
+                          title="Edit variant"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
+
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(variant)}
+                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-rose-500/40 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200"
+                          title="Delete variant"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -184,7 +142,7 @@ export default function VariantTable({
             })
           ) : (
             <tr>
-              <td colSpan="8" className="px-3 py-10 text-center text-slate-500">
+              <td colSpan="6" className="px-3 py-10 text-center text-slate-500">
                 No variants yet. Click Add Variant to create child SKU.
               </td>
             </tr>

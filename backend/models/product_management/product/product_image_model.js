@@ -330,6 +330,31 @@ async function list(params = {}) {
   };
 }
 
+async function findByImagePath(imagePath, excludeId = null) {
+  const meta = await getTableMeta();
+
+  if (!imagePath || !hasColumn(meta, "image_path")) return [];
+
+  const where = [`${qid("image_path")} = ?`];
+  const values = [imagePath];
+
+  if (hasColumn(meta, "deleted_at")) {
+    where.push(`${qid("deleted_at")} IS NULL`);
+  }
+
+  if (excludeId) {
+    where.push(`${qid(meta.primaryKey)} != ?`);
+    values.push(excludeId);
+  }
+
+  const [rows] = await db.query(
+    `SELECT * FROM ${qid(TABLE_NAME)} WHERE ${where.join(" AND ")}`,
+    values
+  );
+
+  return rows;
+}
+
 async function findById(id) {
   const meta = await getTableMeta();
 
@@ -436,6 +461,56 @@ async function removeById(id, options = {}) {
   return existing;
 }
 
+function normalizeSkuKey(value) {
+  return String(value || "").trim().toUpperCase();
+}
+
+async function getAssignedLookup() {
+  // Local products/variants have no main_image column — SKU is the
+  // system-wide key here, not product_id, so local assignment is
+  // determined by matching product_images.sku against live SKUs, not
+  // by an image-URL column on `products`.
+  const [productSkuRows] = await db.query(
+    `SELECT sku FROM products WHERE deleted_at IS NULL AND sku IS NOT NULL AND sku <> ''`
+  );
+
+  const [variantSkuRows] = await db.query(
+    `SELECT variant_sku FROM product_variants WHERE deleted_at IS NULL AND variant_sku IS NOT NULL AND variant_sku <> ''`
+  );
+
+  const [darazRows] = await db.query(
+    `SELECT main_image FROM daraz_products WHERE main_image IS NOT NULL AND main_image <> ''`
+  );
+
+  const [wooRows] = await db.query(
+    `SELECT image_src FROM woo_product_images WHERE image_src IS NOT NULL AND image_src <> ''`
+  );
+
+  const urls = new Set();
+  darazRows.forEach((row) => urls.add(row.main_image));
+  wooRows.forEach((row) => urls.add(row.image_src));
+
+  const skus = new Set();
+  productSkuRows.forEach((row) => skus.add(normalizeSkuKey(row.sku)));
+  variantSkuRows.forEach((row) => skus.add(normalizeSkuKey(row.variant_sku)));
+
+  return { urls, skus };
+}
+
+function isAssigned(row, assignedLookup) {
+  if (!row) return false;
+  if (row.product_id) return true;
+  if (row.variant_id) return true;
+
+  const lookup = assignedLookup || { urls: new Set(), skus: new Set() };
+
+  if (row.sku && lookup.skus.has(normalizeSkuKey(row.sku))) return true;
+  if (row.image_url && lookup.urls.has(row.image_url)) return true;
+  if (row.image_path && lookup.urls.has(row.image_path)) return true;
+
+  return false;
+}
+
 async function insertMatching(payload = {}) {
   const meta = await getTableMeta();
 
@@ -462,9 +537,12 @@ module.exports = {
   tableName: TABLE_NAME,
   list,
   findById,
+  findByImagePath,
   create,
   updateById,
   removeById,
   insertMatching,
   clearTableMetaCache,
+  getAssignedLookup,
+  isAssigned,
 };

@@ -120,6 +120,17 @@ function normalizeNullableId(value) {
 function normalizeProductPayload(meta, payload = {}) {
   const normalized = { ...payload };
 
+  // The DB column is `product_name`, but the frontend forms use `title` —
+  // without this alias the title silently never persists (dropped by
+  // pickAllowedData since "title" isn't a real column).
+  if (hasColumn(meta, "product_name")) {
+    const productName = payload.product_name ?? payload.title ?? payload.name;
+
+    if (productName !== undefined) {
+      normalized.product_name = productName;
+    }
+  }
+
   if (hasColumn(meta, "category_id")) {
     normalized.category_id = normalizeNullableId(
       payload.category_id ?? payload.product_category_id ?? payload.categoryId
@@ -175,8 +186,14 @@ function normalizeProductResponse(product = {}) {
     product.subcategory_id ??
     null;
 
+  const productName = product.product_name ?? product.title ?? product.name ?? "";
+
   return {
     ...product,
+
+    title: productName,
+    name: productName,
+    product_name: productName,
 
     category_id: categoryId,
     product_category_id: categoryId,

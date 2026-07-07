@@ -18,14 +18,21 @@ function errorHandler(error, req, res, next) {
   if (error.code === "ER_NO_SUCH_TABLE") {
     return res.status(500).json({
       success: false,
-      message: "Database table missing. Please import backend/database/cm_auth_management.sql again.",
+      message: "Database table missing. Please run 'npm run setup-db' in backend/ to create the required tables.",
     });
   }
 
   if (error.code === "ER_BAD_FIELD_ERROR") {
     return res.status(500).json({
       success: false,
-      message: "Database column mismatch. Please use the corrected cm_auth_management.sql file.",
+      message: "Database column mismatch. Please run 'npm run setup-db' in backend/ to refresh the schema.",
+    });
+  }
+
+  if (error.code === "ECONNREFUSED" || error.code === "PROTOCOL_CONNECTION_LOST") {
+    return res.status(503).json({
+      success: false,
+      message: "Cannot connect to the database. Please check that MySQL is running and .env DB settings are correct.",
     });
   }
 

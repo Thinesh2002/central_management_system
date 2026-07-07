@@ -5,6 +5,8 @@ import localProductsApi from "../../../config/sub_api/product_management_api/loc
 import { getStoredUser } from "../../../config/auth";
 import ProductPageLayout from "./components/ProductPageLayout";
 import { getErrorMessage, normalizeList } from "./utils/productSku";
+import { useToast } from "../../../components/common/toast/ToastProvider";
+import Loader from "../../../components/common/Loader";
 
 
 function getCurrentUserId() {
@@ -296,6 +298,7 @@ function DarkSelect({ value, onChange, children, disabled = false }) {
 
 export default function LocalProductPriceInventoryPage() {
   const { productId } = useParams();
+  const showToast = useToast();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -489,7 +492,7 @@ export default function LocalProductPriceInventoryPage() {
         await localProductsApi.createInventory(inventoryPayload);
       }
 
-      alert("Inventory saved successfully.");
+      showToast("Inventory saved successfully.");
       await loadData();
     } catch (error) {
       alert(getErrorMessage(error, "Unable to save inventory."));
@@ -545,10 +548,7 @@ export default function LocalProductPriceInventoryPage() {
         </div>
 
         {loading ? (
-          <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 text-slate-500">
-            <RefreshCw size={24} className="animate-spin text-slate-300" />
-            <span className="text-sm font-semibold">Loading inventory...</span>
-          </div>
+          <Loader label="Loading inventory..." minHeight="360px" />
         ) : (
           <div className={`p-4 ${!canEdit ? "pointer-events-none opacity-50" : ""}`}>
             <FieldRow label="SKU / Apply To" locked>

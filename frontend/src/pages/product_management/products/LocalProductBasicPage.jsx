@@ -3,7 +3,9 @@ import { RefreshCw, Save } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
 import { getStoredUser } from "../../../config/auth";
+import Loader from "../../../components/common/Loader";
 import ProductPageLayout from "./components/ProductPageLayout";
+import { RichTextField } from "../../../components/common/rich_text_editor/RichTextEditor";
 import {
   generateProductSku,
   getCode,
@@ -12,6 +14,8 @@ import {
   makeSlug,
   normalizeList,
 } from "./utils/productSku";
+import { resolveImageUrl } from "./product_dashboard/utils/localProductsImageHelpers";
+import { useToast } from "../../../components/common/toast/ToastProvider";
 
 function unwrapOne(response) {
   const data = response?.data?.data ?? response?.data ?? response;
@@ -272,25 +276,6 @@ function setProductModelId(prev, value) {
   };
 }
 
-function subCategoryBelongsToCategory(subCategory, categoryId) {
-  if (!categoryId) return true;
-
-  const possibleIds = [
-    subCategory?.category_id,
-    subCategory?.product_category_id,
-    subCategory?.parent_category_id,
-    subCategory?.categoryId,
-    subCategory?.category?.id,
-    subCategory?.category?.category_id,
-  ]
-    .map(asText)
-    .filter(Boolean);
-
-  if (!possibleIds.length) return true;
-
-  return possibleIds.some((value) => isSame(value, categoryId));
-}
-
 function findByFlexibleId(list, value) {
   const searchValue = asText(value);
 
@@ -312,7 +297,7 @@ function DarkInput({
     <label className="block">
       <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
         {label}
-        {required ? <span className="text-amber-300"> *</span> : null}
+        {required ? <span className="text-orange-300"> *</span> : null}
       </span>
       <input
         type={type}
@@ -321,24 +306,7 @@ function DarkInput({
         required={required}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-2xl border border-slate-800 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400"
-      />
-    </label>
-  );
-}
-
-function DarkTextarea({ label, value, onChange, rows = 4, placeholder = "" }) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
-        {label}
-      </span>
-      <textarea
-        rows={rows}
-        value={value ?? ""}
-        placeholder={placeholder}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full resize-y rounded-2xl border border-slate-800 bg-[#070b16] px-3 py-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400"
+        className="h-11 w-full border border-slate-800 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-orange-400"
       />
     </label>
   );
@@ -356,14 +324,14 @@ function DarkSelect({
     <label className="block">
       <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-slate-500">
         {label}
-        {required ? <span className="text-amber-300"> *</span> : null}
+        {required ? <span className="text-orange-300"> *</span> : null}
       </span>
       <select
         value={value ?? ""}
         required={required}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full cursor-pointer rounded-2xl border border-slate-800 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-11 w-full cursor-pointer border border-slate-800 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {children}
       </select>
@@ -373,9 +341,21 @@ function DarkSelect({
 
 export default function LocalProductBasicPage() {
   const { productId } = useParams();
+  const showToast = useToast();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  async function handleUploadDescriptionImage(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("product_id", productId);
+
+    const response = await localProductsApi.uploadImage(formData);
+    const created = response?.data?.data || response?.data;
+    const rawUrl = created?.image_url || created?.url || created?.image_path || "";
+    return resolveImageUrl(rawUrl);
+  }
 
   const [product, setProduct] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -434,10 +414,17 @@ export default function LocalProductBasicPage() {
   }, [productId]);
 
   const filteredSubCategories = useMemo(() => {
-    return subCategories.filter((item) =>
-      subCategoryBelongsToCategory(item, categoryValue)
+    if (!categoryValue) return [];
+
+    const category = findByFlexibleId(categories, categoryValue);
+    const categoryCode = asText(category?.category_code);
+
+    if (!categoryCode) return [];
+
+    return subCategories.filter(
+      (item) => asText(item?.category_code) === categoryCode
     );
-  }, [subCategories, categoryValue]);
+  }, [subCategories, categories, categoryValue]);
 
   const selectedModelExists = useMemo(() => {
     if (!modelValue) return true;
@@ -565,7 +552,7 @@ export default function LocalProductBasicPage() {
       setProduct(updated);
       setForm(updated);
 
-      alert("Product basic details updated successfully.");
+      showToast("Product basic details updated successfully.");
     } catch (error) {
       alert(getErrorMessage(error, "Unable to update product."));
     } finally {
@@ -586,13 +573,10 @@ export default function LocalProductBasicPage() {
         className="rounded-3xl border border-slate-800 bg-[#0b1220] p-5 text-slate-100 shadow-xl shadow-black/10"
       >
         {loading ? (
-          <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-slate-500">
-            <RefreshCw size={24} className="animate-spin text-amber-300" />
-            <span className="text-sm font-semibold">Loading product...</span>
-          </div>
+          <Loader label="Loading product..." minHeight="260px" />
         ) : (
           <>
-            <div className="mb-4 rounded-2xl border border-slate-800 bg-[#070b16] p-4">
+            <div className="mb-4 border border-slate-800 bg-[#070b16] p-4">
               <div className="grid grid-cols-1 gap-3 text-xs font-bold text-slate-400 md:grid-cols-4">
                 <div>
                   <p className="uppercase tracking-wide text-slate-500">Category Code</p>
@@ -721,20 +705,24 @@ export default function LocalProductBasicPage() {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4">
-              <DarkTextarea
+              <RichTextField
                 label="Short Description"
                 value={form.short_description}
                 onChange={(value) => updateField("short_description", value)}
-                rows={2}
-                placeholder="Short product description"
+                minHeight={90}
+                placeholder="Short product description (shown on listing cards)..."
+                onUploadImage={handleUploadDescriptionImage}
+                hint="HTML"
               />
 
-              <DarkTextarea
+              <RichTextField
                 label="Description"
                 value={form.description}
                 onChange={(value) => updateField("description", value)}
-                rows={5}
-                placeholder="Full product description"
+                minHeight={220}
+                placeholder="Full product description — formatting, images, links and tables are supported..."
+                onUploadImage={handleUploadDescriptionImage}
+                hint="HTML"
               />
             </div>
 
@@ -742,21 +730,21 @@ export default function LocalProductBasicPage() {
               <button
                 type="button"
                 onClick={() => regenerateSku()}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-800 bg-[#070b16] px-5 py-3 text-sm font-black text-slate-300 transition hover:border-amber-400 hover:text-amber-300"
+                className="inline-flex h-10 cursor-pointer items-center gap-2 border border-slate-800 bg-[#070b16] px-4 text-sm font-bold text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={15} />
                 Regenerate SKU
               </button>
 
               <button
                 disabled={saving}
                 type="submit"
-                className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 cursor-pointer items-center gap-2 bg-orange-500 px-4 text-sm font-bold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? (
-                  <RefreshCw size={16} className="animate-spin" />
+                  <RefreshCw size={15} className="animate-spin" />
                 ) : (
-                  <Save size={16} />
+                  <Save size={15} />
                 )}
                 {saving ? "Saving..." : "Save Basic Details"}
               </button>

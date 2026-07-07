@@ -154,6 +154,165 @@ async function createMarketplaceAccount(req, res) {
   }
 }
 
+async function getMarketplaceAccountById(req, res) {
+  try {
+    const { accountId } = req.params;
+
+    const account = await accountModel.getAccountById(accountId);
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: "Marketplace account not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Marketplace account fetched successfully.",
+      data: account,
+    });
+  } catch (error) {
+    console.error("[GET_MARKETPLACE_ACCOUNT_ERROR]:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch marketplace account.",
+    });
+  }
+}
+
+async function updateMarketplaceAccount(req, res) {
+  try {
+    const { accountId } = req.params;
+    const body = req.body || {};
+
+    const existing = await accountModel.getAccountById(accountId);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Marketplace account not found.",
+      });
+    }
+
+    const updatedAccount = await accountModel.updateAccount(accountId, {
+      account_uid: body.account_uid,
+      account_name: body.account_name,
+      account_code: body.account_code,
+      country_code: body.country_code,
+      seller_id: body.seller_id,
+      seller_email: body.seller_email,
+      store_url: body.store_url,
+      api_base_url: body.api_base_url,
+      is_sandbox: body.is_sandbox,
+    });
+
+    const normalizedPlatform = String(
+      existing.platform_code || body.platform_code || ""
+    ).toUpperCase();
+
+    if (normalizedPlatform === "DARAZ") {
+      const hasDarazCredentialUpdate =
+        body.app_key ||
+        body.app_secret ||
+        body.access_token ||
+        body.refresh_token;
+
+      if (hasDarazCredentialUpdate) {
+        await credentialModel.upsertDarazCredentials({
+          account_id: accountId,
+          app_key: cleanValue(body.app_key),
+          app_secret: cleanValue(body.app_secret),
+          access_token: cleanValue(body.access_token),
+          refresh_token: cleanValue(body.refresh_token),
+          access_token_expires_at: cleanValue(body.access_token_expires_at),
+          refresh_token_expires_at: cleanValue(body.refresh_token_expires_at),
+          token_status: body.access_token ? "valid" : "not_created",
+        });
+
+        await accountModel.upsertAccountHealth(accountId, "DARAZ", {
+          connection_status: body.access_token ? "connected" : "not_connected",
+          token_status: body.access_token ? "valid" : "not_created",
+          last_error: null,
+        });
+      }
+    }
+
+    if (normalizedPlatform === "WOO" || normalizedPlatform === "WOOCOMMERCE") {
+      const hasWooCredentialUpdate = body.consumer_key || body.consumer_secret;
+
+      if (hasWooCredentialUpdate) {
+        await credentialModel.upsertCredentials({
+          account_id: accountId,
+          credential_type: "woocommerce_keys",
+          consumer_key: cleanValue(body.consumer_key),
+          consumer_secret: cleanValue(body.consumer_secret),
+          token_status:
+            body.consumer_key && body.consumer_secret
+              ? "valid"
+              : "not_created",
+        });
+
+        await accountModel.upsertAccountHealth(accountId, normalizedPlatform, {
+          connection_status:
+            body.consumer_key && body.consumer_secret
+              ? "connected"
+              : "not_connected",
+          token_status:
+            body.consumer_key && body.consumer_secret
+              ? "valid"
+              : "not_created",
+          last_error: null,
+        });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Marketplace account updated successfully.",
+      data: updatedAccount,
+    });
+  } catch (error) {
+    console.error("[UPDATE_MARKETPLACE_ACCOUNT_ERROR]:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update marketplace account.",
+    });
+  }
+}
+
+async function deleteMarketplaceAccount(req, res) {
+  try {
+    const { accountId } = req.params;
+
+    const existing = await accountModel.getAccountById(accountId);
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Marketplace account not found.",
+      });
+    }
+
+    await accountModel.deleteAccount(accountId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Marketplace account deleted successfully.",
+      data: { account_id: accountId },
+    });
+  } catch (error) {
+    console.error("[DELETE_MARKETPLACE_ACCOUNT_ERROR]:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete marketplace account.",
+    });
+  }
+}
+
 async function listMarketplaceAccounts(req, res) {
   try {
     const platformCode =
@@ -312,6 +471,9 @@ async function handleDarazOAuthCallback(req, res) {
 
 module.exports = {
   createMarketplaceAccount,
+  getMarketplaceAccountById,
+  updateMarketplaceAccount,
+  deleteMarketplaceAccount,
   listMarketplaceAccounts,
   checkSingleAccountToken,
   checkAllDarazTokens,

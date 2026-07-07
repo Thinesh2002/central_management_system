@@ -1,4 +1,5 @@
-import { Image as ImageIcon, Loader2 } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
+import Loader from "../../../../../components/common/Loader";
 import { getStableProductKey } from "../utils/localProductsTableHelpers";
 import ProductRow from "./ProductRow";
 
@@ -27,13 +28,8 @@ function EmptyProductsRow() {
 function LoadingProductsRow() {
   return (
     <tr>
-      <td colSpan={TABLE_COL_SPAN} className="px-3 py-14 text-center text-slate-400">
-        <div className="flex flex-col items-center justify-center gap-3">
-          <Loader2 size={24} className="animate-spin text-orange-400" />
-          <span className="text-[12px] font-medium text-orange-200">
-            Loading products...
-          </span>
-        </div>
+      <td colSpan={TABLE_COL_SPAN} className="px-3 py-10">
+        <Loader label="Loading products..." minHeight="0" />
       </td>
     </tr>
   );
@@ -51,6 +47,7 @@ export default function ProductsTable({
   toggleExpanded,
   goToProductSection,
   handleDelete,
+  handleDeleteVariant,
   setImagePreview,
 }) {
   return (
@@ -107,6 +104,7 @@ export default function ProductsTable({
                     toggleExpanded={toggleExpanded}
                     goToProductSection={goToProductSection}
                     handleDelete={handleDelete}
+                    handleDeleteVariant={handleDeleteVariant}
                     setImagePreview={setImagePreview}
                   />
                 );

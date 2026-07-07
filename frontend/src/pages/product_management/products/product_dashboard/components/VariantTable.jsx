@@ -1,3 +1,6 @@
+import { Edit, Eye, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -172,7 +175,11 @@ export default function VariantTable({
   productKey,
   productImages,
   setImagePreview,
+  onDeleteVariant,
 }) {
+  const navigate = useNavigate();
+  const { canEdit, canDelete } = usePagePermission("local_products");
+
   if (!variants.length) {
     return (
       <div className="border border-dashed border-slate-700 bg-[#111827] px-4 py-4 text-[12px] text-slate-400">
@@ -187,11 +194,12 @@ export default function VariantTable({
         <table className="w-full min-w-full table-fixed border-collapse text-[11px]">
           <colgroup>
             <col className="w-[90px]" />
-            <col className="w-[38%]" />
-            <col className="w-[26%]" />
+            <col className="w-[32%]" />
+            <col className="w-[22%]" />
             <col className="w-[110px]" />
             <col className="w-[130px]" />
-            <col className="w-[130px]" />
+            <col className="w-[110px]" />
+            <col className="w-[120px]" />
           </colgroup>
 
           <thead className="border-b border-slate-600 bg-[#1b2a3a] text-left text-[10px] font-semibold uppercase tracking-wide text-yellow-300">
@@ -202,6 +210,7 @@ export default function VariantTable({
               <th className="px-3 py-3 text-center">Stock</th>
               <th className="px-3 py-3 text-right">Price</th>
               <th className="px-3 py-3 text-center">Status</th>
+              <th className="px-3 py-3 text-right">Actions</th>
             </tr>
           </thead>
 
@@ -241,7 +250,7 @@ export default function VariantTable({
                           image: variantImage,
                         })
                       }
-                      className="h-10 w-10 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition hover:ring-cyan-400"
+                      className="h-14 w-14 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition hover:ring-cyan-400"
                       title="View variant image"
                     >
                       <img
@@ -265,12 +274,20 @@ export default function VariantTable({
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    <span
-                      className="block truncate text-[11px] font-normal text-slate-200"
-                      title={variantSku}
-                    >
-                      {variantSku || "-"}
-                    </span>
+                    {variantSku ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(`/order-management/sku-report/${encodeURIComponent(variantSku)}`)
+                        }
+                        className="block w-full cursor-pointer truncate text-left text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
+                        title={`View SKU report for ${variantSku}`}
+                      >
+                        {variantSku}
+                      </button>
+                    ) : (
+                      <span className="block truncate text-[11px] font-normal text-slate-200">-</span>
+                    )}
                   </td>
 
                   <td className="px-3 py-3 text-center align-middle">
@@ -289,6 +306,49 @@ export default function VariantTable({
                     <span className="text-[11px] font-normal text-slate-200">
                       {status}
                     </span>
+                  </td>
+
+                  <td className="px-3 py-3 align-middle">
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            `/product/local-products/edit/${productId}/variants/${variantId}/view`
+                          )
+                        }
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-slate-700 text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
+                        title="View variant"
+                      >
+                        <Eye size={14} />
+                      </button>
+
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/product/local-products/edit/${productId}/variants/${variantId}/edit/basic`
+                            )
+                          }
+                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-sky-500/40 bg-sky-500/10 text-sky-300 transition hover:bg-sky-500/20 hover:text-sky-200"
+                          title="Edit variant"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
+
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteVariant && onDeleteVariant(variant)}
+                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-rose-500/40 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200"
+                          title="Delete variant"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

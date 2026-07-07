@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   myMenu,
+  myPermissions,
   pages,
   allPages,
   pageByPath,
@@ -17,6 +18,7 @@ const { requirePermission } = require("../middleware/access");
 const router = express.Router();
 
 router.get("/my-menu", protect, myMenu);
+router.get("/my-permissions", protect, myPermissions);
 router.get("/pages", protect, requirePermission("access_control", "view"), pages);
 router.get("/pages/all", protect, requirePermission("access_control", "view"), allPages);
 router.get("/page-by-path", protect, pageByPath);

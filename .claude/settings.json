@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(node -e ' *)",
+      "Bash(node --check controllers/product_management/product/product_image_controller.js)",
+      "Bash(node --check models/product_management/product/product_image_model.js)",
+      "Bash(grep -A1 -B1 \"product_images\\\\|BIGINT UNSIGNED NULL,$\")",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright --version)"
+    ]
+  }
+}

@@ -4,6 +4,7 @@ import {
   normalizeArray,
   valueOf,
 } from "../utils/localProductViewHelpers";
+import { sanitizeHtml } from "../../../../../utils/sanitizeHtml";
 
 function InfoRow({ label, value }) {
   return (
@@ -179,9 +180,10 @@ export default function LocalProductDescriptionCard({ product = {} }) {
         <h2 className="text-sm font-semibold text-slate-100">Description</h2>
 
         {description ? (
-          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-300">
-            {description}
-          </p>
+          <div
+            className="mt-3 max-w-none text-sm leading-6 text-slate-300"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }}
+          />
         ) : (
           <p className="mt-3 text-sm text-slate-500">No description added.</p>
         )}

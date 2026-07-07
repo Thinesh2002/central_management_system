@@ -21,6 +21,8 @@ router.patch("/status/:id", darazProductSyncController.updateSyncStatus);
 
 router.patch("/local-link/:id", darazProductSyncController.updateLocalLink);
 
+router.put("/edit/:id", darazProductSyncController.updateProduct);
+
 router.delete("/delete/:id", darazProductSyncController.deletePreviewProduct);
 
 router.delete("/bulk-delete", darazProductSyncController.bulkDeleteByAccount);

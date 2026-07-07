@@ -12,7 +12,7 @@ export default function ImagePreviewModal({ imagePreview, onClose }) {
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+        className="flex w-full max-w-[720px] flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between bg-violet-600 px-5 py-4 text-white">
@@ -36,7 +36,7 @@ export default function ImagePreviewModal({ imagePreview, onClose }) {
         </div>
 
         <div className="flex justify-center bg-[#0b1220] px-5 py-5">
-          <div className="flex h-[540px] w-[540px] max-h-[65vh] max-w-full items-center justify-center overflow-hidden rounded-xl border border-slate-700 bg-white">
+          <div className="flex h-[540px] w-[540px] max-h-[65vh] max-w-full items-center justify-center overflow-hidden border border-slate-700 bg-white">
             <img
               src={imageUrl}
               alt={imagePreview.title || "Product"}

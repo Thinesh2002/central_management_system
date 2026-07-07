@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
+import Loader from "../../../components/common/Loader";
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-[#070B14] px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/70 focus:ring-2 focus:ring-yellow-400/10";
@@ -341,9 +342,8 @@ export default function EditMarketplaceAccountPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070B14] text-slate-400">
-        <Loader2 size={22} className="mr-2 animate-spin text-yellow-300" />
-        Loading account...
+      <div className="min-h-screen bg-[#070B14]">
+        <Loader label="Loading account..." minHeight="100vh" />
       </div>
     );
   }

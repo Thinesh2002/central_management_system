@@ -21,6 +21,21 @@ button, input, select {
   font: inherit;
 }
 
+/* Clickable elements always show a pointer cursor, site-wide,
+   without needing a cursor-pointer class on every button/link. */
+button:not(:disabled),
+a[href],
+[role="button"],
+select,
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 .card {
   @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
 }
@@ -87,4 +102,41 @@ html {
 /* Remove scrollbar corner white box */
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* ================================
+   Global Loader (12-step fading spinner)
+   Off-white / grey — used app-wide for
+   page and section loading states.
+================================ */
+.loader {
+  width: 50px;
+  aspect-ratio: 1;
+  display: grid;
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg ,rgb(148 163 184/50%) 30%,#0000 0 70%,rgb(226 232 240/100%) 0) 50%/8% 100%,
+    linear-gradient(90deg,rgb(148 163 184/25%) 30%,#0000 0 70%,rgb(226 232 240/75%) 0) 50%/100% 8%;
+  background-repeat: no-repeat;
+  animation: l23 1s infinite steps(12);
+}
+.loader::before,
+.loader::after {
+   content: "";
+   grid-area: 1/1;
+   border-radius: 50%;
+   background: inherit;
+   opacity: 0.915;
+   transform: rotate(30deg);
+}
+.loader::after {
+   opacity: 0.83;
+   transform: rotate(60deg);
+}
+@keyframes l23 {
+  100% {transform: rotate(1turn)}
+}
+
+.loader-sm {
+  width: 28px;
 }

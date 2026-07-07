@@ -28,11 +28,6 @@ const PRODUCT_TABS = [
     label: "Attributes",
     path: (productId) => `/product/local-products/edit/${productId}/attributes`,
   },
-  {
-    key: "logs",
-    label: "Logs",
-    path: (productId) => `/product/local-products/edit/${productId}/logs`,
-  },
 ];
 
 function getProductTitle(product) {

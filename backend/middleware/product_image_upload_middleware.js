@@ -142,4 +142,7 @@ module.exports = {
 
   MAX_MEGAPIXELS,
   MAX_PIXELS,
+
+  uploadDir,
+  safeFileName,
 };

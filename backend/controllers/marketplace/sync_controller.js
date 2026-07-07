@@ -6,6 +6,7 @@ const allowedSyncTypes = [
   "price",
   "images",
   "categories",
+  "brands",
   "full_sync",
 ];
 

@@ -16,6 +16,11 @@ async function myMenu(req, res) {
   return res.json({ success: true, menu });
 }
 
+async function myPermissions(req, res) {
+  const pages = await accessModel.getUserPermissionMatrix(req.user);
+  return res.json({ success: true, pages });
+}
+
 async function pages(req, res) {
   const pages = await accessModel.listPages({ includeInactive: false });
   return res.json({ success: true, actions: accessModel.ACTIONS, pages });
@@ -166,6 +171,7 @@ async function syncPermissions(req, res) {
 
 module.exports = {
   myMenu,
+  myPermissions,
   pages,
   allPages,
   pageByPath,

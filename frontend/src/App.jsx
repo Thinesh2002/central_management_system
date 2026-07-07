@@ -12,6 +12,7 @@ import DarazProductRoute from "./routes/Daraz/product_management/index";
 import WooProductsRoutes from "./routes/woo/product_management/index";
 import InventoryPage from "./pages/inventory/InventoryPage";
 import PriceDashboardPage from "./pages/price/PriceDashboardPage";
+import OrderManagementRoutes from "./routes/order_management/index";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./config/ProtectedRoute";
@@ -141,7 +142,8 @@ export default function App() {
 
       {WooProductsRoutes()}
 
-      
+      {OrderManagementRoutes()}
+
       {/* Unknown pages */}
       <Route
         path="*"

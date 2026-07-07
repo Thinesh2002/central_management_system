@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { getStoredUser } from "../config/auth";
+import { useAccessMenu } from "../hooks/useAccessMenu";
+import { canAccessPage } from "../utils/accessMenu";
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +12,7 @@ import {
   BarChart3,
   FilePlus2,
   Grid3X3,
+  Image,
   Boxes,
   ShoppingBag,
   Store,
@@ -32,6 +36,7 @@ const iconMap = {
   BarChart3,
   FilePlus2,
   Grid3X3,
+  Image,
   Boxes,
   ShoppingBag,
   Store,
@@ -51,6 +56,7 @@ const staticMenu = [
   {
     section: "PRODUCT MANAGEMENT",
     page_key: "products",
+    pageKeys: ["products", "local_products"],
     page_name: "Local Products",
     path: "/product/local-products",
     icon: "BarChart3",
@@ -59,6 +65,7 @@ const staticMenu = [
   {
     section: "PRODUCT MANAGEMENT",
     page_key: "add_product",
+    pageKeys: ["add_product", "local_products"],
     page_name: "Add Product",
     path: "/product/local-products/create",
     icon: "FilePlus2",
@@ -66,23 +73,16 @@ const staticMenu = [
   },
   {
     section: "PRODUCT MANAGEMENT",
-    page_key: "daraz_products",
-    page_name: "Daraz Products",
-    path: "/product/daraz-products",
-    icon: "ShoppingBag",
-    exact: true,
-  },
-  {
-    section: "PRODUCT MANAGEMENT",
-    page_key: "woo_products",
-    page_name: "WooCommerce Products",
-    path: "/product/woo-products",
-    icon: "Store",
+    page_key: "images_dashboard",
+    page_name: "Images Dashboard",
+    path: "/product/images",
+    icon: "Image",
     exact: true,
   },
   {
     section: "PRODUCT MANAGEMENT",
     page_key: "category_master",
+    pageKeys: ["category_master", "categories"],
     page_name: "Category / Code Master",
     path: "/product/categories",
     icon: "Grid3X3",
@@ -91,14 +91,49 @@ const staticMenu = [
   {
     section: "PRODUCT MANAGEMENT",
     page_key: "colour_master",
+    pageKeys: ["colour_master", "colours"],
     page_name: "Colours",
     path: "/product/colours",
     icon: "Palette",
     exact: true,
   },
   {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "marketplace_accounts",
+    page_name: "Marketplace Accounts",
+    path: "/marketplace/accounts",
+    icon: "Store",
+    exact: true,
+  },
+  {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "daraz_products",
+    page_name: "Daraz Products",
+    path: "/product/daraz-products",
+    icon: "ShoppingBag",
+    exact: true,
+  },
+  {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "woo_products",
+    page_name: "WooCommerce Products",
+    path: "/product/woo-products",
+    icon: "Store",
+    exact: true,
+  },
+  {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "daraz_sync_logs",
+    pageKeys: ["daraz_sync_logs", "sync_logs"],
+    page_name: "Sync Logs",
+    path: "/product/sync-logs",
+    icon: "ScrollText",
+    exact: true,
+  },
+  {
     section: "INVENTORY MANAGEMENT",
     page_key: "inventory_dashboard",
+    pageKeys: ["inventory_dashboard", "inventory"],
     page_name: "Inventory Dashboard",
     path: "/inventory",
     icon: "ClipboardList",
@@ -107,6 +142,7 @@ const staticMenu = [
   {
     section: "INVENTORY MANAGEMENT",
     page_key: "inventory_add_modify",
+    pageKeys: ["inventory_add_modify", "inventory"],
     page_name: "Add / Modify Inventory",
     path: "/inventory/modify",
     icon: "Boxes",
@@ -115,25 +151,10 @@ const staticMenu = [
   {
     section: "PRICE MANAGEMENT",
     page_key: "price_dashboard",
+    pageKeys: ["price_dashboard", "pricing"],
     page_name: "Price Dashboard",
     path: "/price",
     icon: "DollarSign",
-    exact: true,
-  },
-  {
-    section: "LISTING MANAGEMENT",
-    page_key: "daraz_sync_logs",
-    page_name: "Sync Logs",
-    path: "/product/sync-logs",
-    icon: "ScrollText",
-    exact: true,
-  },
-  {
-    section: "ACCOUNT MANAGEMENT",
-    page_key: "marketplace_accounts",
-    page_name: "Marketplace Accounts",
-    path: "/marketplace/accounts",
-    icon: "Store",
     exact: true,
   },
   {
@@ -147,6 +168,7 @@ const staticMenu = [
   {
     section: "SYSTEM",
     page_key: "system_logs",
+    pageKeys: ["system_logs", "logs"],
     page_name: "System Logs",
     path: "/logs",
     icon: "ScrollText",
@@ -168,8 +190,16 @@ function groupMenu(menuItems) {
 }
 
 export default function Sidebar({ open, onClose }) {
+  const user = getStoredUser();
+  const accessMenu = useAccessMenu();
   const [menu] = useState(staticMenu);
-  const groupedMenu = useMemo(() => groupMenu(menu), [menu]);
+
+  const visibleMenu = useMemo(
+    () => menu.filter((item) => canAccessPage(accessMenu, user, item)),
+    [menu, accessMenu, user]
+  );
+
+  const groupedMenu = useMemo(() => groupMenu(visibleMenu), [visibleMenu]);
 
   return (
     <>

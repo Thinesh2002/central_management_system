@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { darazProductsApi } from "../../../../config/sub_api/daraz_api/daraz_products_api";
+import Loader from "../../../../components/common/Loader";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -398,12 +399,7 @@ export default function DarazProductViewPage() {
   }, [loadProduct]);
 
   if (loading && !product) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center text-slate-300">
-        <Loader2 size={18} className="mr-2 animate-spin text-yellow-400" />
-        Loading product...
-      </div>
-    );
+    return <Loader label="Loading product..." minHeight="70vh" />;
   }
 
   return (

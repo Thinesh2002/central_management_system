@@ -14,6 +14,7 @@ import {
   Trash2,
 } from "lucide-react";
 
+import { usePagePermission } from "../../../components/common/permissions/PermissionsProvider";
 import { categoryApi } from "../../../config/sub_api/product_management_api/category/categories_api";
 import { subCategoryApi } from "../../../config/sub_api/product_management_api/category/sub_category_api";
 import productModelApi from "../../../config/sub_api/product_management_api/category/product_model_api/product_model_api";
@@ -180,6 +181,8 @@ function ModalFooter({ readOnly, saving, mode, onClose }) {
 }
 
 export default function CategoryPage() {
+  const { canEdit, canDelete } = usePagePermission("categories");
+
   const [categories, setCategories] = useState([]);
   const [subs, setSubs] = useState([]);
   const [models, setModels] = useState([]);
@@ -781,7 +784,7 @@ export default function CategoryPage() {
         </div>
 
         <div className="flex flex-wrap gap-1.5">
-          {selectedIds.length > 0 && (
+          {canDelete && selectedIds.length > 0 && (
             <button
               type="button"
               onClick={bulkDelete}
@@ -812,7 +815,7 @@ export default function CategoryPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-950 p-2">
+      <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="grid gap-2 md:grid-cols-2">
           <div className="relative">
             <Search
@@ -825,7 +828,7 @@ export default function CategoryPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search main category..."
-              className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+              className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
             />
           </div>
 
@@ -840,7 +843,7 @@ export default function CategoryPage() {
               value={subSearch}
               onChange={(e) => setSubSearch(e.target.value)}
               placeholder="Search sub categories..."
-              className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+              className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
             />
           </div>
         </div>
@@ -985,13 +988,15 @@ export default function CategoryPage() {
                               <Eye size={13} />
                             </ActionIcon>
 
-                            <ActionIcon
-                              title="Edit"
-                              color="text-amber-400"
-                              onClick={() => openCategory("edit", row)}
-                            >
-                              <Edit size={13} />
-                            </ActionIcon>
+                            {canEdit && (
+                              <ActionIcon
+                                title="Edit"
+                                color="text-amber-400"
+                                onClick={() => openCategory("edit", row)}
+                              >
+                                <Edit size={13} />
+                              </ActionIcon>
+                            )}
 
                             <ActionIcon
                               title="Add Sub Category"
@@ -1001,19 +1006,21 @@ export default function CategoryPage() {
                               <Plus size={13} />
                             </ActionIcon>
 
-                            <ActionIcon
-                              title="Delete"
-                              color="text-red-400"
-                              onClick={() =>
-                                setDeleteModal({
-                                  open: true,
-                                  type: "category",
-                                  row,
-                                })
-                              }
-                            >
-                              <Trash2 size={13} />
-                            </ActionIcon>
+                            {canDelete && (
+                              <ActionIcon
+                                title="Delete"
+                                color="text-red-400"
+                                onClick={() =>
+                                  setDeleteModal({
+                                    open: true,
+                                    type: "category",
+                                    row,
+                                  })
+                                }
+                              >
+                                <Trash2 size={13} />
+                              </ActionIcon>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1135,29 +1142,33 @@ export default function CategoryPage() {
                                                   View
                                                 </ActionLabel>
 
-                                                <ActionLabel
-                                                  title="Edit Sub Category"
-                                                  color="bg-orange-950 text-orange-300 border border-orange-900"
-                                                  onClick={() =>
-                                                    openSub("edit", row, child)
-                                                  }
-                                                >
-                                                  Edit
-                                                </ActionLabel>
+                                                {canEdit && (
+                                                  <ActionLabel
+                                                    title="Edit Sub Category"
+                                                    color="bg-orange-950 text-orange-300 border border-orange-900"
+                                                    onClick={() =>
+                                                      openSub("edit", row, child)
+                                                    }
+                                                  >
+                                                    Edit
+                                                  </ActionLabel>
+                                                )}
 
-                                                <ActionLabel
-                                                  title="Delete Sub Category"
-                                                  color="bg-red-950 text-red-300 border border-red-900"
-                                                  onClick={() =>
-                                                    setDeleteModal({
-                                                      open: true,
-                                                      type: "sub",
-                                                      row: child,
-                                                    })
-                                                  }
-                                                >
-                                                  Delete
-                                                </ActionLabel>
+                                                {canDelete && (
+                                                  <ActionLabel
+                                                    title="Delete Sub Category"
+                                                    color="bg-red-950 text-red-300 border border-red-900"
+                                                    onClick={() =>
+                                                      setDeleteModal({
+                                                        open: true,
+                                                        type: "sub",
+                                                        row: child,
+                                                      })
+                                                    }
+                                                  >
+                                                    Delete
+                                                  </ActionLabel>
+                                                )}
                                               </div>
                                             </td>
                                           </tr>
@@ -1271,36 +1282,40 @@ export default function CategoryPage() {
                                                                     View
                                                                   </ActionLabel>
 
-                                                                  <ActionLabel
-                                                                    title="Edit Model"
-                                                                    color="bg-orange-950 text-orange-300 border border-orange-900"
-                                                                    onClick={() =>
-                                                                      openModel(
-                                                                        "edit",
-                                                                        row,
-                                                                        child,
-                                                                        model
-                                                                      )
-                                                                    }
-                                                                  >
-                                                                    Edit
-                                                                  </ActionLabel>
+                                                                  {canEdit && (
+                                                                    <ActionLabel
+                                                                      title="Edit Model"
+                                                                      color="bg-orange-950 text-orange-300 border border-orange-900"
+                                                                      onClick={() =>
+                                                                        openModel(
+                                                                          "edit",
+                                                                          row,
+                                                                          child,
+                                                                          model
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      Edit
+                                                                    </ActionLabel>
+                                                                  )}
 
-                                                                  <ActionLabel
-                                                                    title="Delete Model"
-                                                                    color="bg-red-950 text-red-300 border border-red-900"
-                                                                    onClick={() =>
-                                                                      setDeleteModal(
-                                                                        {
-                                                                          open: true,
-                                                                          type: "model",
-                                                                          row: model,
-                                                                        }
-                                                                      )
-                                                                    }
-                                                                  >
-                                                                    Delete
-                                                                  </ActionLabel>
+                                                                  {canDelete && (
+                                                                    <ActionLabel
+                                                                      title="Delete Model"
+                                                                      color="bg-red-950 text-red-300 border border-red-900"
+                                                                      onClick={() =>
+                                                                        setDeleteModal(
+                                                                          {
+                                                                            open: true,
+                                                                            type: "model",
+                                                                            row: model,
+                                                                          }
+                                                                        )
+                                                                      }
+                                                                    >
+                                                                      Delete
+                                                                    </ActionLabel>
+                                                                  )}
                                                                 </div>
                                                               </td>
                                                             </tr>

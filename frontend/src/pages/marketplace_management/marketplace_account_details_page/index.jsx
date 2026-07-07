@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
+import Loader from "../../../components/common/Loader";
 
 function Badge({ value }) {
   const status = value || "unknown";
@@ -116,12 +117,7 @@ export default function MarketplaceAccountDetailsPage() {
   }, [accountId]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent text-slate-500">
-        <Loader2 size={22} className="mr-2 animate-spin" />
-        Loading account details...
-      </div>
-    );
+    return <Loader label="Loading account details..." minHeight="100vh" />;
   }
 
   if (!account) {

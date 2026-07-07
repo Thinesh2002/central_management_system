@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { wooProductApi } from "../../../config/sub_api/woo_api/woo_product_api";
+import Loader from "../../../components/common/Loader";
 
 const DETAIL_BASE_PATH = "/product/woo-products";
 
@@ -455,10 +456,7 @@ export default function WooProductDashboardPage() {
         </div>
 
         {loadingProducts || loadingAccounts ? (
-          <div className="flex items-center justify-center py-16 text-sm text-slate-400">
-            <Loader2 size={20} className="mr-2 animate-spin text-yellow-300" />
-            Loading products...
-          </div>
+          <Loader label="Loading products..." minHeight="0" className="py-16" />
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-500">
@@ -542,7 +540,18 @@ export default function WooProductDashboardPage() {
                             </Link>
 
                             <div className="mt-0.5 font-mono text-[11px] text-yellow-200/80">
-                              SKU: {product.sku || "-"}
+                              SKU:{" "}
+                              {product.sku ? (
+                                <Link
+                                  to={`/order-management/sku-report/${encodeURIComponent(product.sku)}`}
+                                  className="cursor-pointer underline decoration-dotted hover:text-yellow-100"
+                                  title={`View SKU report for ${product.sku}`}
+                                >
+                                  {product.sku}
+                                </Link>
+                              ) : (
+                                "-"
+                              )}
                             </div>
                           </div>
                         </div>

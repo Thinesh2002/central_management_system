@@ -199,3 +199,39 @@ export function getMainImageFromRows(rows = []) {
   const mainRow = rows.find(isMainImage) || rows[0] || null;
   return mainRow ? getImageRowUrl(mainRow) : "";
 }
+
+// "Attach existing image" (product/variant image pickers) creates one
+// product_images row per attachment, all pointing at the same physical
+// file — so the flat media library (Images Dashboard, image picker) lists
+// the same picture once per product/variant it's attached to. Collapse
+// those rows down to one card per unique physical file before rendering.
+function libraryDedupeKey(row = {}) {
+  const key = row.image_path || row.image_url || row.file_name || "";
+  return String(key).trim().toLowerCase();
+}
+
+export function dedupeImageLibraryRows(rows = []) {
+  const groups = new Map();
+
+  rows.forEach((row) => {
+    const key = libraryDedupeKey(row);
+    if (!key) return;
+
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+
+    groups.get(key).push(row);
+  });
+
+  return Array.from(groups.values()).map((groupRows) => {
+    const representative =
+      groupRows.find((row) => row.is_assigned) || groupRows[0];
+
+    return {
+      ...representative,
+      is_assigned: groupRows.some((row) => row.is_assigned),
+      _attachment_count: groupRows.length,
+    };
+  });
+}

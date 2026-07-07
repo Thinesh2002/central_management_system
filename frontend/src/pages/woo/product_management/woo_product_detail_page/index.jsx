@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ExternalLink,
   Image as ImageIcon,
-  Loader2,
   Package,
   Tags,
   Box,
@@ -11,6 +10,8 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { wooProductApi } from "../../../../config/sub_api/woo_api/woo_product_api";
+import { sanitizeHtml } from "../../../../utils/sanitizeHtml";
+import Loader from "../../../../components/common/Loader";
 
 function parseJson(value, fallback) {
   if (!value) return fallback;
@@ -160,9 +161,8 @@ export default function WooProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070B14] text-slate-400">
-        <Loader2 size={22} className="mr-2 animate-spin text-yellow-300" />
-        Loading Woo product...
+      <div className="min-h-screen bg-[#070B14]">
+        <Loader label="Loading Woo product..." minHeight="100vh" />
       </div>
     );
   }
@@ -440,10 +440,11 @@ export default function WooProductDetailPage() {
             <div
               className="text-sm leading-6 text-slate-300"
               dangerouslySetInnerHTML={{
-                __html:
+                __html: sanitizeHtml(
                   product.short_description ||
-                  product.description ||
-                  "<p>No description found.</p>",
+                    product.description ||
+                    "<p>No description found.</p>"
+                ),
               }}
             />
           </section>

@@ -7,7 +7,11 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "check": "node --check index.js",
-    "setup-db": "node scripts/setup-db.js"
+    "setup-db": "node scripts/setup-db.js",
+    "patch-daraz-inventory": "node scripts/run-sql-file.js 07_daraz_inventory_core_patch.sql",
+    "patch-images-dashboard": "node scripts/run-sql-file.js 08_product_images_media_library_patch.sql",
+    "patch-variant-name": "node scripts/run-sql-file.js 09_product_variants_name_patch.sql",
+    "patch-daraz-transfer": "node scripts/run-sql-file.js 10_daraz_transfer_patch.sql"
   },
   "author": "",
   "license": "ISC",
@@ -18,6 +22,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
+    "form-data": "^4.0.0",
     "helmet": "^8.1.0",
     "image-size": "^2.0.2",
     "jsonwebtoken": "^9.0.3",

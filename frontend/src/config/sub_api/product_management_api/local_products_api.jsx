@@ -143,6 +143,12 @@ export const localProductsApi = {
   getInventory: (params = {}) =>
     api.get("/product-management/product-inventory", { params }),
 
+  syncAllDarazInventory: () =>
+    api.post("/daraz-inventory/sync-all", {}),
+
+  syncDarazInventorySku: (sku, payload = {}) =>
+    api.post(`/daraz-inventory/sync-sku/${safeValue(sku)}`, payload),
+
   getInventoryById: (id) =>
     api.get(`/product-management/product-inventory/${safeValue(id)}`),
 
@@ -322,8 +328,31 @@ export const localProductsApi = {
       }
     ),
 
-  deleteImage: (id) =>
-    api.delete(`/product-management/product-images/${safeValue(id)}`),
+  // Attach an already-uploaded library image to a product/variant slot —
+  // JSON only, no file re-upload (points a new/existing row at the same
+  // stored file as the picked library image).
+  attachExistingImage: (payload) =>
+    api.post("/product-management/product-images", payload),
+
+  reassignImage: (id, payload) =>
+    api.put(`/product-management/product-images/${safeValue(id)}`, payload),
+
+  patchImage: (id, payload) =>
+    api.patch(
+      `/product-management/product-images/${safeValue(id)}`,
+      payload
+    ),
+
+  renameImage: (id, fileName) =>
+    api.patch(
+      `/product-management/product-images/${safeValue(id)}/rename`,
+      { file_name: fileName }
+    ),
+
+  deleteImage: (id, { force = false } = {}) =>
+    api.delete(`/product-management/product-images/${safeValue(id)}`, {
+      params: force ? { force: true } : undefined,
+    }),
 
   getProductLogs: (params = {}) =>
     api.get("/product-management/product-logs", { params }),

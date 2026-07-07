@@ -130,8 +130,9 @@ function normalizeLogPayload(payload = {}) {
     endpoint,
     api_path: payload.api_path || endpoint,
     http_method: payload.http_method || payload.method || "GET",
-    status: payload.status || "success",
-    response_code: payload.response_code || payload.response_status_code || null,
+    api_status: payload.api_status || payload.status || "success",
+    response_status_code:
+      payload.response_status_code || payload.response_code || null,
     duration_ms: payload.duration_ms || 0,
   };
 }

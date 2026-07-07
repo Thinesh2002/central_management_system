@@ -4,19 +4,46 @@ import {
   CheckCircle,
   ChevronLeft,
   ChevronRight,
+  Download,
   Eye,
   MoreVertical,
   Package,
   Pencil,
+  Plus,
   Search,
+  Send,
   Trash2,
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../config/api";
 import { darazProductsApi } from "../../../config/sub_api/daraz_api/daraz_products_api";
+import ExportCsvModal from "../../../components/common/export/ExportCsvModal";
+import { exportRowsAsCsv } from "../../../utils/csvExport";
 
 const PAGE_SIZES = [25, 50, 100, 200];
+
+const DARAZ_EXPORT_COLUMNS = [
+  { key: "listingId", label: "Listing ID", value: (r) => r.listingId },
+  { key: "title", label: "Title", value: (r) => r.title },
+  { key: "sku", label: "SKU", value: (r) => r.sku },
+  { key: "account", label: "Account", value: (r) => r.accountName },
+  { key: "status", label: "Status", value: (r) => r.statusLabel },
+  { key: "created", label: "Daraz Created", value: (r) => r.darazCreatedLabel },
+  { key: "qty", label: "Qty", value: (r) => r.qty },
+  { key: "price", label: "Price", value: (r) => r.price },
+];
+
+const DARAZ_EXPORT_DATE_PRESETS = [
+  { value: "all", label: "All Dates" },
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last_7_days", label: "Last 7 Days" },
+  { value: "last_30_days", label: "Last 30 Days" },
+  { value: "last_60_days", label: "Last 60 Days" },
+  { value: "last_90_days", label: "Last 90 Days" },
+  { value: "custom", label: "Custom Range" },
+];
 
 const FIELD = {
   id: ["id"],
@@ -522,6 +549,19 @@ function getQty(product) {
   );
 }
 
+function getRawPriceNumber(product) {
+  const raw = readRawObject(product);
+
+  const rawPrice =
+    readValue(product, FIELD.price, "") ||
+    raw?.skus?.[0]?.price ||
+    raw?.price ||
+    "";
+
+  const number = Number(rawPrice);
+  return Number.isFinite(number) ? number : 0;
+}
+
 function getPrice(product) {
   const raw = readRawObject(product);
 
@@ -590,6 +630,7 @@ function normalizeProduct(product, accountMap) {
     qty,
     qtyNumber: Number.isFinite(qtyNumber) ? qtyNumber : null,
     price: getPrice(product),
+    priceNumber: getRawPriceNumber(product),
   };
 
   row.searchText = `
@@ -632,11 +673,13 @@ export default function DarazDashboardPage() {
 
   const [accountFilterOpen, setAccountFilterOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncIds, setSyncIds] = useState([]);
   const [syncingId, setSyncingId] = useState("");
   const [syncResults, setSyncResults] = useState([]);
+  const [stockSavingKey, setStockSavingKey] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -852,6 +895,32 @@ export default function DarazDashboardPage() {
     }
   }
 
+  function handleExportCsv(config) {
+    const dateRange =
+      config.datePreset === "custom"
+        ? { start: config.customStart, end: config.customEnd }
+        : getDatePresetRange(config.datePreset);
+
+    const exportRows = filteredRows.filter((row) => {
+      const dateOk = isDateInRange(row.darazCreatedKey, dateRange);
+      const minOk = config.minPrice === null || row.priceNumber >= config.minPrice;
+      const maxOk = config.maxPrice === null || row.priceNumber <= config.maxPrice;
+      const accountOk =
+        !config.accountIds ||
+        !config.accountIds.length ||
+        config.accountIds.includes(String(row.accountId));
+
+      return dateOk && minOk && maxOk && accountOk;
+    });
+
+    const selectedColumns = DARAZ_EXPORT_COLUMNS.filter((column) =>
+      config.columnKeys.includes(column.key)
+    );
+
+    exportRowsAsCsv(exportRows, selectedColumns, `daraz-products-${Date.now()}.csv`);
+    setSuccess(`Exported ${exportRows.length} Daraz product${exportRows.length === 1 ? "" : "s"} to CSV.`);
+  }
+
   function clearFilters() {
     setSearchInput("");
     setSearch("");
@@ -929,7 +998,7 @@ export default function DarazDashboardPage() {
     navigate(`/product/daraz-products/edit/${id}`);
   }
 
-  function openDelete(row) {
+  async function openDelete(row) {
     const id = row.id || row.listingId;
     setOpenActionKey(null);
 
@@ -938,7 +1007,69 @@ export default function DarazDashboardPage() {
       return;
     }
 
-    navigate(`/product/daraz-products/delete/${id}`);
+    if (!window.confirm(`Delete "${row.title}" from Daraz? This cannot be undone.`)) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    try {
+      await darazProductsApi.delete(id);
+      setProducts((prev) =>
+        prev.filter((product) => String(readValue(product, FIELD.id, null)) !== String(id))
+      );
+      setSuccess(`Daraz product ${row.sku || row.listingId} deleted.`);
+    } catch (err) {
+      setError(getError(err, "Failed to delete Daraz product."));
+    }
+  }
+
+
+
+  async function updateDarazRowStock(row, value) {
+    const id = row.id;
+    const quantity = Number(value);
+
+    if (!id) {
+      setError("Daraz product row ID missing. Please sync this product again before stock update.");
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity < 0) {
+      setError("Valid stock quantity is required.");
+      return;
+    }
+
+    const key = String(row.id || row.listingId || row.sku);
+    setStockSavingKey(key);
+    setError("");
+    setSuccess("");
+
+    try {
+      await darazProductsApi.update(id, { quantity: Math.trunc(quantity) });
+
+      setProducts((prev) =>
+        prev.map((product) => {
+          const productId = readValue(product, FIELD.id, null);
+
+          if (String(productId) !== String(id)) return product;
+
+          return {
+            ...product,
+            quantity: Math.trunc(quantity),
+            stock: Math.trunc(quantity),
+            available_stock: Math.trunc(quantity),
+          };
+        })
+      );
+
+      setSuccess(`Daraz stock updated for ${row.sku || row.listingId}.`);
+    } catch (err) {
+      setError(getError(err, "Failed to update Daraz stock."));
+    } finally {
+      setStockSavingKey("");
+    }
   }
 
   function goToPage(nextPage) {
@@ -1060,11 +1191,38 @@ export default function DarazDashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                onClick={() => navigate("/product/daraz-products/create")}
+                className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
+              >
+                <Plus size={13} />
+                CREATE PRODUCT
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/product/daraz-products/transfer")}
+                className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
+              >
+                <Send size={13} />
+                TRANSFER TO DARAZ
+              </button>
+
+              <button
+                type="button"
                 onClick={openSyncPopup}
                 disabled={syncing || !accounts.length}
                 className="h-7 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f] disabled:opacity-40"
               >
                 ⚙ ACTIONS
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setExportOpen(true)}
+                className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-3 text-[11px] font-semibold text-white hover:bg-emerald-500"
+              >
+                <Download size={13} />
+                EXPORT CSV
               </button>
             </div>
           </div>
@@ -1327,7 +1485,7 @@ export default function DarazDashboardPage() {
                         <button
                           type="button"
                           onClick={() => row.image && setImagePreview(row)}
-                          className="mx-auto flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
+                          className="mx-auto flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
                         >
                           {row.image ? (
                             <img
@@ -1373,12 +1531,40 @@ export default function DarazDashboardPage() {
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
-                        <span className="block truncate" title={row.sku}>{row.sku || "-"}</span>
+                        {row.sku ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)
+                            }
+                            className="block w-full cursor-pointer truncate text-orange-300 underline decoration-dotted hover:text-orange-200"
+                            title={`View SKU report for ${row.sku}`}
+                          >
+                            {row.sku}
+                          </button>
+                        ) : (
+                          <span className="block truncate">-</span>
+                        )}
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle text-[12px] text-zinc-300">{row.statusLabel || "-"}</td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] text-zinc-400">{row.darazCreatedLabel}</td>
-                      <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">{row.qtyNumber === null ? row.qty : row.qtyNumber}</td>
+                      <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">
+                        <input
+                          type="number"
+                          min="0"
+                          defaultValue={row.qtyNumber === null ? row.qty : row.qtyNumber}
+                          disabled={stockSavingKey === key}
+                          onBlur={(event) => updateDarazRowStock(row, event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              event.currentTarget.blur();
+                            }
+                          }}
+                          className="mx-auto h-8 w-20 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
+                        />
+                      </td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">{row.price}</td>
 
                       <td className="relative px-2 py-2 text-center align-middle">
@@ -1762,6 +1948,20 @@ export default function DarazDashboardPage() {
           </div>
         </div>
       ) : null}
+
+      <ExportCsvModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title="Export Daraz Products CSV"
+        columns={DARAZ_EXPORT_COLUMNS}
+        datePresetOptions={DARAZ_EXPORT_DATE_PRESETS}
+        accounts={accounts.map((account) => ({
+          id: getAccountId(account),
+          label: getAccountName(account),
+        }))}
+        buttonColor="green"
+        onExport={handleExportCsv}
+      />
     </div>
   );
 }

@@ -11,48 +11,10 @@ import {
 } from "lucide-react";
 
 import api from "../config/api";
-import {
-  getStoredMenu,
-  getStoredUser,
-  logout,
-  saveMenu,
-} from "../config/auth";
+import { getStoredUser, logout } from "../config/auth";
+import { useAccessMenu } from "../hooks/useAccessMenu";
+import { canAccessPage } from "../utils/accessMenu";
 import GlobalProductSearch from "./GlobalProductSearch";
-
-function normalizePath(path) {
-  if (!path) return "/";
-  return path.split("?")[0].replace(/\/+$/, "") || "/";
-}
-
-function isMasterAdmin(user) {
-  const role = String(user?.role || "").toLowerCase();
-
-  return (
-    role === "master_admin" ||
-    role === "master admin" ||
-    role === "super_admin" ||
-    role === "super admin"
-  );
-}
-
-function canShowMenuLink(menuItems, user, link) {
-  if (isMasterAdmin(user)) return true;
-
-  const linkPath = normalizePath(link.path);
-  const linkKeys = Array.isArray(link.pageKeys)
-    ? link.pageKeys.map((key) => String(key).toLowerCase())
-    : [];
-
-  return menuItems.some((item) => {
-    const itemPath = normalizePath(item.path);
-    const itemKey = String(item.page_key || "").toLowerCase();
-
-    if (itemPath === linkPath) return true;
-    if (linkKeys.includes(itemKey)) return true;
-
-    return false;
-  });
-}
 
 function formatDateTime(date) {
   return {
@@ -76,7 +38,7 @@ export default function Header({ onMenuClick }) {
   const navigate = useNavigate();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [accessMenu, setAccessMenu] = useState(() => getStoredMenu?.() || []);
+  const accessMenu = useAccessMenu();
   const [now, setNow] = useState(() => new Date());
 
   const dropdownRef = useRef(null);
@@ -107,7 +69,7 @@ export default function Header({ onMenuClick }) {
 
   const visibleSettingsLinks = useMemo(() => {
     return settingsLinks.filter((link) =>
-      canShowMenuLink(accessMenu, user, link)
+      canAccessPage(accessMenu, user, link)
     );
   }, [settingsLinks, accessMenu, user]);
 
@@ -133,31 +95,6 @@ export default function Header({ onMenuClick }) {
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    async function loadUserAccessMenu() {
-      try {
-        const { data } = await api.get("/access/my-menu");
-        const nextMenu = Array.isArray(data?.menu) ? data.menu : [];
-
-        if (!active) return;
-
-        setAccessMenu(nextMenu);
-        saveMenu?.(nextMenu);
-      } catch {
-        const cachedMenu = getStoredMenu?.() || [];
-        if (active) setAccessMenu(cachedMenu);
-      }
-    }
-
-    loadUserAccessMenu();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setSettingsOpen(false);
@@ -172,7 +109,7 @@ export default function Header({ onMenuClick }) {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 h-16 w-full border-b border-slate-800 bg-[#07111f] text-white shadow-lg shadow-black/20">
+    <header className="z-50 h-16 w-full shrink-0 border-b border-slate-800 bg-[#07111f] text-white shadow-lg shadow-black/20">
       <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <button

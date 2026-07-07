@@ -12,6 +12,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+import { usePagePermission } from "../../../components/common/permissions/PermissionsProvider";
 import productColourApi from "../../../config/sub_api/product_management_api/category/product_colour_api/product_colour_api";
 
 const emptyColour = {
@@ -168,6 +169,8 @@ function ColourPreview({ hexCode }) {
 }
 
 export default function ProductColourPage() {
+  const { canEdit, canDelete } = usePagePermission("colours");
+
   const [colours, setColours] = useState([]);
   const [search, setSearch] = useState("");
 
@@ -386,7 +389,7 @@ export default function ProductColourPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-950 p-2">
+      <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="relative">
           <Search
             size={15}
@@ -398,7 +401,7 @@ export default function ProductColourPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search colour code, name, slug, hex..."
-            className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+            className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
           />
         </div>
       </div>
@@ -495,26 +498,30 @@ export default function ProductColourPage() {
                           View
                         </ActionLabel>
 
-                        <ActionLabel
-                          title="Edit Colour"
-                          color="border-orange-900 bg-orange-950 text-orange-300"
-                          onClick={() => openColour("edit", row)}
-                        >
-                          Edit
-                        </ActionLabel>
+                        {canEdit && (
+                          <ActionLabel
+                            title="Edit Colour"
+                            color="border-orange-900 bg-orange-950 text-orange-300"
+                            onClick={() => openColour("edit", row)}
+                          >
+                            Edit
+                          </ActionLabel>
+                        )}
 
-                        <ActionLabel
-                          title="Delete Colour"
-                          color="border-red-900 bg-red-950 text-red-300"
-                          onClick={() =>
-                            setDeleteModal({
-                              open: true,
-                              row,
-                            })
-                          }
-                        >
-                          Delete
-                        </ActionLabel>
+                        {canDelete && (
+                          <ActionLabel
+                            title="Delete Colour"
+                            color="border-red-900 bg-red-950 text-red-300"
+                            onClick={() =>
+                              setDeleteModal({
+                                open: true,
+                                row,
+                              })
+                            }
+                          >
+                            Delete
+                          </ActionLabel>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -361,6 +361,36 @@ async function getValidCredentialsForAccount(accountId) {
   };
 }
 
+// Some Daraz endpoints (category/tree/get, category/attributes/get,
+// category/brands/query) explicitly document access_token as NOT required —
+// they only need the app's static app_key/app_secret, which never expire.
+// Routing them through getValidCredentialsForAccount forces an access-token
+// refresh they don't need, which needlessly fails the whole call whenever
+// the account's refresh token itself is stale/invalid.
+async function getAppCredentialsForAccount(accountId) {
+  if (!accountId) {
+    throw createTokenError("Account ID is required.", 400, "ACCOUNT_ID_REQUIRED");
+  }
+
+  const account = await accountModel.getAccountById(accountId);
+
+  if (!account) {
+    throw createTokenError("Account not found.", 404, "ACCOUNT_NOT_FOUND");
+  }
+
+  const credentials = await credentialModel.getDecryptedCredentials(accountId);
+
+  if (!credentials) {
+    throw createTokenError(
+      "Account credentials not found.",
+      404,
+      "CREDENTIALS_NOT_FOUND"
+    );
+  }
+
+  return { account, credentials };
+}
+
 async function checkAllDarazTokens() {
   const accounts = await accountModel.getActiveDarazAccounts();
 
@@ -406,6 +436,7 @@ async function checkAllDarazTokens() {
 
 module.exports = {
   getValidCredentialsForAccount,
+  getAppCredentialsForAccount,
   refreshDarazAccessToken,
   checkAllDarazTokens,
   isExpiringSoon,
