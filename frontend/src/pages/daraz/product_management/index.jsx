@@ -85,6 +85,19 @@ function readValue(obj, keys, fallback = "-") {
   return fallback;
 }
 
+// `||` treats 0 as falsy, so a chain of `readValue(...) || raw?.x || raw?.y`
+// silently skips a genuine 0 (e.g. quantity/price actually being zero) and
+// falls through to the next fallback instead of keeping it.
+function firstDefined(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== "") {
+      return value;
+    }
+  }
+
+  return "-";
+}
+
 function normalizeArray(payload) {
   if (Array.isArray(payload)) return payload;
 
@@ -540,23 +553,22 @@ function getSku(product) {
 
 function getQty(product) {
   const raw = readRawObject(product);
-  return (
-    readValue(product, FIELD.qty, "") ||
-    raw?.skus?.[0]?.Available ||
-    raw?.skus?.[0]?.quantity ||
-    raw?.skus?.[0]?.multiWarehouseInventories?.[0]?.sellableQuantity ||
-    "-"
+  return firstDefined(
+    readValue(product, FIELD.qty, ""),
+    raw?.skus?.[0]?.Available,
+    raw?.skus?.[0]?.quantity,
+    raw?.skus?.[0]?.multiWarehouseInventories?.[0]?.sellableQuantity
   );
 }
 
 function getRawPriceNumber(product) {
   const raw = readRawObject(product);
 
-  const rawPrice =
-    readValue(product, FIELD.price, "") ||
-    raw?.skus?.[0]?.price ||
-    raw?.price ||
-    "";
+  const rawPrice = firstDefined(
+    readValue(product, FIELD.price, ""),
+    raw?.skus?.[0]?.price,
+    raw?.price
+  );
 
   const number = Number(rawPrice);
   return Number.isFinite(number) ? number : 0;
@@ -565,11 +577,11 @@ function getRawPriceNumber(product) {
 function getPrice(product) {
   const raw = readRawObject(product);
 
-  const rawPrice =
-    readValue(product, FIELD.price, "") ||
-    raw?.skus?.[0]?.price ||
-    raw?.price ||
-    "-";
+  const rawPrice = firstDefined(
+    readValue(product, FIELD.price, ""),
+    raw?.skus?.[0]?.price,
+    raw?.price
+  );
 
   if (rawPrice === "-") return "-";
 

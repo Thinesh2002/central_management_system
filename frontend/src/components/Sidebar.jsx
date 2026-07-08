@@ -98,6 +98,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "PRODUCT MANAGEMENT",
+    page_key: "sku_mapping",
+    page_name: "SKU Mapping",
+    path: "/product/sku-mapping",
+    icon: "PackageSearch",
+    exact: true,
+  },
+  {
     section: "MARKETPLACE MANAGEMENT",
     page_key: "marketplace_accounts",
     page_name: "Marketplace Accounts",

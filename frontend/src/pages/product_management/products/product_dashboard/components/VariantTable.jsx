@@ -250,7 +250,7 @@ export default function VariantTable({
                           image: variantImage,
                         })
                       }
-                      className="h-14 w-14 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition hover:ring-cyan-400"
+                      className="relative z-0 h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition-transform duration-150 ease-out hover:z-20 hover:scale-[2.4] hover:shadow-xl hover:ring-cyan-400"
                       title="View variant image"
                     >
                       <img

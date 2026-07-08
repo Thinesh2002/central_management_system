@@ -60,6 +60,28 @@ async function listSystemLogs(limit = 100) {
   return rows;
 }
 
+async function createSystemLog({
+  user_id = null,
+  user_uid = null,
+  user_email = null,
+  action,
+  module = "system",
+  status = "success",
+  message = null,
+  ip_address = null,
+  user_agent = null,
+} = {}) {
+  await pool.query(
+    `
+    INSERT INTO system_logs (
+      user_id, user_uid, user_email, action, module, status, message, ip_address, user_agent
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    [user_id, user_uid, user_email, action, module, status, message, ip_address, user_agent]
+  );
+}
+
 async function listLogs({ limit = 100 } = {}) {
   const safe = safeLimit(limit);
 
@@ -79,4 +101,5 @@ module.exports = {
   listLoginLogs,
   listSystemLogs,
   listLogs,
+  createSystemLog,
 };

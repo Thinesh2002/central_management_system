@@ -8,6 +8,20 @@ const tokenService = require("../../marketplace/token_service");
 const darazProductApiService = require("../../marketplace/daraz_product_api_service");
 const darazCatalogApiService = require("../../marketplace/daraz_catalog_api_service");
 const darazProductSyncService = require("./daraz_product_sync_service");
+const logModel = require("../../../models/logModel");
+
+// system_logs.message is VARCHAR(500) — MySQL strict mode rejects an
+// over-length INSERT outright, which would silently drop the whole log row.
+async function safeLogTransfer(payload) {
+  try {
+    await logModel.createSystemLog({
+      ...payload,
+      message: payload.message ? String(payload.message).slice(0, 490) : payload.message,
+    });
+  } catch (error) {
+    console.error("[DARAZ_TRANSFER_LOG_FAIL]", error?.message);
+  }
+}
 
 const SUFFIX_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -351,12 +365,44 @@ async function transferLocalProductToDaraz({
         publicBaseUrl,
       });
       results.push(result);
+
+      await safeLogTransfer({
+        user_id: updatedBy,
+        action: "daraz_transfer_create_product",
+        module: "daraz_transfer",
+        status: "success",
+        message: `Transferred "${product.product_name || product.sku}" (SKU ${product.sku}) to Daraz account ${result.accountName || accountId} — item_id ${result.itemId || "-"}.`,
+      });
     } catch (error) {
+      // Daraz's own message for /product/create failures is often a bare
+      // "E500: Create product failed" with no further detail in `.message` —
+      // the real cause (missing mandatory attribute, bad category, etc.) is
+      // sometimes only visible in the raw response body, so log and surface
+      // that too instead of just the generic top-line message.
+      console.error("[DARAZ_TRANSFER_ACCOUNT_ERROR]", {
+        accountId,
+        message: error?.daraz?.message || error?.message,
+        code: error?.daraz?.code || null,
+        type: error?.daraz?.type || null,
+        raw: error?.daraz?.raw || null,
+      });
+
+      await safeLogTransfer({
+        user_id: updatedBy,
+        action: "daraz_transfer_create_product",
+        module: "daraz_transfer",
+        status: "failed",
+        message: `Failed to transfer "${product.product_name || product.sku}" (SKU ${product.sku}) to Daraz account ${accountId}: ${
+          error?.daraz?.message || error?.message || "Transfer failed."
+        }${error?.daraz?.raw ? ` | raw: ${JSON.stringify(error.daraz.raw)}` : ""}`,
+      });
+
       results.push({
         accountId: Number(accountId),
         accountName: null,
         success: false,
         error: error?.daraz?.message || error?.message || "Transfer failed.",
+        errorDetail: error?.daraz?.raw || null,
       });
     }
   }

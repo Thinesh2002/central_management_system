@@ -9,6 +9,7 @@ import CategoryCreatePage from "../../pages/product_management/category/create_c
 import CategoryViewPage from "../../pages/product_management/category/View_category/index";
 import CategoryEditPage from "../../pages/product_management/category/edit_category_page/index";
 import ColourPage from "../../pages/product_management/colour/index";
+import SkuMappingPage from "../../pages/product_management/sku_mapping/index";
 
 import LocalProductViewPage from "../../pages/product_management/products/product_detail_page/index";
 
@@ -88,6 +89,15 @@ export default function ProductManagementRoutes() {
         element={
           <ProtectedProductPage>
             <ColourPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/sku-mapping"
+        element={
+          <ProtectedProductPage>
+            <SkuMappingPage />
           </ProtectedProductPage>
         }
       />

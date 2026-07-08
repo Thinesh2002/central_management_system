@@ -1052,7 +1052,14 @@ export default function DarazTransferPreviewPage() {
                             ))}
                         </>
                       ) : (
-                        <p>{result.error}</p>
+                        <>
+                          <p>{result.error}</p>
+                          {result.errorDetail && (
+                            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-black/30 p-2 text-[11px] text-red-200/80">
+                              {JSON.stringify(result.errorDetail, null, 2)}
+                            </pre>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
