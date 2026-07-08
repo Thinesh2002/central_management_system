@@ -144,7 +144,14 @@ export default function SkuReportPage() {
             <h1 className="mt-1 text-xl font-black text-white">
               {report?.local_product?.title || sku}
             </h1>
-            <p className="mt-1 text-xs font-semibold text-slate-500">SKU: {sku}</p>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              SKU: {report?.sku || sku}
+            </p>
+            {report?.mapped_from && (
+              <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-300 ring-1 ring-amber-500/30">
+                Mapped from wrong SKU "{report.mapped_from}"
+              </p>
+            )}
           </div>
 
           <button

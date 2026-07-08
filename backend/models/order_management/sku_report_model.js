@@ -22,6 +22,19 @@ function toDateKey(value) {
   return date.toISOString().slice(0, 10);
 }
 
+// A SKU sitting in sku_mappings is a known-wrong marketplace SKU (e.g. a
+// typo'd Daraz seller_sku) — resolve it to the real local SKU before doing
+// any lookup, so the report reflects the correct product's actual history
+// instead of coming up empty for the wrong SKU.
+async function resolveMappedSku(sku) {
+  const [rows] = await productDb.query(
+    "SELECT correct_sku FROM sku_mappings WHERE wrong_sku = ? LIMIT 1",
+    [sku]
+  );
+
+  return rows[0]?.correct_sku || null;
+}
+
 async function getLocalProduct(sku) {
   const [productRows] = await productDb.query(
     "SELECT id, sku, product_name, status FROM products WHERE sku = ? AND deleted_at IS NULL LIMIT 1",
@@ -259,7 +272,10 @@ function summarizePlatform(history) {
   };
 }
 
-async function getSkuReport(sku) {
+async function getSkuReport(requestedSku) {
+  const mappedSku = await resolveMappedSku(requestedSku);
+  const sku = mappedSku || requestedSku;
+
   const [localProduct, stockAndPrice, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
     getLocalProduct(sku),
     getStockAndPrice(sku),
@@ -295,6 +311,8 @@ async function getSkuReport(sku) {
 
   return {
     sku,
+    requested_sku: requestedSku,
+    mapped_from: mappedSku ? requestedSku : null,
     local_product: localProduct,
     stock: stockAndPrice.stock,
     price: stockAndPrice.price,

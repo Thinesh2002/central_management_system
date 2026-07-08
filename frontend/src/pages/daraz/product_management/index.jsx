@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  Check,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../../../config/api";
 import { darazProductsApi } from "../../../config/sub_api/daraz_api/daraz_products_api";
+import skuMappingApi from "../../../config/sub_api/product_management_api/sku_mapping_api";
 import ExportCsvModal from "../../../components/common/export/ExportCsvModal";
 import { exportRowsAsCsv } from "../../../utils/csvExport";
 
@@ -687,6 +689,10 @@ export default function DarazDashboardPage() {
   const [imagePreview, setImagePreview] = useState(null);
   const [exportOpen, setExportOpen] = useState(false);
 
+  const [skuMappingByWrong, setSkuMappingByWrong] = useState({});
+  const [skuMapDrafts, setSkuMapDrafts] = useState({});
+  const [skuMapSavingKey, setSkuMapSavingKey] = useState("");
+
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncIds, setSyncIds] = useState([]);
   const [syncingId, setSyncingId] = useState("");
@@ -828,7 +834,57 @@ export default function DarazDashboardPage() {
 
   useEffect(() => {
     loadInitial();
+    loadSkuMappings();
   }, []);
+
+  async function loadSkuMappings() {
+    try {
+      const res = await skuMappingApi.getAll({ limit: 2000 });
+      const rows = res?.data?.data || res?.data || [];
+      const byWrong = {};
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        byWrong[row.wrong_sku] = row;
+      });
+      setSkuMappingByWrong(byWrong);
+    } catch {
+      setSkuMappingByWrong({});
+    }
+  }
+
+  async function handleSaveSkuMapping(wrongSku) {
+    const correctSku = String(skuMapDrafts[wrongSku] || "").trim();
+    if (!correctSku || correctSku === wrongSku) return;
+
+    setSkuMapSavingKey(wrongSku);
+    setError("");
+
+    try {
+      const existing = skuMappingByWrong[wrongSku];
+
+      if (existing) {
+        await skuMappingApi.update(existing.id, { correct_sku: correctSku });
+      } else {
+        await skuMappingApi.create({
+          wrong_sku: wrongSku,
+          correct_sku: correctSku,
+          platform: "DARAZ",
+        });
+      }
+
+      setSuccess(`SKU mapping saved: ${wrongSku} → ${correctSku}.`);
+      await loadSkuMappings();
+
+      setSkuMapDrafts((prev) => {
+        const next = { ...prev };
+        delete next[wrongSku];
+        return next;
+      });
+    } catch (err) {
+      setError(getError(err, "Failed to save SKU mapping."));
+    } finally {
+      setSkuMapSavingKey("");
+    }
+  }
 
   async function loadInitial() {
     try {
@@ -1556,6 +1612,68 @@ export default function DarazDashboardPage() {
                           </button>
                         ) : (
                           <span className="block truncate">-</span>
+                        )}
+
+                        {row.sku && skuMappingByWrong[row.sku] ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSkuMapDrafts((prev) => ({
+                                ...prev,
+                                [row.sku]: skuMappingByWrong[row.sku].correct_sku,
+                              }))
+                            }
+                            className="mt-0.5 block w-full truncate text-[10px] font-semibold text-emerald-300"
+                            title="Mapped correct SKU — click to edit"
+                          >
+                            → {skuMappingByWrong[row.sku].correct_sku}
+                          </button>
+                        ) : (
+                          row.sku &&
+                          skuMapDrafts[row.sku] === undefined && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSkuMapDrafts((prev) => ({ ...prev, [row.sku]: "" }))
+                              }
+                              className="mt-0.5 block w-full truncate text-[10px] text-zinc-600 hover:text-zinc-400"
+                            >
+                              + Map correct SKU
+                            </button>
+                          )
+                        )}
+
+                        {row.sku && skuMapDrafts[row.sku] !== undefined && (
+                          <div className="mt-0.5 flex items-center gap-1">
+                            <input
+                              value={skuMapDrafts[row.sku]}
+                              onChange={(e) =>
+                                setSkuMapDrafts((prev) => ({ ...prev, [row.sku]: e.target.value }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveSkuMapping(row.sku);
+                                if (e.key === "Escape") {
+                                  setSkuMapDrafts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[row.sku];
+                                    return next;
+                                  });
+                                }
+                              }}
+                              placeholder="Correct SKU"
+                              disabled={skuMapSavingKey === row.sku}
+                              className="h-6 w-full min-w-0 border border-zinc-700 bg-zinc-950 px-1 text-[10px] text-zinc-200 outline-none focus:border-emerald-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveSkuMapping(row.sku)}
+                              disabled={skuMapSavingKey === row.sku}
+                              title="Save mapping"
+                              className="shrink-0 text-emerald-400 hover:text-emerald-300 disabled:opacity-40"
+                            >
+                              <Check size={13} />
+                            </button>
+                          </div>
                         )}
                       </td>
 
