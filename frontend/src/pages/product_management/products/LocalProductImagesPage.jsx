@@ -264,15 +264,15 @@ function SmallImageBox({
   const preview = getImageUrl(image);
 
   return (
-    <div className="w-24" title={label}>
+    <div className="w-32" title={label}>
       <ImageUploadBox
         preview={preview}
-        placeholderSize={18}
+        placeholderSize={22}
         disabled={disabled}
         onUploadFile={onPick}
         onSelectExisting={onSelectExisting}
         onRemove={onRemove}
-        boxClassName="h-20 w-24"
+        boxClassName="aspect-square w-32"
       />
     </div>
   );
@@ -291,14 +291,14 @@ function ExtraImagesCell({
   return (
     <div className="min-w-[220px]">
       <div className="flex items-center gap-2">
-        <div className="flex -space-x-2">
+        <div className="flex -space-x-2.5">
           {shown.slice(0, 5).map((image, index) => (
             <button
               key={image?.id || index}
               type="button"
               disabled={uploading}
               onClick={() => onUploadExtra(null, index, true)}
-              className="h-10 w-10 overflow-hidden border border-slate-700 bg-[#0a101d]"
+              className="aspect-square h-14 w-14 overflow-hidden border border-slate-700 bg-[#0a101d]"
               title={`Sub image ${index + 1}`}
             >
               <img
@@ -310,8 +310,8 @@ function ExtraImagesCell({
           ))}
 
           {!shown.length ? (
-            <div className="flex h-10 w-10 items-center justify-center border border-slate-700 bg-[#0a101d] text-slate-600">
-              <ImagePlus size={15} />
+            <div className="flex aspect-square h-14 w-14 items-center justify-center border border-slate-700 bg-[#0a101d] text-slate-600">
+              <ImagePlus size={19} />
             </div>
           ) : null}
         </div>
@@ -373,7 +373,7 @@ function ExtraImagesPopup({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-4">
           {images.map((image, index) => {
             const preview = getImageUrl(image);
 
@@ -385,7 +385,7 @@ function ExtraImagesPopup({
 
                 <ImageUploadBox
                   preview={preview}
-                  placeholderSize={18}
+                  placeholderSize={24}
                   disabled={uploading}
                   onUploadFile={(file) => onUploadExtra(file, index)}
                   onSelectExisting={() => onSelectExtra(index)}
@@ -624,15 +624,15 @@ export default function LocalProductImagesPage() {
           <Loader label="Loading product images..." minHeight="320px" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[1180px] w-full text-sm">
+            <table className="min-w-[1240px] w-full text-sm">
               <thead className="border-b border-slate-800 bg-[#0a101d] text-left text-xs font-black uppercase tracking-wide text-slate-400">
                 <tr>
                   <th className="w-[60px] px-3 py-3">Edit</th>
                   <th className="w-[170px] px-3 py-3">Type</th>
                   <th className="w-[220px] px-3 py-3">SKU</th>
                   <th className="w-[260px] px-3 py-3">Name</th>
-                  <th className="w-[180px] px-3 py-3">Main Image</th>
-                  <th className="w-[260px] px-3 py-3">Sub Images</th>
+                  <th className="w-[220px] px-3 py-3">Main Image</th>
+                  <th className="w-[280px] px-3 py-3">Sub Images</th>
                   <th className="w-[120px] px-3 py-3">Count</th>
                 </tr>
               </thead>

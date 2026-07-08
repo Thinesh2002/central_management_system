@@ -197,7 +197,7 @@ export default function VariantBasicPage() {
         }
 
         showToast("Variant created successfully.");
-        navigate(`/product/local-products/edit/${productId}/variants/${newId}/edit/price-inventory`);
+        navigate(`/product/local-products/edit/${productId}/variants`);
         return;
       }
 
