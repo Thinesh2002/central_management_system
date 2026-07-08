@@ -4,21 +4,6 @@ import { Search, AlertCircle, RefreshCw, Users } from "lucide-react";
 
 import customersApi from "../../../config/sub_api/order_management_api/customers_api";
 
-const FIELD = {
-  name: ["name", "customer_name", "full_name", "first_name"],
-  phone: ["phone", "phone_number", "mobile", "mobile_number", "contact_number"],
-  email: ["email", "email_address"],
-  address: ["address", "address_line1", "shipping_address", "billing_address"],
-};
-
-function readValue(obj, keys, fallback = "-") {
-  for (const key of keys) {
-    const value = obj?.[key];
-    if (value !== undefined && value !== null && value !== "") return value;
-  }
-  return fallback;
-}
-
 function getApiMessage(error, fallback = "Something went wrong") {
   return error?.response?.data?.message || error?.message || fallback;
 }
@@ -36,6 +21,18 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
+}
+
+function money(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "0.00";
+  return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function statusClass(status) {
+  if (status === "ACTIVE") return "border-emerald-900 bg-emerald-950 text-emerald-300";
+  if (status === "BLOCKED") return "border-red-900 bg-red-950 text-red-300";
+  return "border-slate-700 bg-slate-900 text-slate-400";
 }
 
 export default function CustomersPage() {
@@ -71,12 +68,7 @@ export default function CustomersPage() {
     if (!key) return customers;
 
     return customers.filter((row) =>
-      [
-        readValue(row, FIELD.name, ""),
-        readValue(row, FIELD.phone, ""),
-        readValue(row, FIELD.email, ""),
-        readValue(row, FIELD.address, ""),
-      ]
+      [row.customer_name, row.customer_code, row.phone, row.email, row.shipping_city]
         .join(" ")
         .toLowerCase()
         .includes(key)
@@ -114,7 +106,7 @@ export default function CustomersPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, phone, email, address..."
+            placeholder="Search name, customer code, phone, email, city..."
             className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
           />
         </div>
@@ -137,7 +129,18 @@ export default function CustomersPage() {
             <table className="min-w-full divide-y divide-slate-800">
               <thead className="bg-slate-900">
                 <tr>
-                  {["NO", "Name", "Phone", "Email", "Address", "Joined"].map((header) => (
+                  {[
+                    "NO",
+                    "Name",
+                    "Phone",
+                    "Email",
+                    "City",
+                    "Source",
+                    "Orders",
+                    "Total Spent",
+                    "Status",
+                    "Joined",
+                  ].map((header) => (
                     <th
                       key={header}
                       className="px-3 py-2 text-left text-xs font-normal uppercase tracking-wide text-slate-500"
@@ -151,7 +154,7 @@ export default function CustomersPage() {
               <tbody className="divide-y divide-slate-800">
                 {!filteredCustomers.length && (
                   <tr>
-                    <td colSpan="6" className="px-3 py-5 text-center text-[13px] text-slate-500">
+                    <td colSpan="10" className="px-3 py-5 text-center text-[13px] text-slate-500">
                       No customers found.
                     </td>
                   </tr>
@@ -166,19 +169,33 @@ export default function CustomersPage() {
                     <td className="px-3 py-2 text-[13px] text-slate-500">{index + 1}</td>
 
                     <td className="px-3 py-2 text-[13px] font-medium text-orange-300 underline decoration-dotted">
-                      {readValue(row, FIELD.name)}
+                      {row.customer_name || "-"}
                     </td>
 
-                    <td className="px-3 py-2 text-[13px] text-slate-300">
-                      {readValue(row, FIELD.phone)}
+                    <td className="px-3 py-2 text-[13px] text-slate-300">{row.phone || "-"}</td>
+
+                    <td className="px-3 py-2 text-[13px] text-slate-300">{row.email || "-"}</td>
+
+                    <td className="px-3 py-2 text-[13px] text-slate-400">{row.shipping_city || "-"}</td>
+
+                    <td className="px-3 py-2 text-[13px] text-slate-400">{row.source_type || "-"}</td>
+
+                    <td className="px-3 py-2 text-right text-[13px] text-slate-300">
+                      {row.total_orders ?? 0}
                     </td>
 
-                    <td className="px-3 py-2 text-[13px] text-slate-300">
-                      {readValue(row, FIELD.email)}
+                    <td className="px-3 py-2 text-right text-[13px] font-semibold text-slate-100">
+                      {money(row.total_spent)}
                     </td>
 
-                    <td className="max-w-xs px-3 py-2 text-[13px] text-slate-400">
-                      <span className="line-clamp-1">{readValue(row, FIELD.address)}</span>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClass(
+                          row.status
+                        )}`}
+                      >
+                        {row.status || "-"}
+                      </span>
                     </td>
 
                     <td className="px-3 py-2 text-[13px] text-slate-400">

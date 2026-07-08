@@ -5,22 +5,6 @@ import { ArrowLeft, Mail, MapPin, Phone, User } from "lucide-react";
 import customersApi from "../../../../config/sub_api/order_management_api/customers_api";
 import Loader from "../../../../components/common/Loader";
 
-const FIELD = {
-  name: ["name", "customer_name", "full_name", "first_name"],
-  phone: ["phone", "phone_number", "mobile", "mobile_number", "contact_number"],
-  email: ["email", "email_address"],
-  address: ["address", "address_line1", "shipping_address", "billing_address"],
-  city: ["city", "town"],
-};
-
-function readValue(obj, keys, fallback = "-") {
-  for (const key of keys) {
-    const value = obj?.[key];
-    if (value !== undefined && value !== null && value !== "") return value;
-  }
-  return fallback;
-}
-
 function getApiMessage(error, fallback = "Something went wrong") {
   return error?.response?.data?.message || error?.message || fallback;
 }
@@ -36,6 +20,36 @@ function money(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return "0.00";
   return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function statusClass(status) {
+  if (status === "ACTIVE") return "border-emerald-900 bg-emerald-950 text-emerald-300";
+  if (status === "BLOCKED") return "border-red-900 bg-red-950 text-red-300";
+  return "border-slate-700 bg-slate-900 text-slate-400";
+}
+
+function AddressBlock({ title, fullName, phone, line1, line2, city, district, province, postalCode, country }) {
+  const hasAny = fullName || line1 || city;
+
+  return (
+    <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
+      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">{title}</p>
+      {hasAny ? (
+        <div className="space-y-0.5 text-[13px] text-slate-300">
+          {fullName && <p className="font-medium text-slate-200">{fullName}</p>}
+          {phone && <p className="text-slate-400">{phone}</p>}
+          {line1 && <p>{line1}</p>}
+          {line2 && <p>{line2}</p>}
+          <p className="text-slate-400">
+            {[city, district, province, postalCode].filter(Boolean).join(", ")}
+          </p>
+          {country && <p className="text-slate-400">{country}</p>}
+        </div>
+      ) : (
+        <p className="text-[13px] text-slate-500">Not provided.</p>
+      )}
+    </div>
+  );
 }
 
 export default function CustomerViewPage() {
@@ -95,31 +109,103 @@ export default function CustomerViewPage() {
       ) : (
         <div className="space-y-3">
           <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-            <h1 className="flex items-center gap-2 text-lg font-medium text-slate-100">
-              <User size={18} />
-              {readValue(customer, FIELD.name)}
-            </h1>
-            <p className="mt-1 text-[12px] text-slate-500">Joined {formatDate(customer.created_at)}</p>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h1 className="flex items-center gap-2 text-lg font-medium text-slate-100">
+                  <User size={18} />
+                  {customer.customer_name}
+                </h1>
+                <p className="mt-1 text-[12px] text-slate-500">
+                  {customer.customer_code ? `${customer.customer_code} · ` : ""}
+                  Joined {formatDate(customer.created_at)}
+                  {customer.source_type ? ` · via ${customer.source_type}` : ""}
+                  {customer.source_account_name ? ` (${customer.source_account_name})` : ""}
+                </p>
+              </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <span
+                className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusClass(
+                  customer.status
+                )}`}
+              >
+                {customer.status || "-"}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
+                <p className="text-[11px] uppercase text-slate-500">Total Orders</p>
+                <p className="text-lg font-bold text-slate-100">{customer.total_orders ?? 0}</p>
+              </div>
+              <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
+                <p className="text-[11px] uppercase text-slate-500">Total Spent</p>
+                <p className="text-lg font-bold text-orange-300">{money(customer.total_spent)}</p>
+              </div>
+              <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
+                <p className="text-[11px] uppercase text-slate-500">Last Order</p>
+                <p className="text-lg font-bold text-slate-100">{formatDate(customer.last_order_at)}</p>
+              </div>
               <div className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/60 p-3">
                 <Phone size={15} className="text-orange-300" />
-                <span className="text-[13px] text-slate-300">{readValue(customer, FIELD.phone)}</span>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/60 p-3">
-                <Mail size={15} className="text-orange-300" />
-                <span className="text-[13px] text-slate-300">{readValue(customer, FIELD.email)}</span>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/60 p-3">
-                <MapPin size={15} className="text-orange-300" />
                 <span className="text-[13px] text-slate-300">
-                  {readValue(customer, FIELD.address)}
-                  {readValue(customer, FIELD.city, "") ? `, ${readValue(customer, FIELD.city)}` : ""}
+                  {customer.phone || "-"}
+                  {customer.phone_alt ? ` / ${customer.phone_alt}` : ""}
                 </span>
               </div>
             </div>
+
+            <div className="mt-3 flex items-center gap-2 rounded-md border border-slate-800 bg-slate-900/60 p-3">
+              <Mail size={15} className="text-orange-300" />
+              <span className="text-[13px] text-slate-300">{customer.email || "-"}</span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <AddressBlock
+                title="Shipping Address"
+                fullName={customer.shipping_full_name}
+                phone={customer.shipping_phone}
+                line1={customer.shipping_address_line1}
+                line2={customer.shipping_address_line2}
+                city={customer.shipping_city}
+                district={customer.shipping_district}
+                province={customer.shipping_province}
+                postalCode={customer.shipping_postal_code}
+                country={customer.shipping_country}
+              />
+              <AddressBlock
+                title="Billing Address"
+                fullName={customer.billing_full_name}
+                phone={customer.billing_phone}
+                line1={customer.billing_address_line1}
+                line2={customer.billing_address_line2}
+                city={customer.billing_city}
+                district={customer.billing_district}
+                province={customer.billing_province}
+                postalCode={customer.billing_postal_code}
+                country={customer.billing_country}
+              />
+            </div>
+
+            {(customer.customer_note || customer.internal_note) && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {customer.customer_note && (
+                  <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                      <MapPin size={12} /> Customer Note
+                    </p>
+                    <p className="text-[13px] text-slate-300">{customer.customer_note}</p>
+                  </div>
+                )}
+                {customer.internal_note && (
+                  <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                      Internal Note
+                    </p>
+                    <p className="text-[13px] text-slate-300">{customer.internal_note}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-950">

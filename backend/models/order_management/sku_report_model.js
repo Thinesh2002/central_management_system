@@ -134,6 +134,17 @@ async function getStockAndPrice(sku) {
   };
 }
 
+async function getProductImages(sku) {
+  const [rows] = await productDb.query(
+    `SELECT image_url FROM product_images
+     WHERE sku = ? AND deleted_at IS NULL
+     ORDER BY is_main DESC, sort_order ASC`,
+    [sku]
+  );
+
+  return rows.map((row) => row.image_url).filter(Boolean);
+}
+
 function inClause(values) {
   return values.map(() => "?").join(",");
 }
@@ -342,9 +353,10 @@ async function getSkuReport(requestedSku) {
   const knownWrongSkus = await getKnownWrongSkusFor(sku);
   const skuVariants = Array.from(new Set([sku, requestedSku, ...knownWrongSkus].filter(Boolean)));
 
-  const [localProduct, stockAndPrice, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
+  const [localProduct, stockAndPrice, images, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
     getLocalProduct(sku),
     getStockAndPrice(sku),
+    getProductImages(sku),
     getMarketplaceListings(skuVariants),
     getDarazHistory(skuVariants),
     getWooHistory(skuVariants),
@@ -381,6 +393,7 @@ async function getSkuReport(requestedSku) {
     mapped_from: mappedFrom,
     known_sku_variants: skuVariants,
     local_product: localProduct,
+    images,
     stock: stockAndPrice.stock,
     price: stockAndPrice.price,
     listings,

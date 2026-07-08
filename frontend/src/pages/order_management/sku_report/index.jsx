@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Package, Store, Boxes } from "lucide-react";
+import { ArrowLeft, Package, Store, Boxes, ImageOff, Tag } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import skuReportApi from "../../../config/sub_api/order_management_api/sku_report_api";
 import Loader from "../../../components/common/Loader";
+import { useCanViewCostPrice } from "../../../components/common/permissions/PermissionsProvider";
+import { resolveImageUrl } from "../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 
 function money(value) {
   const number = Number(value);
@@ -106,10 +108,12 @@ function SalesLineChart({ title, data }) {
 export default function SkuReportPage() {
   const { sku } = useParams();
   const navigate = useNavigate();
+  const canViewCostPrice = useCanViewCostPrice();
 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeImage, setActiveImage] = useState("");
 
   useEffect(() => {
     loadReport();
@@ -122,7 +126,9 @@ export default function SkuReportPage() {
 
     try {
       const res = await skuReportApi.get(sku);
-      setReport(res?.data?.data || null);
+      const data = res?.data?.data || null;
+      setReport(data);
+      setActiveImage(resolveImageUrl(data?.images?.[0] || ""));
     } catch (err) {
       setError(getError(err, "Failed to load SKU report."));
       setReport(null);
@@ -148,7 +154,7 @@ export default function SkuReportPage() {
               SKU: {report?.sku || sku}
             </p>
             {report?.mapped_from && (
-              <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-300 ring-1 ring-amber-500/30">
+              <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold text-orange-300 ring-1 ring-orange-500/30">
                 Mapped from wrong SKU "{report.mapped_from}"
               </p>
             )}
@@ -181,7 +187,7 @@ export default function SkuReportPage() {
               {report.platforms.map((platform) => (
                 <span
                   key={platform.platform}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-700/60 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-200 ring-1 ring-slate-600/50"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-300 ring-1 ring-slate-700"
                 >
                   <Store size={12} />
                   {platform.platform}
@@ -192,15 +198,94 @@ export default function SkuReportPage() {
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <StatCard label="Total Sales" value={`${currency} ${money(report.totals.total_sales)}`} accent="text-emerald-300" />
-              <StatCard label="Net Sales" value={`${currency} ${money(report.totals.net_sales)}`} accent="text-orange-300" />
-              <StatCard label="Total Qty Sold" value={report.totals.total_qty.toLocaleString()} accent="text-cyan-300" />
-              <StatCard
-                label="Current Stock"
-                value={report.stock ? report.stock.stock_qty.toLocaleString() : "-"}
-                accent="text-lime-300"
-              />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
+              <div className="border border-slate-800 bg-[#0a101d] p-3">
+                <div className="flex aspect-square items-center justify-center overflow-hidden border border-slate-800 bg-white">
+                  {activeImage ? (
+                    <img src={activeImage} alt={report.local_product?.title || sku} className="h-full w-full object-contain" />
+                  ) : (
+                    <ImageOff size={28} className="text-slate-400" />
+                  )}
+                </div>
+
+                {report.images?.length > 1 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {report.images.map((image) => {
+                      const url = resolveImageUrl(image);
+                      return (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => setActiveImage(url)}
+                          className={`h-10 w-10 shrink-0 overflow-hidden border bg-white ${
+                            activeImage === url ? "border-orange-400" : "border-slate-700"
+                          }`}
+                        >
+                          <img src={url} alt="" className="h-full w-full object-contain" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <StatCard label="Total Sales" value={`${currency} ${money(report.totals.total_sales)}`} accent="text-white" />
+                <StatCard label="Net Sales" value={`${currency} ${money(report.totals.net_sales)}`} accent="text-orange-300" />
+                <StatCard label="Total Qty Sold" value={report.totals.total_qty.toLocaleString()} accent="text-white" />
+                <StatCard
+                  label="Current Stock"
+                  value={report.stock ? report.stock.stock_qty.toLocaleString() : "-"}
+                  accent={report.stock && report.stock.stock_qty <= 0 ? "text-red-300" : "text-white"}
+                />
+
+                <div className="col-span-2 border border-slate-800 bg-[#0a101d] px-4 py-3 md:col-span-4">
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                    <Tag size={12} /> Pricing &amp; Inventory
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                    {canViewCostPrice && (
+                      <div>
+                        <p className="text-[10px] uppercase text-slate-500">Cost Price</p>
+                        <p className="text-sm font-bold text-slate-200">
+                          {report.price ? money(report.price.cost_price) : "-"}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Local Price</p>
+                      <p className="text-sm font-bold text-slate-200">
+                        {report.price ? money(report.price.local_selling_price) : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Daraz Price</p>
+                      <p className="text-sm font-bold text-slate-200">
+                        {report.price ? money(report.price.daraz_price) : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Woo Price</p>
+                      <p className="text-sm font-bold text-slate-200">
+                        {report.price ? money(report.price.woo_price) : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Available Qty</p>
+                      <p className="text-sm font-bold text-slate-200">
+                        {report.stock ? report.stock.available_qty ?? "-" : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase text-slate-500">Reserved Qty</p>
+                      <p className="text-sm font-bold text-slate-200">
+                        {report.stock ? report.stock.reserved_qty ?? "-" : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
