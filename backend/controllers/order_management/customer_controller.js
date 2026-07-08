@@ -2,7 +2,7 @@ const asyncHandler = require("../../middleware/async_handler");
 const customerModel = require("../../models/order_management/customer_model");
 
 const listCustomers = asyncHandler(async (req, res) => {
-  const result = await customerModel.list(req.query);
+  const result = await customerModel.listWithLiveStats(req.query);
 
   return res.json({
     success: true,
