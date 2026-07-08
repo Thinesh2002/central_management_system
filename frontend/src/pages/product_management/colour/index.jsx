@@ -77,14 +77,14 @@ function ActionLabel({ title, color, onClick, disabled, children }) {
 function TextInput({ label, value, onChange, disabled, placeholder }) {
   return (
     <div>
-      <label className="mb-1 block text-[13px] text-slate-400">{label}</label>
+      <label className="mb-1 block text-[12px] text-slate-400">{label}</label>
       <input
         type="text"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
+        className="h-8 w-full rounded-md border border-slate-800 bg-slate-900 px-2.5 text-[12px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
       />
     </div>
   );
@@ -93,14 +93,14 @@ function TextInput({ label, value, onChange, disabled, placeholder }) {
 function TextArea({ label, value, onChange, disabled }) {
   return (
     <div>
-      <label className="mb-1 block text-[13px] text-slate-400">{label}</label>
+      <label className="mb-1 block text-[12px] text-slate-400">{label}</label>
       <textarea
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Optional description"
         rows={3}
-        className="w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-[13px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
+        className="w-full rounded-md border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-[12px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
       />
     </div>
   );
@@ -134,7 +134,7 @@ function ModalFooter({ readOnly, saving, mode, onClose }) {
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="h-8 min-w-[90px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-7 min-w-[80px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {readOnly ? "Close" : "Cancel"}
       </button>
@@ -143,9 +143,9 @@ function ModalFooter({ readOnly, saving, mode, onClose }) {
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex h-8 min-w-[120px] cursor-pointer items-center justify-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[13px] text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-7 min-w-[100px] cursor-pointer items-center justify-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[11px] font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Save size={14} />
+          <Save size={12} />
           {saving ? "Saving..." : mode === "edit" ? "Update" : "Save"}
         </button>
       )}
@@ -372,18 +372,18 @@ export default function ProductColourPage() {
             type="button"
             onClick={loadColours}
             disabled={loading}
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={12} />
             Refresh
           </button>
 
           <button
             type="button"
             onClick={() => openColour("add")}
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[13px] text-slate-950"
+            className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-2.5 text-[11px] font-semibold text-slate-950"
           >
-            <Plus size={14} />
+            <Plus size={12} />
             Add Colour
           </button>
         </div>
@@ -392,7 +392,7 @@ export default function ProductColourPage() {
       <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="relative">
           <Search
-            size={15}
+            size={14}
             className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500"
           />
 
@@ -401,7 +401,7 @@ export default function ProductColourPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search colour code, name, slug, hex..."
-            className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+            className="h-8 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[12px] text-slate-300 outline-none placeholder:text-slate-600"
           />
         </div>
       </div>
@@ -603,10 +603,10 @@ export default function ProductColourPage() {
               />
 
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">
+                <label className="mb-1 block text-[12px] text-slate-400">
                   Hex Code
                 </label>
-                <div className="grid gap-2 sm:grid-cols-[1fr_48px]">
+                <div className="grid gap-2 sm:grid-cols-[1fr_44px]">
                   <input
                     type="text"
                     value={colourForm.hex_code}
@@ -616,7 +616,7 @@ export default function ProductColourPage() {
                       changeColour("hex_code", normalizeHex(e.target.value))
                     }
                     placeholder="#000000"
-                    className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
+                    className="h-8 w-full rounded-md border border-slate-800 bg-slate-900 px-2.5 text-[12px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
                   />
 
                   <input
@@ -629,7 +629,7 @@ export default function ProductColourPage() {
                     }
                     disabled={readOnly}
                     onChange={(e) => changeColour("hex_code", e.target.value)}
-                    className="h-9 w-full cursor-pointer rounded-md border border-slate-800 bg-slate-900 p-1 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="h-8 w-full cursor-pointer rounded-md border border-slate-800 bg-slate-900 p-1 disabled:cursor-not-allowed disabled:opacity-70"
                   />
                 </div>
               </div>
@@ -684,7 +684,7 @@ export default function ProductColourPage() {
                     })
                   }
                   disabled={deleting}
-                  className="h-8 min-w-[90px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-7 min-w-[80px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -693,7 +693,7 @@ export default function ProductColourPage() {
                   type="button"
                   onClick={confirmDeleteNow}
                   disabled={deleting}
-                  className="h-8 min-w-[100px] cursor-pointer rounded-md border border-red-900 bg-red-950 px-3 text-[13px] text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-7 min-w-[90px] cursor-pointer rounded-md border border-red-900 bg-red-950 px-3 text-[11px] font-semibold text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>

@@ -53,7 +53,7 @@ function ActionLabel({ title, color, onClick, disabled, children }) {
 function TextInput({ label, value, onChange, disabled, placeholder, required }) {
   return (
     <div>
-      <label className="mb-1 block text-[13px] text-slate-400">
+      <label className="mb-1 block text-[12px] text-slate-400">
         {label} {required && <span className="text-orange-300">*</span>}
       </label>
       <input
@@ -62,7 +62,7 @@ function TextInput({ label, value, onChange, disabled, placeholder, required }) 
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
+        className="h-8 w-full rounded-md border border-slate-800 bg-slate-900 px-2.5 text-[12px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
       />
     </div>
   );
@@ -242,9 +242,9 @@ export default function SkuMappingPage() {
             type="button"
             onClick={loadMappings}
             disabled={loading}
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={12} />
             Refresh
           </button>
 
@@ -252,9 +252,9 @@ export default function SkuMappingPage() {
             <button
               type="button"
               onClick={() => openModal("add")}
-              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[13px] text-slate-950"
+              className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-2.5 text-[11px] font-semibold text-slate-950"
             >
-              <Plus size={14} />
+              <Plus size={12} />
               Add Mapping
             </button>
           )}
@@ -263,13 +263,13 @@ export default function SkuMappingPage() {
 
       <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="relative">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search wrong SKU, correct SKU, platform, notes..."
-            className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+            className="h-8 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[12px] text-slate-300 outline-none placeholder:text-slate-600"
           />
         </div>
       </div>
@@ -415,13 +415,13 @@ export default function SkuMappingPage() {
               />
 
               <div>
-                <label className="mb-1 block text-[13px] text-slate-400">Notes</label>
+                <label className="mb-1 block text-[12px] text-slate-400">Notes</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => changeForm("notes", e.target.value)}
                   placeholder="Optional context on why this SKU was wrong"
                   rows={3}
-                  className="w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+                  className="w-full rounded-md border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-[12px] text-slate-300 outline-none placeholder:text-slate-600"
                 />
               </div>
 
@@ -430,7 +430,7 @@ export default function SkuMappingPage() {
                   type="button"
                   onClick={closeModal}
                   disabled={saving}
-                  className="h-8 min-w-[90px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-7 min-w-[80px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -438,9 +438,9 @@ export default function SkuMappingPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex h-8 min-w-[120px] cursor-pointer items-center justify-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[13px] text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-7 min-w-[100px] cursor-pointer items-center justify-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[11px] font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Save size={14} />
+                  <Save size={12} />
                   {saving ? "Saving..." : modal.mode === "edit" ? "Update" : "Save"}
                 </button>
               </div>
@@ -473,7 +473,7 @@ export default function SkuMappingPage() {
                   type="button"
                   onClick={() => setDeleteModal({ open: false, row: null })}
                   disabled={deleting}
-                  className="h-8 min-w-[90px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-7 min-w-[80px] cursor-pointer rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancel
                 </button>
@@ -482,7 +482,7 @@ export default function SkuMappingPage() {
                   type="button"
                   onClick={confirmDeleteNow}
                   disabled={deleting}
-                  className="h-8 min-w-[100px] cursor-pointer rounded-md border border-red-900 bg-red-950 px-3 text-[13px] text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-7 min-w-[90px] cursor-pointer rounded-md border border-red-900 bg-red-950 px-3 text-[11px] font-semibold text-red-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>

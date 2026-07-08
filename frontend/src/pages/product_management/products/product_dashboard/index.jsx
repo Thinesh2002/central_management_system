@@ -10,6 +10,7 @@ import { EMPTY_FILTERS, VIEW_TABS } from "./constants/localProductsDashboardCons
 import {
   applyTextAndPopupFilters,
   applyViewFilter,
+  getStableProductKey,
   normalizeProductList,
 } from "./utils/localProductsTableHelpers";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
@@ -501,6 +502,8 @@ export default function LocalProductsDashboard() {
   const [subCategories, setSubCategories] = useState([]);
   const [models, setModels] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
+  const [selectedKeys, setSelectedKeys] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [activeView, setActiveView] = useState("all");
@@ -613,6 +616,69 @@ export default function LocalProductsDashboard() {
     );
   }, [subCategories, draftFilters.category_id]);
 
+  const filteredKeys = useMemo(
+    () => filteredProducts.map((product, index) => getStableProductKey(product, index)),
+    [filteredProducts]
+  );
+
+  const allSelected =
+    filteredKeys.length > 0 && filteredKeys.every((key) => selectedKeys.includes(key));
+
+  function toggleSelect(productKey) {
+    setSelectedKeys((prev) =>
+      prev.includes(productKey)
+        ? prev.filter((key) => key !== productKey)
+        : [...prev, productKey]
+    );
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedKeys((prev) => prev.filter((key) => !filteredKeys.includes(key)));
+      return;
+    }
+
+    setSelectedKeys((prev) => Array.from(new Set([...prev, ...filteredKeys])));
+  }
+
+  function clearSelection() {
+    setSelectedKeys([]);
+  }
+
+  async function handleBulkDelete() {
+    const selectedProducts = filteredProducts.filter((product, index) =>
+      selectedKeys.includes(getStableProductKey(product, index))
+    );
+
+    const deletableIds = selectedProducts
+      .map((product) => product.id || product.product_id || product.local_product_id)
+      .filter(Boolean);
+
+    if (!deletableIds.length) {
+      alert("None of the selected products have a valid ID to delete.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete ${deletableIds.length} selected product${deletableIds.length === 1 ? "" : "s"}? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setBulkDeleting(true);
+
+    try {
+      await Promise.all(deletableIds.map((id) => localProductsApi.deleteProduct(id)));
+      showToast(`${deletableIds.length} product${deletableIds.length === 1 ? "" : "s"} deleted successfully.`);
+      clearSelection();
+      await loadData();
+    } catch (error) {
+      alert(getErrorMessage(error, "Unable to delete selected products."));
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
   async function handleDelete(product) {
     const productId = product.id || product.product_id || product.local_product_id;
 
@@ -710,6 +776,34 @@ export default function LocalProductsDashboard() {
           onAddProduct={() => navigate("/product/local-products/create")}
         />
 
+        {selectedKeys.length > 0 && (
+          <div className="flex items-center justify-between border border-orange-500/40 bg-orange-500/10 px-3 py-2">
+            <p className="text-[11px] font-semibold text-orange-200">
+              {selectedKeys.length} product{selectedKeys.length === 1 ? "" : "s"} selected
+            </p>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={clearSelection}
+                disabled={bulkDeleting}
+                className="h-7 rounded-sm border border-slate-600 px-2.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-60"
+              >
+                Clear
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="h-7 rounded-sm border border-red-500/40 bg-red-950 px-2.5 text-[11px] font-semibold text-red-300 hover:bg-red-900 disabled:opacity-60"
+              >
+                {bulkDeleting ? "Deleting..." : `Delete Selected (${selectedKeys.length})`}
+              </button>
+            </div>
+          </div>
+        )}
+
         <ProductsTable
           loading={loading}
           filteredProducts={filteredProducts}
@@ -718,6 +812,10 @@ export default function LocalProductsDashboard() {
           models={models}
           productImages={productImages}
           expandedRows={expandedRows}
+          selectedKeys={selectedKeys}
+          allSelected={allSelected}
+          onToggleSelect={toggleSelect}
+          onToggleSelectAll={toggleSelectAll}
           getName={getName}
           toggleExpanded={toggleExpanded}
           goToProductSection={goToProductSection}

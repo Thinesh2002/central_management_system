@@ -7,6 +7,7 @@ import {
   Edit,
   Eye,
   MoreVertical,
+  PackagePlus,
   Send,
   Trash2,
 } from "lucide-react";
@@ -58,6 +59,8 @@ export default function ProductRow({
   productKey,
   productImages,
   expandedRows,
+  isSelected,
+  onToggleSelect,
   toggleExpanded,
   handleDelete,
   handleDeleteVariant,
@@ -103,6 +106,10 @@ export default function ProductRow({
     navigate(`/product/local-products/edit/${productId}/basic`);
   }
 
+  function handleAddVariant() {
+    navigate(`/product/local-products/edit/${productId}/variants/create`);
+  }
+
   function handleRemoveProduct() {
     handleDelete(product);
   }
@@ -114,6 +121,8 @@ export default function ProductRow({
         <td className="px-3 py-3 align-middle">
           <input
             type="checkbox"
+            checked={Boolean(isSelected)}
+            onChange={() => onToggleSelect?.(productKey)}
             className="h-3.5 w-3.5 cursor-pointer rounded border-slate-500 bg-slate-900 accent-orange-500"
           />
         </td>
@@ -250,6 +259,19 @@ export default function ProductRow({
                     className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
                   >
                     <Edit size={13} /> Edit
+                  </button>
+                )}
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionOpen(false);
+                      handleAddVariant();
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                  >
+                    <PackagePlus size={13} /> Add Variant
                   </button>
                 )}
 

@@ -98,14 +98,6 @@ const staticMenu = [
   },
   {
     section: "MARKETPLACE MANAGEMENT",
-    page_key: "marketplace_accounts",
-    page_name: "Marketplace Accounts",
-    path: "/marketplace/accounts",
-    icon: "Store",
-    exact: true,
-  },
-  {
-    section: "MARKETPLACE MANAGEMENT",
     page_key: "daraz_products",
     page_name: "Daraz Products",
     path: "/product/daraz-products",
@@ -121,16 +113,7 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "MARKETPLACE MANAGEMENT",
-    page_key: "daraz_sync_logs",
-    pageKeys: ["daraz_sync_logs", "sync_logs"],
-    page_name: "Sync Logs",
-    path: "/product/sync-logs",
-    icon: "ScrollText",
-    exact: true,
-  },
-  {
-    section: "INVENTORY MANAGEMENT",
+    section: "INVENTORY & PRICE",
     page_key: "inventory_dashboard",
     pageKeys: ["inventory_dashboard", "inventory"],
     page_name: "Inventory Dashboard",
@@ -139,16 +122,7 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "INVENTORY MANAGEMENT",
-    page_key: "inventory_add_modify",
-    pageKeys: ["inventory_add_modify", "inventory"],
-    page_name: "Add / Modify Inventory",
-    path: "/inventory/modify",
-    icon: "Boxes",
-    exact: true,
-  },
-  {
-    section: "PRICE MANAGEMENT",
+    section: "INVENTORY & PRICE",
     page_key: "price_dashboard",
     pageKeys: ["price_dashboard", "pricing"],
     page_name: "Price Dashboard",
@@ -173,18 +147,18 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "ACCOUNT MANAGEMENT",
-    page_key: "users",
-    page_name: "Users",
-    path: "/users",
-    icon: "Users",
+    section: "CONFIGURATION",
+    page_key: "marketplace_accounts",
+    page_name: "Marketplace Accounts",
+    path: "/marketplace/accounts",
+    icon: "Store",
     exact: true,
   },
   {
     section: "SYSTEM",
     page_key: "system_logs",
-    pageKeys: ["system_logs", "logs"],
-    page_name: "System Logs",
+    pageKeys: ["system_logs", "logs", "daraz_sync_logs", "sync_logs"],
+    page_name: "Logs",
     path: "/logs",
     icon: "ScrollText",
     exact: true,
@@ -248,11 +222,11 @@ export default function Sidebar({ open, onClose }) {
         <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden pb-20">
           {Object.entries(groupedMenu).map(([sectionName, items]) => (
             <div key={sectionName} className="border-b border-[#1d2940] py-3">
-              <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#FFD400]">
+              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFD400]">
                 {sectionName}
               </p>
 
-              <div className="space-y-1 px-2">
+              <div className="space-y-0.5 px-2">
                 {items.map((item) => {
                   const Icon = iconMap[item.icon] || LayoutDashboard;
 
@@ -263,7 +237,7 @@ export default function Sidebar({ open, onClose }) {
                       end={item.exact}
                       onClick={onClose}
                       className={({ isActive }) =>
-                        `relative flex cursor-pointer items-center gap-3 rounded-md px-4 py-2.5 text-[13px] font-semibold transition ${
+                        `relative flex cursor-pointer items-center gap-2.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
                           isActive
                             ? "bg-[#1b3158] text-white"
                             : "text-slate-300 hover:bg-[#16233a] hover:text-white"
@@ -277,7 +251,7 @@ export default function Sidebar({ open, onClose }) {
                           )}
 
                           <Icon
-                            size={16}
+                            size={15}
                             className={
                               isActive ? "text-[#7fb3ff]" : "text-slate-400"
                             }

@@ -14,16 +14,16 @@ import {
 } from "../utils/productSku";
 
 const FIELD_CLASS =
-  "h-11 w-full border border-slate-700 bg-[#0a101d] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60";
+  "h-9 w-full border border-slate-700 bg-[#0a101d] px-2.5 text-[12px] font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-orange-400 disabled:cursor-not-allowed disabled:opacity-60";
 
 function FieldWrap({ label, required, children, hint }) {
   return (
     <label className="block">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
           {label} {required && <span className="text-orange-300">*</span>}
         </span>
-        {hint && <span className="text-[11px] font-medium text-slate-500">{hint}</span>}
+        {hint && <span className="text-[10px] font-medium text-slate-500">{hint}</span>}
       </div>
       {children}
     </label>
@@ -334,18 +334,18 @@ export default function LocalProductAddPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-300">
+            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-300">
               Local Product
             </p>
-            <h1 className="mt-1 text-xl font-black text-white">Create Product</h1>
+            <h1 className="mt-1 text-lg font-black text-white">Create Product</h1>
           </div>
 
           <button
             type="button"
             onClick={() => navigate("/product/local-products")}
-            className="inline-flex cursor-pointer items-center gap-2 border border-slate-700 bg-[#0b1220] px-4 py-2 text-sm font-bold text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
+            className="inline-flex h-8 cursor-pointer items-center gap-1.5 border border-slate-700 bg-[#0b1220] px-3 text-[12px] font-bold text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={14} /> Back
           </button>
         </div>
 
@@ -353,13 +353,13 @@ export default function LocalProductAddPage() {
           onSubmit={handleSubmit}
           className="border border-slate-800 bg-[#0b1220]"
         >
-          <div className="border-b border-slate-800 bg-[#07101f] px-4 py-3">
+          <div className="border-b border-slate-800 bg-[#07101f] px-4 py-2.5">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm font-black text-white">Basic Details</p>
+              <p className="text-[12px] font-black text-white">Basic Details</p>
 
               {mastersLoading && (
-                <span className="inline-flex items-center gap-2 text-xs font-bold text-orange-300">
-                  <Loader2 size={14} className="animate-spin" /> Loading master data...
+                <span className="inline-flex items-center gap-2 text-[11px] font-bold text-orange-300">
+                  <Loader2 size={13} className="animate-spin" /> Loading master data...
                 </span>
               )}
             </div>
@@ -526,11 +526,11 @@ export default function LocalProductAddPage() {
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-slate-800 bg-[#07101f] px-4 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-800 bg-[#07101f] px-4 py-3 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => navigate("/product/local-products")}
-              className="border border-slate-700 bg-[#0b1220] px-5 py-2.5 text-sm font-bold text-slate-300 transition hover:border-slate-500 hover:text-white"
+              className="h-8 border border-slate-700 bg-[#0b1220] px-4 text-[12px] font-bold text-slate-300 transition hover:border-slate-500 hover:text-white"
             >
               Cancel
             </button>
@@ -538,9 +538,9 @@ export default function LocalProductAddPage() {
             <button
               disabled={saving || mastersLoading}
               type="submit"
-              className="inline-flex cursor-pointer items-center justify-center gap-2 bg-orange-500 px-5 py-2.5 text-sm font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 bg-orange-500 px-4 text-[12px] font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {saving ? "Saving..." : "Create Product"}
             </button>
           </div>

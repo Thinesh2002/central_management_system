@@ -121,7 +121,7 @@ function ActionLabel({ title, accent, onClick, disabled, children }) {
 function TextInput({ label, value, onChange, disabled, placeholder, required }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-semibold uppercase text-slate-500">
+      <span className="text-[11px] font-semibold uppercase text-slate-500">
         {label} {required && <span className="text-amber-400">*</span>}
       </span>
       <input
@@ -130,7 +130,7 @@ function TextInput({ label, value, onChange, disabled, placeholder, required }) 
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-8 w-full rounded-md border border-slate-700 bg-[#070b16] px-2.5 text-[12px] font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -139,14 +139,14 @@ function TextInput({ label, value, onChange, disabled, placeholder, required }) 
 function TextArea({ label, value, onChange, disabled }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
+      <span className="text-[11px] font-semibold uppercase text-slate-500">{label}</span>
       <textarea
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Optional description"
         rows={3}
-        className="w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-md border border-slate-700 bg-[#070b16] px-2.5 py-1.5 text-[12px] font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
     </label>
   );
@@ -155,14 +155,14 @@ function TextArea({ label, value, onChange, disabled }) {
 function SelectInput({ label, value, onChange, disabled, required, children }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-semibold uppercase text-slate-500">
+      <span className="text-[11px] font-semibold uppercase text-slate-500">
         {label} {required && <span className="text-amber-400">*</span>}
       </span>
       <select
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-8 w-full rounded-md border border-slate-700 bg-[#070b16] px-2.5 text-[12px] font-semibold text-slate-100 outline-none transition focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {children}
       </select>
@@ -174,20 +174,20 @@ function ModalShell({ title, subtitle, onClose, children, wide }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
       <div
-        className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl`}
+        className={`w-full ${wide ? "max-w-xl" : "max-w-md"} rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl`}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
           <div>
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+            <h2 className="text-[14px] font-semibold text-white">{title}</h2>
+            {subtitle && <p className="mt-0.5 text-[11px] text-slate-500">{subtitle}</p>}
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -206,12 +206,12 @@ function ModalFooter({ readOnly, saving, mode, onClose, accent = "amber" }) {
     }[accent] || "bg-amber-400 hover:bg-amber-300";
 
   return (
-    <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-4">
+    <div className="flex justify-end gap-2 border-t border-slate-800 px-4 py-3">
       <button
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-7 rounded-md border border-slate-700 px-3 text-[11px] font-semibold text-slate-300 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {readOnly ? "Close" : "Cancel"}
       </button>
@@ -220,9 +220,9 @@ function ModalFooter({ readOnly, saving, mode, onClose, accent = "amber" }) {
         <button
           type="submit"
           disabled={saving}
-          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-950 transition disabled:cursor-not-allowed disabled:opacity-60 ${btnAccent}`}
+          className={`inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-[11px] font-semibold text-slate-950 transition disabled:cursor-not-allowed disabled:opacity-60 ${btnAccent}`}
         >
-          <Save size={15} />
+          <Save size={12} />
           {saving ? "Saving..." : mode === "edit" ? "Update" : "Save"}
         </button>
       )}
@@ -1414,7 +1414,7 @@ export default function CategoryPage() {
           onClose={closeCategory}
         >
           <form onSubmit={saveCategory}>
-            <div className="space-y-4 p-5">
+            <div className="space-y-3 p-4">
               <TextInput
                 label="Category Code"
                 value={catForm.category_code}
@@ -1473,7 +1473,7 @@ export default function CategoryPage() {
           onClose={closeSub}
         >
           <form onSubmit={saveSub}>
-            <div className="space-y-4 p-5">
+            <div className="space-y-3 p-4">
               <SelectInput
                 label="Main Category"
                 value={subForm.category_code}
@@ -1548,7 +1548,7 @@ export default function CategoryPage() {
           onClose={closeModel}
         >
           <form onSubmit={saveModel}>
-            <div className="space-y-4 p-5">
+            <div className="space-y-3 p-4">
               <SelectInput
                 label="Main Category"
                 value={modelForm.category_id}
@@ -1637,8 +1637,8 @@ export default function CategoryPage() {
             })
           }
         >
-          <div className="space-y-4 p-5">
-            <p className="text-sm text-slate-300">
+          <div className="space-y-3 p-4">
+            <p className="text-[12px] text-slate-300">
               Are you sure you want to delete{" "}
               <span className="font-semibold text-red-300">
                 {deleteModal.row?.name || "this item"}
@@ -1647,7 +1647,7 @@ export default function CategoryPage() {
             </p>
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-4">
+          <div className="flex justify-end gap-2 border-t border-slate-800 px-4 py-3">
             <button
               type="button"
               onClick={() =>
@@ -1658,7 +1658,7 @@ export default function CategoryPage() {
                 })
               }
               disabled={deleting}
-              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-7 rounded-md border border-slate-700 px-3 text-[11px] font-semibold text-slate-300 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
@@ -1667,9 +1667,9 @@ export default function CategoryPage() {
               type="button"
               onClick={confirmDeleteNow}
               disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-7 items-center gap-1.5 rounded-md bg-red-500 px-3 text-[11px] font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Trash2 size={15} />
+              <Trash2 size={12} />
               {deleting ? "Deleting..." : "Delete"}
             </button>
           </div>

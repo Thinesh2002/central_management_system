@@ -43,6 +43,10 @@ export default function ProductsTable({
   models,
   productImages,
   expandedRows,
+  selectedKeys = [],
+  allSelected = false,
+  onToggleSelect,
+  onToggleSelectAll,
   getName,
   toggleExpanded,
   goToProductSection,
@@ -69,6 +73,8 @@ export default function ProductsTable({
               <th className="px-3 py-3">
                 <input
                   type="checkbox"
+                  checked={allSelected}
+                  onChange={onToggleSelectAll}
                   className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
                 />
               </th>
@@ -100,6 +106,8 @@ export default function ProductsTable({
                     models={models}
                     productImages={productImages}
                     expandedRows={expandedRows}
+                    isSelected={selectedKeys.includes(productKey)}
+                    onToggleSelect={onToggleSelect}
                     getName={getName}
                     toggleExpanded={toggleExpanded}
                     goToProductSection={goToProductSection}
