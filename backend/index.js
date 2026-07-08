@@ -35,6 +35,7 @@ const darazCatalogRoutes = require("./routes/marketplace/daraz_catalog_route");
 const wooRoutes = require("./routes/woo/woo_route");
 
 const skuReportRoutes = require("./routes/order_management/sku_report_routes");
+const orderCustomersRoutes = require("./routes/order_management/customers_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -176,6 +177,7 @@ app.use("/api/daraz-catalog", darazCatalogRoutes);
 app.use("/api/marketplace/woo", wooRoutes);
 
 app.use("/api/order-management/sku-report", skuReportRoutes);
+app.use("/api/order-management/customers", orderCustomersRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

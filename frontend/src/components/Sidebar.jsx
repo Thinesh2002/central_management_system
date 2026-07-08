@@ -166,6 +166,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "ORDER MANAGEMENT",
+    page_key: "order_customers",
+    page_name: "Customers",
+    path: "/order-management/customers",
+    icon: "Users",
+    exact: true,
+  },
+  {
     section: "ACCOUNT MANAGEMENT",
     page_key: "users",
     page_name: "Users",

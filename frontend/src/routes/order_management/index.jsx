@@ -5,6 +5,8 @@ import Layout from "../../components/Layout";
 import ProtectedRoute from "../../config/ProtectedRoute";
 
 import SkuReportPage from "../../pages/order_management/sku_report/index";
+import CustomersPage from "../../pages/order_management/customers/index";
+import CustomerViewPage from "../../pages/order_management/customers/view/index";
 
 function ProtectedOrderPage({ children }) {
   return (
@@ -22,6 +24,24 @@ export default function OrderManagementRoutes() {
         element={
           <ProtectedOrderPage>
             <SkuReportPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/customers"
+        element={
+          <ProtectedOrderPage>
+            <CustomersPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/customers/:id"
+        element={
+          <ProtectedOrderPage>
+            <CustomerViewPage />
           </ProtectedOrderPage>
         }
       />
