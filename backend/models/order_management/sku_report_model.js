@@ -22,10 +22,20 @@ function toDateKey(value) {
   return date.toISOString().slice(0, 10);
 }
 
-// A SKU sitting in sku_mappings is a known-wrong marketplace SKU (e.g. a
-// typo'd Daraz seller_sku) — resolve it to the real local SKU before doing
-// any lookup, so the report reflects the correct product's actual history
-// instead of coming up empty for the wrong SKU.
+async function localSkuExists(sku) {
+  const [productRows] = await productDb.query(
+    "SELECT 1 FROM products WHERE sku = ? AND deleted_at IS NULL LIMIT 1",
+    [sku]
+  );
+  if (productRows.length) return true;
+
+  const [variantRows] = await productDb.query(
+    "SELECT 1 FROM product_variants WHERE variant_sku = ? AND deleted_at IS NULL LIMIT 1",
+    [sku]
+  );
+  return variantRows.length > 0;
+}
+
 async function resolveMappedSku(sku) {
   const [rows] = await productDb.query(
     "SELECT correct_sku FROM sku_mappings WHERE wrong_sku = ? LIMIT 1",
@@ -33,6 +43,39 @@ async function resolveMappedSku(sku) {
   );
 
   return rows[0]?.correct_sku || null;
+}
+
+// Every wrong SKU on record that resolves to this correct SKU — old order
+// rows (Daraz/Woo/local) may have been recorded under any of them before
+// the typo was caught, so history lookups need to match all of them, not
+// just today's correct SKU.
+async function getKnownWrongSkusFor(correctSku) {
+  const [rows] = await productDb.query(
+    "SELECT wrong_sku FROM sku_mappings WHERE correct_sku = ?",
+    [correctSku]
+  );
+
+  return rows.map((row) => row.wrong_sku);
+}
+
+// Two-step resolution, in order: (1) is this already a real local SKU? if
+// so it IS the correct SKU, no mapping needed. (2) if not found directly,
+// is it a known-wrong SKU with a mapping to the real one? Only fall back to
+// using the requested value as-is if neither check finds anything.
+async function resolveSku(requestedSku) {
+  const isDirectMatch = await localSkuExists(requestedSku);
+
+  if (isDirectMatch) {
+    return { sku: requestedSku, mappedFrom: null };
+  }
+
+  const mapped = await resolveMappedSku(requestedSku);
+
+  if (mapped) {
+    return { sku: mapped, mappedFrom: requestedSku };
+  }
+
+  return { sku: requestedSku, mappedFrom: null };
 }
 
 async function getLocalProduct(sku) {
@@ -91,17 +134,23 @@ async function getStockAndPrice(sku) {
   };
 }
 
-async function getMarketplaceListings(sku) {
+function inClause(values) {
+  return values.map(() => "?").join(",");
+}
+
+async function getMarketplaceListings(skuVariants) {
+  const placeholders = inClause(skuVariants);
+
   const [darazRows] = await productDb.query(
     `SELECT id, account_id, seller_sku, name, price, sale_price, quantity, status
-     FROM daraz_products WHERE seller_sku = ?`,
-    [sku]
+     FROM daraz_products WHERE seller_sku IN (${placeholders})`,
+    skuVariants
   );
 
   const [wooRows] = await productDb.query(
     `SELECT id, account_id, sku, name, price, regular_price, sale_price, stock_quantity, stock_status
-     FROM woo_products WHERE sku = ?`,
-    [sku]
+     FROM woo_products WHERE sku IN (${placeholders})`,
+    skuVariants
   );
 
   const accountIds = Array.from(
@@ -138,7 +187,9 @@ async function getMarketplaceListings(sku) {
   };
 }
 
-async function getDarazHistory(sku) {
+async function getDarazHistory(skuVariants) {
+  const placeholders = inClause(skuVariants);
+
   const [rows] = await orderDb.query(
     `SELECT
         doi.id, doi.qty, doi.unit_price, doi.discount_amount, doi.line_total, doi.item_status,
@@ -146,9 +197,11 @@ async function getDarazHistory(sku) {
         do2.order_number, do2.daraz_order_id, do2.order_date, do2.order_status, do2.account_name, do2.buyer_name
      FROM daraz_order_items doi
      INNER JOIN daraz_orders do2 ON do2.id = doi.daraz_order_id
-     WHERE doi.seller_sku = ? OR doi.local_sku = ? OR doi.marketplace_sku = ?
+     WHERE doi.seller_sku IN (${placeholders})
+        OR doi.local_sku IN (${placeholders})
+        OR doi.marketplace_sku IN (${placeholders})
      ORDER BY do2.order_date DESC`,
-    [sku, sku, sku]
+    [...skuVariants, ...skuVariants, ...skuVariants]
   );
 
   return rows.map((row) => ({
@@ -167,7 +220,9 @@ async function getDarazHistory(sku) {
   }));
 }
 
-async function getWooHistory(sku) {
+async function getWooHistory(skuVariants) {
+  const placeholders = inClause(skuVariants);
+
   const [rows] = await orderDb.query(
     `SELECT
         woi.id, woi.qty, woi.unit_price, woi.discount_amount, woi.line_total, woi.item_status,
@@ -175,9 +230,11 @@ async function getWooHistory(sku) {
         wo.order_number, wo.woo_order_id, wo.order_date, wo.order_status, wo.account_name, wo.buyer_name
      FROM woo_order_items woi
      INNER JOIN woo_orders wo ON wo.id = woi.woo_order_id
-     WHERE woi.sku = ? OR woi.local_sku = ? OR woi.marketplace_sku = ?
+     WHERE woi.sku IN (${placeholders})
+        OR woi.local_sku IN (${placeholders})
+        OR woi.marketplace_sku IN (${placeholders})
      ORDER BY wo.order_date DESC`,
-    [sku, sku, sku]
+    [...skuVariants, ...skuVariants, ...skuVariants]
   );
 
   return rows.map((row) => ({
@@ -196,7 +253,9 @@ async function getWooHistory(sku) {
   }));
 }
 
-async function getLocalHistory(sku) {
+async function getLocalHistory(skuVariants) {
+  const placeholders = inClause(skuVariants);
+
   const [rows] = await orderDb.query(
     `SELECT
         oi.id, oi.qty, oi.unit_price, oi.discount_amount, oi.line_total, oi.item_status,
@@ -204,9 +263,9 @@ async function getLocalHistory(sku) {
         o.order_no, o.order_date, o.order_status, o.account_name, o.customer_id
      FROM order_items oi
      INNER JOIN orders o ON o.id = oi.order_id
-     WHERE oi.local_sku = ? OR oi.sku = ?
+     WHERE oi.local_sku IN (${placeholders}) OR oi.sku IN (${placeholders})
      ORDER BY o.order_date DESC`,
-    [sku, sku]
+    [...skuVariants, ...skuVariants]
   );
 
   return rows.map((row) => ({
@@ -273,16 +332,23 @@ function summarizePlatform(history) {
 }
 
 async function getSkuReport(requestedSku) {
-  const mappedSku = await resolveMappedSku(requestedSku);
-  const sku = mappedSku || requestedSku;
+  const { sku, mappedFrom } = await resolveSku(requestedSku);
+
+  // Old order/listing rows may still carry any wrong SKU ever mapped to
+  // this correct one (or the exact SKU the caller asked for, if it wasn't
+  // itself one of the known wrong ones) — search all of them, not just
+  // today's correct SKU, so history from before the typo was caught still
+  // shows up.
+  const knownWrongSkus = await getKnownWrongSkusFor(sku);
+  const skuVariants = Array.from(new Set([sku, requestedSku, ...knownWrongSkus].filter(Boolean)));
 
   const [localProduct, stockAndPrice, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
     getLocalProduct(sku),
     getStockAndPrice(sku),
-    getMarketplaceListings(sku),
-    getDarazHistory(sku),
-    getWooHistory(sku),
-    getLocalHistory(sku),
+    getMarketplaceListings(skuVariants),
+    getDarazHistory(skuVariants),
+    getWooHistory(skuVariants),
+    getLocalHistory(skuVariants),
   ]);
 
   const allHistory = [...darazHistory, ...wooHistory, ...localHistory].sort(
@@ -312,7 +378,8 @@ async function getSkuReport(requestedSku) {
   return {
     sku,
     requested_sku: requestedSku,
-    mapped_from: mappedSku ? requestedSku : null,
+    mapped_from: mappedFrom,
+    known_sku_variants: skuVariants,
     local_product: localProduct,
     stock: stockAndPrice.stock,
     price: stockAndPrice.price,
