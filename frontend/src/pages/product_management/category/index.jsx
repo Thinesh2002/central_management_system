@@ -12,6 +12,7 @@ import {
   Eye,
   Edit,
   Trash2,
+  FolderTree,
 } from "lucide-react";
 
 import { usePagePermission } from "../../../components/common/permissions/PermissionsProvider";
@@ -73,95 +74,144 @@ function code(row) {
   return String(row?.category_code || "").trim();
 }
 
-function ActionIcon({ title, color, onClick, disabled, children }) {
+function ActionBtn({ title, accent, onClick, disabled, children }) {
+  const accentClass =
+    {
+      sky: "hover:border-sky-500 hover:text-sky-300",
+      amber: "hover:border-amber-500 hover:text-amber-300",
+      emerald: "hover:border-emerald-500 hover:text-emerald-300",
+      red: "hover:border-red-500 hover:text-red-300",
+    }[accent] || "hover:border-slate-500 hover:text-slate-200";
+
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-5 w-5 cursor-pointer items-center justify-center bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-50 ${color}`}
+      className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-700 text-slate-400 transition disabled:cursor-not-allowed disabled:opacity-50 ${accentClass}`}
     >
       {children}
     </button>
   );
 }
 
-function ActionLabel({ title, color, onClick, disabled, children }) {
+function ActionLabel({ title, accent, onClick, disabled, children }) {
+  const accentClass =
+    {
+      sky: "border-sky-800 bg-sky-950/60 text-sky-300 hover:border-sky-500",
+      amber: "border-amber-800 bg-amber-950/60 text-amber-300 hover:border-amber-500",
+      emerald: "border-emerald-800 bg-emerald-950/60 text-emerald-300 hover:border-emerald-500",
+      red: "border-red-800 bg-red-950/60 text-red-300 hover:border-red-500",
+    }[accent] || "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500";
+
   return (
     <button
       type="button"
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className={`cursor-pointer rounded px-1.5 py-0.5 text-[11px] font-medium disabled:cursor-not-allowed disabled:opacity-50 ${color}`}
+      className={`inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${accentClass}`}
     >
       {children}
     </button>
   );
 }
 
-function TextInput({ label, value, onChange, disabled, placeholder }) {
+function TextInput({ label, value, onChange, disabled, placeholder, required }) {
   return (
-    <div>
-      <label className="mb-1 block text-[13px] text-slate-400">{label}</label>
+    <label className="block space-y-1">
+      <span className="text-xs font-semibold uppercase text-slate-500">
+        {label} {required && <span className="text-amber-400">*</span>}
+      </span>
       <input
         type="text"
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
+        className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
-    </div>
+    </label>
   );
 }
 
 function TextArea({ label, value, onChange, disabled }) {
   return (
-    <div>
-      <label className="mb-1 block text-[13px] text-slate-400">{label}</label>
+    <label className="block space-y-1">
+      <span className="text-xs font-semibold uppercase text-slate-500">{label}</span>
       <textarea
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Optional description"
         rows={3}
-        className="w-full rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-[13px] text-slate-300 outline-none placeholder:text-slate-600 disabled:opacity-70"
+        className="w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 py-2 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
       />
-    </div>
+    </label>
   );
 }
 
-function ModalHeader({ title, onClose }) {
+function SelectInput({ label, value, onChange, disabled, required, children }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-      <div>
-        <h3 className="text-[15px] font-normal text-slate-100">{title}</h3>
-        <p className="text-[12px] text-slate-500">
-          Manage details using this popup.
-        </p>
-      </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-900"
+    <label className="block space-y-1">
+      <span className="text-xs font-semibold uppercase text-slate-500">
+        {label} {required && <span className="text-amber-400">*</span>}
+      </span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none transition focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <X size={16} />
-      </button>
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function ModalShell({ title, subtitle, onClose, children, wide }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+      <div
+        className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"} rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl`}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">{title}</h2>
+            {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {children}
+      </div>
     </div>
   );
 }
 
-function ModalFooter({ readOnly, saving, mode, onClose }) {
+function ModalFooter({ readOnly, saving, mode, onClose, accent = "amber" }) {
+  const btnAccent =
+    {
+      amber: "bg-amber-400 hover:bg-amber-300",
+      emerald: "bg-emerald-400 hover:bg-emerald-300",
+      sky: "bg-sky-400 hover:bg-sky-300",
+    }[accent] || "bg-amber-400 hover:bg-amber-300";
+
   return (
-    <div className="flex justify-end gap-2 pt-2">
+    <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-4">
       <button
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="h-8 min-w-[90px] rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-300 disabled:opacity-60"
+        className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {readOnly ? "Close" : "Cancel"}
       </button>
@@ -170,9 +220,9 @@ function ModalFooter({ readOnly, saving, mode, onClose }) {
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex h-8 min-w-[120px] items-center justify-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[13px] text-slate-950 disabled:opacity-60"
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-slate-950 transition disabled:cursor-not-allowed disabled:opacity-60 ${btnAccent}`}
         >
-          <Save size={14} />
+          <Save size={15} />
           {saving ? "Saving..." : mode === "edit" ? "Update" : "Save"}
         </button>
       )}
@@ -773,81 +823,70 @@ export default function CategoryPage() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-xl font-medium text-slate-100">
+      <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+          <h3 className="flex items-center gap-2 text-[13px] font-semibold text-white">
+            <FolderTree size={15} className="text-amber-400" />
             Category Dashboard
-          </h1>
-          <p className="text-[13px] text-slate-500">
-            Manage main categories, sub categories and models.
-          </p>
-        </div>
+          </h3>
 
-        <div className="flex flex-wrap gap-1.5">
-          {canDelete && selectedIds.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {canDelete && selectedIds.length > 0 && (
+              <button
+                type="button"
+                onClick={bulkDelete}
+                disabled={deleting}
+                className="flex h-7 items-center gap-1 rounded-sm border border-red-500/40 bg-red-950 px-3 text-[11px] font-semibold text-red-300 hover:bg-red-900 disabled:opacity-60"
+              >
+                <Trash2 size={13} />
+                Delete ({selectedIds.length})
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={bulkDelete}
-              disabled={deleting}
-              className="h-8 rounded-md border border-red-900 bg-red-950 px-3 text-[13px] text-red-300 disabled:opacity-60"
+              onClick={() => openSub("add")}
+              className="flex h-7 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
             >
-              Delete ({selectedIds.length})
+              <Plus size={13} />
+              ADD SUB CATEGORY
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() => openSub("add")}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-200"
-          >
-            <Plus size={14} />
-            Add Sub Category
-          </button>
-
-          <button
-            type="button"
-            onClick={() => openCategory("add")}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-3 text-[13px] text-slate-950"
-          >
-            <Plus size={14} />
-            Add Category
-          </button>
+            <button
+              type="button"
+              onClick={() => openCategory("add")}
+              className="flex h-7 items-center gap-1 rounded-sm border border-amber-500/40 bg-amber-500 px-3 text-[11px] font-semibold text-slate-950 hover:bg-amber-400"
+            >
+              <Plus size={13} />
+              ADD CATEGORY
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="border border-slate-800 bg-slate-950 p-2">
-        <div className="grid gap-2 md:grid-cols-2">
-          <div className="relative">
-            <Search
-              size={15}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500"
-            />
-
+        <div className="grid gap-2 px-4 py-3 sm:grid-cols-2">
+          <label className="flex h-9 w-full items-center border border-slate-600 bg-[#2b3441] px-3 focus-within:border-amber-400">
+            <Search size={15} className="text-slate-500" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search main category..."
-              className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+              className="h-full min-w-0 flex-1 bg-transparent px-2 text-[12px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
             />
-          </div>
+          </label>
 
-          <div className="relative">
-            <Search
-              size={15}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500"
-            />
-
+          <label className="flex h-9 w-full items-center border border-slate-600 bg-[#2b3441] px-3 focus-within:border-amber-400">
+            <Search size={15} className="text-slate-500" />
             <input
               type="text"
               value={subSearch}
               onChange={(e) => setSubSearch(e.target.value)}
               placeholder="Search sub categories..."
-              className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+              className="h-full min-w-0 flex-1 bg-transparent px-2 text-[12px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
             />
-          </div>
+          </label>
         </div>
-      </div>
+      </section>
 
       {success && (
         <div className="rounded-md border border-emerald-900 bg-emerald-950 px-3 py-2 text-[13px] text-emerald-300">
@@ -863,20 +902,20 @@ export default function CategoryPage() {
       )}
 
       {loading ? (
-        <div className="rounded-lg border border-slate-800 bg-slate-950 p-5 text-center text-[13px] text-slate-500">
+        <div className="border border-slate-800 bg-[#0b1220] p-5 text-center text-[13px] text-slate-500">
           Loading categories...
         </div>
       ) : (
-        <div className="overflow-visible rounded-lg border border-slate-800 bg-slate-950">
+        <section className="overflow-visible border border-slate-800 bg-[#0b1220]">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-800">
-              <thead className="bg-slate-900">
+              <thead className="border-b border-slate-800 bg-[#111827]">
                 <tr>
-                  <th className="w-10 px-3 py-2 text-left">
+                  <th className="w-10 px-3 py-3">
                     <button
                       type="button"
                       onClick={toggleSelectAll}
-                      className="text-slate-500"
+                      className="cursor-pointer text-slate-500 hover:text-slate-300"
                     >
                       {allSelected ? (
                         <CheckSquare size={16} />
@@ -886,13 +925,13 @@ export default function CategoryPage() {
                     </button>
                   </th>
 
-                  <th className="w-8 px-2 py-2"></th>
+                  <th className="w-8 px-2 py-3"></th>
 
                   {["NO", "Code", "Name", "Slug", "Description", "Action"].map(
                     (header) => (
                       <th
                         key={header}
-                        className={`px-3 py-2 text-xs font-normal uppercase tracking-wide text-slate-500 ${
+                        className={`px-3 py-3 text-[11px] font-semibold uppercase tracking-wide text-amber-300 ${
                           header === "Action" ? "text-right" : "text-left"
                         }`}
                       >
@@ -908,7 +947,7 @@ export default function CategoryPage() {
                   <tr>
                     <td
                       colSpan="8"
-                      className="px-3 py-5 text-center text-[13px] text-slate-500"
+                      className="px-3 py-8 text-center text-[13px] text-slate-500"
                     >
                       No categories found.
                     </td>
@@ -924,15 +963,15 @@ export default function CategoryPage() {
                   return (
                     <React.Fragment key={row.id}>
                       <tr
-                        className={
-                          isSelected ? "bg-blue-950/10" : "bg-slate-950"
-                        }
+                        className={`transition ${
+                          isSelected ? "bg-amber-500/5" : "hover:bg-[#111827]"
+                        }`}
                       >
-                        <td className="w-10 px-3 py-2">
+                        <td className="w-10 px-3 py-3">
                           <button
                             type="button"
                             onClick={() => toggleSelect(row.id)}
-                            className="text-slate-500"
+                            className="cursor-pointer text-slate-500 hover:text-slate-300"
                           >
                             {isSelected ? (
                               <CheckSquare size={16} />
@@ -942,11 +981,11 @@ export default function CategoryPage() {
                           </button>
                         </td>
 
-                        <td className="w-8 px-2 py-2">
+                        <td className="w-8 px-2 py-3">
                           <button
                             type="button"
                             onClick={() => toggleExpand(categoryCode)}
-                            className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-slate-400 hover:text-slate-200"
+                            className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
                           >
                             {isExpanded ? (
                               <ChevronDown size={16} />
@@ -956,60 +995,60 @@ export default function CategoryPage() {
                           </button>
                         </td>
 
-                        <td className="px-3 py-2 text-[13px] text-slate-400">
+                        <td className="px-3 py-3 text-[13px] text-slate-400">
                           {index + 1}
                         </td>
 
-                        <td className="px-3 py-2 text-[13px] text-slate-300">
+                        <td className="px-3 py-3 text-[13px] font-semibold text-slate-200">
                           {categoryCode || "-"}
                         </td>
 
-                        <td className="px-3 py-2 text-[13px] text-slate-200">
+                        <td className="px-3 py-3 text-[13px] font-semibold text-white">
                           {row.name || "-"}
                         </td>
 
-                        <td className="px-3 py-2 text-[13px] text-slate-400">
+                        <td className="px-3 py-3 text-[13px] text-slate-400">
                           {row.slug || "-"}
                         </td>
 
-                        <td className="max-w-md px-3 py-2 text-[13px] text-slate-400">
+                        <td className="max-w-md px-3 py-3 text-[13px] text-slate-400">
                           <span className="line-clamp-1">
                             {row.description || "-"}
                           </span>
                         </td>
 
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-3 py-3 text-right">
                           <div className="inline-flex items-center justify-end gap-1.5">
-                            <ActionIcon
+                            <ActionBtn
                               title="View"
-                              color="text-sky-400"
+                              accent="sky"
                               onClick={() => openCategory("view", row)}
                             >
-                              <Eye size={13} />
-                            </ActionIcon>
+                              <Eye size={14} />
+                            </ActionBtn>
 
                             {canEdit && (
-                              <ActionIcon
+                              <ActionBtn
                                 title="Edit"
-                                color="text-amber-400"
+                                accent="amber"
                                 onClick={() => openCategory("edit", row)}
                               >
-                                <Edit size={13} />
-                              </ActionIcon>
+                                <Edit size={14} />
+                              </ActionBtn>
                             )}
 
-                            <ActionIcon
+                            <ActionBtn
                               title="Add Sub Category"
-                              color="text-emerald-400"
+                              accent="emerald"
                               onClick={() => openSub("add", row)}
                             >
-                              <Plus size={13} />
-                            </ActionIcon>
+                              <Plus size={14} />
+                            </ActionBtn>
 
                             {canDelete && (
-                              <ActionIcon
+                              <ActionBtn
                                 title="Delete"
-                                color="text-red-400"
+                                accent="red"
                                 onClick={() =>
                                   setDeleteModal({
                                     open: true,
@@ -1018,17 +1057,17 @@ export default function CategoryPage() {
                                   })
                                 }
                               >
-                                <Trash2 size={13} />
-                              </ActionIcon>
+                                <Trash2 size={14} />
+                              </ActionBtn>
                             )}
                           </div>
                         </td>
                       </tr>
 
                       {isExpanded && (
-                        <tr className="bg-slate-950">
+                        <tr className="bg-[#070b16]">
                           <td colSpan="8" className="px-3 py-3">
-                            <div className="rounded-lg border border-slate-800 bg-slate-900/40">
+                            <div className="border border-slate-800 bg-[#0b1220]">
                               {subLoading ? (
                                 <div className="px-3 py-4 text-center text-[13px] text-slate-500">
                                   Loading sub categories...
@@ -1040,7 +1079,7 @@ export default function CategoryPage() {
                               ) : (
                                 <table className="min-w-full divide-y divide-slate-800">
                                   <thead>
-                                    <tr>
+                                    <tr className="bg-[#111827]">
                                       <th className="w-8 px-2 py-2"></th>
 
                                       {[
@@ -1053,7 +1092,7 @@ export default function CategoryPage() {
                                       ].map((header) => (
                                         <th
                                           key={header}
-                                          className={`px-3 py-2 text-[11px] font-normal uppercase tracking-wide text-slate-500 ${
+                                          className={`px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-300 ${
                                             header === "Action"
                                               ? "text-right"
                                               : "text-left"
@@ -1077,14 +1116,14 @@ export default function CategoryPage() {
 
                                       return (
                                         <React.Fragment key={child.id}>
-                                          <tr>
-                                            <td className="w-8 px-2 py-2">
+                                          <tr className="hover:bg-[#111827]">
+                                            <td className="w-8 px-2 py-2.5">
                                               <button
                                                 type="button"
                                                 onClick={() =>
                                                   toggleSubExpand(child.id)
                                                 }
-                                                className="inline-flex h-6 w-6 cursor-pointer items-center justify-center text-slate-400 hover:text-slate-200"
+                                                className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-800 hover:text-white"
                                               >
                                                 {subExpanded ? (
                                                   <ChevronDown size={15} />
@@ -1094,33 +1133,33 @@ export default function CategoryPage() {
                                               </button>
                                             </td>
 
-                                            <td className="px-3 py-2 text-[13px] text-slate-500">
+                                            <td className="px-3 py-2.5 text-[13px] text-slate-500">
                                               {childIndex + 1}
                                             </td>
 
-                                            <td className="px-3 py-2 text-[13px] text-slate-300">
+                                            <td className="px-3 py-2.5 text-[13px] font-semibold text-slate-300">
                                               {child.sub_category_code || "-"}
                                             </td>
 
-                                            <td className="px-3 py-2 text-[13px] text-slate-200">
+                                            <td className="px-3 py-2.5 text-[13px] font-semibold text-white">
                                               {child.name || "-"}
                                             </td>
 
-                                            <td className="px-3 py-2 text-[13px] text-slate-400">
+                                            <td className="px-3 py-2.5 text-[13px] text-slate-400">
                                               {child.slug || "-"}
                                             </td>
 
-                                            <td className="max-w-md px-3 py-2 text-[13px] text-slate-400">
+                                            <td className="max-w-md px-3 py-2.5 text-[13px] text-slate-400">
                                               <span className="line-clamp-1">
                                                 {child.description || "-"}
                                               </span>
                                             </td>
 
-                                            <td className="px-3 py-2 text-right">
+                                            <td className="px-3 py-2.5 text-right">
                                               <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                                                 <ActionLabel
                                                   title="Add Model"
-                                                  color="bg-emerald-950 text-emerald-300 border border-emerald-900"
+                                                  accent="emerald"
                                                   onClick={() =>
                                                     openModel(
                                                       "add",
@@ -1134,7 +1173,7 @@ export default function CategoryPage() {
 
                                                 <ActionLabel
                                                   title="View Sub Category"
-                                                  color="bg-sky-950 text-sky-300 border border-sky-900"
+                                                  accent="sky"
                                                   onClick={() =>
                                                     openSub("view", row, child)
                                                   }
@@ -1145,7 +1184,7 @@ export default function CategoryPage() {
                                                 {canEdit && (
                                                   <ActionLabel
                                                     title="Edit Sub Category"
-                                                    color="bg-orange-950 text-orange-300 border border-orange-900"
+                                                    accent="amber"
                                                     onClick={() =>
                                                       openSub("edit", row, child)
                                                     }
@@ -1157,7 +1196,7 @@ export default function CategoryPage() {
                                                 {canDelete && (
                                                   <ActionLabel
                                                     title="Delete Sub Category"
-                                                    color="bg-red-950 text-red-300 border border-red-900"
+                                                    accent="red"
                                                     onClick={() =>
                                                       setDeleteModal({
                                                         open: true,
@@ -1174,12 +1213,12 @@ export default function CategoryPage() {
                                           </tr>
 
                                           {subExpanded && (
-                                            <tr className="bg-slate-950">
+                                            <tr className="bg-[#070b16]">
                                               <td
                                                 colSpan="7"
                                                 className="px-3 py-3"
                                               >
-                                                <div className="ml-7 rounded-md border border-slate-800 bg-slate-950">
+                                                <div className="ml-7 border border-slate-800 bg-[#0b1220]">
                                                   {modelLoading ? (
                                                     <div className="px-3 py-4 text-center text-[13px] text-slate-500">
                                                       Loading models...
@@ -1193,7 +1232,7 @@ export default function CategoryPage() {
 
                                                       <ActionLabel
                                                         title="Add Model"
-                                                        color="bg-emerald-950 text-emerald-300 border border-emerald-900"
+                                                        accent="emerald"
                                                         onClick={() =>
                                                           openModel(
                                                             "add",
@@ -1208,7 +1247,7 @@ export default function CategoryPage() {
                                                   ) : (
                                                     <table className="min-w-full divide-y divide-slate-800">
                                                       <thead>
-                                                        <tr>
+                                                        <tr className="bg-[#111827]">
                                                           {[
                                                             "NO",
                                                             "Model Code",
@@ -1219,7 +1258,7 @@ export default function CategoryPage() {
                                                           ].map((header) => (
                                                             <th
                                                               key={header}
-                                                              className={`px-3 py-2 text-[11px] font-normal uppercase tracking-wide text-slate-500 ${
+                                                              className={`px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-sky-300 ${
                                                                 header ===
                                                                 "Action"
                                                                   ? "text-right"
@@ -1238,38 +1277,41 @@ export default function CategoryPage() {
                                                             model,
                                                             modelIndex
                                                           ) => (
-                                                            <tr key={model.id}>
-                                                              <td className="px-3 py-2 text-[13px] text-slate-500">
+                                                            <tr
+                                                              key={model.id}
+                                                              className="hover:bg-[#111827]"
+                                                            >
+                                                              <td className="px-3 py-2.5 text-[13px] text-slate-500">
                                                                 {modelIndex + 1}
                                                               </td>
 
-                                                              <td className="px-3 py-2 text-[13px] text-slate-300">
+                                                              <td className="px-3 py-2.5 text-[13px] font-semibold text-slate-300">
                                                                 {model.model_code ||
                                                                   "-"}
                                                               </td>
 
-                                                              <td className="px-3 py-2 text-[13px] text-slate-200">
+                                                              <td className="px-3 py-2.5 text-[13px] font-semibold text-white">
                                                                 {model.name ||
                                                                   "-"}
                                                               </td>
 
-                                                              <td className="px-3 py-2 text-[13px] text-slate-400">
+                                                              <td className="px-3 py-2.5 text-[13px] text-slate-400">
                                                                 {model.slug ||
                                                                   "-"}
                                                               </td>
 
-                                                              <td className="max-w-md px-3 py-2 text-[13px] text-slate-400">
+                                                              <td className="max-w-md px-3 py-2.5 text-[13px] text-slate-400">
                                                                 <span className="line-clamp-1">
                                                                   {model.description ||
                                                                     "-"}
                                                                 </span>
                                                               </td>
 
-                                                              <td className="px-3 py-2 text-right">
+                                                              <td className="px-3 py-2.5 text-right">
                                                                 <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
                                                                   <ActionLabel
                                                                     title="View Model"
-                                                                    color="bg-sky-950 text-sky-300 border border-sky-900"
+                                                                    accent="sky"
                                                                     onClick={() =>
                                                                       openModel(
                                                                         "view",
@@ -1285,7 +1327,7 @@ export default function CategoryPage() {
                                                                   {canEdit && (
                                                                     <ActionLabel
                                                                       title="Edit Model"
-                                                                      color="bg-orange-950 text-orange-300 border border-orange-900"
+                                                                      accent="amber"
                                                                       onClick={() =>
                                                                         openModel(
                                                                           "edit",
@@ -1302,7 +1344,7 @@ export default function CategoryPage() {
                                                                   {canDelete && (
                                                                     <ActionLabel
                                                                       title="Delete Model"
-                                                                      color="bg-red-950 text-red-300 border border-red-900"
+                                                                      accent="red"
                                                                       onClick={() =>
                                                                         setDeleteModal(
                                                                           {
@@ -1344,7 +1386,7 @@ export default function CategoryPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
 
       {!loading && (
@@ -1360,26 +1402,26 @@ export default function CategoryPage() {
       )}
 
       {catModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
-            <ModalHeader
-              title={
-                catModal.mode === "view"
-                  ? "View Category"
-                  : catModal.mode === "edit"
-                  ? "Edit Category"
-                  : "Add Category"
-              }
-              onClose={closeCategory}
-            />
-
-            <form onSubmit={saveCategory} className="space-y-3 p-4">
+        <ModalShell
+          title={
+            catModal.mode === "view"
+              ? "View Category"
+              : catModal.mode === "edit"
+              ? "Edit Category"
+              : "Add Category"
+          }
+          subtitle="Manage main category details."
+          onClose={closeCategory}
+        >
+          <form onSubmit={saveCategory}>
+            <div className="space-y-4 p-5">
               <TextInput
                 label="Category Code"
                 value={catForm.category_code}
                 disabled={catReadOnly}
                 onChange={(value) => changeCat("category_code", value)}
                 placeholder="CAT001"
+                required
               />
 
               <TextInput
@@ -1388,6 +1430,7 @@ export default function CategoryPage() {
                 disabled={catReadOnly}
                 onChange={(value) => changeCat("name", value)}
                 placeholder="Electronics"
+                required
               />
 
               <TextInput
@@ -1404,53 +1447,48 @@ export default function CategoryPage() {
                 disabled={catReadOnly}
                 onChange={(value) => changeCat("description", value)}
               />
+            </div>
 
-              <ModalFooter
-                readOnly={catReadOnly}
-                saving={saving}
-                mode={catModal.mode}
-                onClose={closeCategory}
-              />
-            </form>
-          </div>
-        </div>
+            <ModalFooter
+              readOnly={catReadOnly}
+              saving={saving}
+              mode={catModal.mode}
+              onClose={closeCategory}
+              accent="amber"
+            />
+          </form>
+        </ModalShell>
       )}
 
       {subModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
-            <ModalHeader
-              title={
-                subModal.mode === "view"
-                  ? "View Sub Category"
-                  : subModal.mode === "edit"
-                  ? "Edit Sub Category"
-                  : "Add Sub Category"
-              }
-              onClose={closeSub}
-            />
+        <ModalShell
+          title={
+            subModal.mode === "view"
+              ? "View Sub Category"
+              : subModal.mode === "edit"
+              ? "Edit Sub Category"
+              : "Add Sub Category"
+          }
+          subtitle="Manage sub category details under a main category."
+          onClose={closeSub}
+        >
+          <form onSubmit={saveSub}>
+            <div className="space-y-4 p-5">
+              <SelectInput
+                label="Main Category"
+                value={subForm.category_code}
+                disabled={subReadOnly}
+                onChange={(value) => changeSub("category_code", value)}
+                required
+              >
+                <option value="">Select main category</option>
 
-            <form onSubmit={saveSub} className="space-y-3 p-4">
-              <div>
-                <label className="mb-1 block text-[13px] text-slate-400">
-                  Main Category
-                </label>
-
-                <select
-                  value={subForm.category_code}
-                  disabled={subReadOnly}
-                  onChange={(e) => changeSub("category_code", e.target.value)}
-                  className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none disabled:opacity-70"
-                >
-                  <option value="">Select main category</option>
-
-                  {categories.map((row) => (
-                    <option key={row.id} value={code(row)}>
-                      {code(row)} - {row.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                {categories.map((row) => (
+                  <option key={row.id} value={code(row)}>
+                    {code(row)} - {row.name}
+                  </option>
+                ))}
+              </SelectInput>
 
               <TextInput
                 label="Sub Category Code"
@@ -1458,6 +1496,7 @@ export default function CategoryPage() {
                 disabled={subReadOnly}
                 onChange={(value) => changeSub("sub_category_code", value)}
                 placeholder="SUB001"
+                required
               />
 
               <TextInput
@@ -1466,6 +1505,7 @@ export default function CategoryPage() {
                 disabled={subReadOnly}
                 onChange={(value) => changeSub("name", value)}
                 placeholder="Mobile Phones"
+                required
               />
 
               <TextInput
@@ -1482,76 +1522,64 @@ export default function CategoryPage() {
                 disabled={subReadOnly}
                 onChange={(value) => changeSub("description", value)}
               />
+            </div>
 
-              <ModalFooter
-                readOnly={subReadOnly}
-                saving={saving}
-                mode={subModal.mode}
-                onClose={closeSub}
-              />
-            </form>
-          </div>
-        </div>
+            <ModalFooter
+              readOnly={subReadOnly}
+              saving={saving}
+              mode={subModal.mode}
+              onClose={closeSub}
+              accent="emerald"
+            />
+          </form>
+        </ModalShell>
       )}
 
       {modelModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
-            <ModalHeader
-              title={
-                modelModal.mode === "view"
-                  ? "View Product Model"
-                  : modelModal.mode === "edit"
-                  ? "Edit Product Model"
-                  : "Add Product Model"
-              }
-              onClose={closeModel}
-            />
+        <ModalShell
+          title={
+            modelModal.mode === "view"
+              ? "View Product Model"
+              : modelModal.mode === "edit"
+              ? "Edit Product Model"
+              : "Add Product Model"
+          }
+          subtitle="Manage product model details under a category and sub category."
+          onClose={closeModel}
+        >
+          <form onSubmit={saveModel}>
+            <div className="space-y-4 p-5">
+              <SelectInput
+                label="Main Category"
+                value={modelForm.category_id}
+                disabled={modelReadOnly}
+                onChange={(value) => changeModel("category_id", value)}
+                required
+              >
+                <option value="">Select main category</option>
 
-            <form onSubmit={saveModel} className="space-y-3 p-4">
-              <div>
-                <label className="mb-1 block text-[13px] text-slate-400">
-                  Main Category
-                </label>
+                {categories.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {code(row)} - {row.name}
+                  </option>
+                ))}
+              </SelectInput>
 
-                <select
-                  value={modelForm.category_id}
-                  disabled={modelReadOnly}
-                  onChange={(e) => changeModel("category_id", e.target.value)}
-                  className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none disabled:opacity-70"
-                >
-                  <option value="">Select main category</option>
+              <SelectInput
+                label="Sub Category"
+                value={modelForm.sub_category_id}
+                disabled={modelReadOnly || !modelForm.category_id}
+                onChange={(value) => changeModel("sub_category_id", value)}
+                required
+              >
+                <option value="">Select sub category</option>
 
-                  {categories.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {code(row)} - {row.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[13px] text-slate-400">
-                  Sub Category
-                </label>
-
-                <select
-                  value={modelForm.sub_category_id}
-                  disabled={modelReadOnly || !modelForm.category_id}
-                  onChange={(e) =>
-                    changeModel("sub_category_id", e.target.value)
-                  }
-                  className="h-9 w-full rounded-md border border-slate-800 bg-slate-900 px-3 text-[13px] text-slate-300 outline-none disabled:opacity-70"
-                >
-                  <option value="">Select sub category</option>
-
-                  {modelSubOptions.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.sub_category_code} - {row.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                {modelSubOptions.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.sub_category_code} - {row.name}
+                  </option>
+                ))}
+              </SelectInput>
 
               <TextInput
                 label="Model Code"
@@ -1559,6 +1587,7 @@ export default function CategoryPage() {
                 disabled={modelReadOnly}
                 onChange={(value) => changeModel("model_code", value)}
                 placeholder="MDL001"
+                required
               />
 
               <TextInput
@@ -1567,6 +1596,7 @@ export default function CategoryPage() {
                 disabled={modelReadOnly}
                 onChange={(value) => changeModel("name", value)}
                 placeholder="Round Ceiling Light"
+                required
               />
 
               <TextInput
@@ -1583,69 +1613,67 @@ export default function CategoryPage() {
                 disabled={modelReadOnly}
                 onChange={(value) => changeModel("description", value)}
               />
+            </div>
 
-              <ModalFooter
-                readOnly={modelReadOnly}
-                saving={saving}
-                mode={modelModal.mode}
-                onClose={closeModel}
-              />
-            </form>
-          </div>
-        </div>
+            <ModalFooter
+              readOnly={modelReadOnly}
+              saving={saving}
+              mode={modelModal.mode}
+              onClose={closeModel}
+              accent="sky"
+            />
+          </form>
+        </ModalShell>
       )}
 
       {deleteModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-sm rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
-            <ModalHeader
-              title="Confirm Delete"
-              onClose={() =>
+        <ModalShell
+          title="Confirm Delete"
+          onClose={() =>
+            setDeleteModal({
+              open: false,
+              type: "",
+              row: null,
+            })
+          }
+        >
+          <div className="space-y-4 p-5">
+            <p className="text-sm text-slate-300">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-red-300">
+                {deleteModal.row?.name || "this item"}
+              </span>
+              ? This action cannot be undone.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-4">
+            <button
+              type="button"
+              onClick={() =>
                 setDeleteModal({
                   open: false,
                   type: "",
                   row: null,
                 })
               }
-            />
+              disabled={deleting}
+              className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
 
-            <div className="space-y-3 p-4">
-              <p className="text-[13px] text-slate-300">
-                Are you sure you want to delete{" "}
-                <span className="text-red-300">
-                  {deleteModal.row?.name || "this item"}
-                </span>
-                ?
-              </p>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDeleteModal({
-                      open: false,
-                      type: "",
-                      row: null,
-                    })
-                  }
-                  disabled={deleting}
-                  className="h-8 min-w-[90px] rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-300 disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={confirmDeleteNow}
-                  disabled={deleting}
-                  className="h-8 min-w-[100px] rounded-md border border-red-900 bg-red-950 px-3 text-[13px] text-red-300 disabled:opacity-60"
-                >
-                  {deleting ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={confirmDeleteNow}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Trash2 size={15} />
+              {deleting ? "Deleting..." : "Delete"}
+            </button>
           </div>
-        </div>
+        </ModalShell>
       )}
     </div>
   );

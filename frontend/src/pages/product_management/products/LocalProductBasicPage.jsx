@@ -379,9 +379,9 @@ export default function LocalProductBasicPage() {
       const [productRes, categoryRes, subCategoryRes, modelRes] =
         await Promise.all([
           localProductsApi.getProductById(productId),
-          localProductsApi.getCategories().catch(() => []),
-          localProductsApi.getSubCategories().catch(() => []),
-          localProductsApi.getProductModels().catch(() => []),
+          localProductsApi.getCategories({ limit: 100 }).catch(() => []),
+          localProductsApi.getSubCategories({ limit: 500 }).catch(() => []),
+          localProductsApi.getProductModels({ limit: 1000 }).catch(() => []),
         ]);
 
       const categoryRows = normalizeList(categoryRes);

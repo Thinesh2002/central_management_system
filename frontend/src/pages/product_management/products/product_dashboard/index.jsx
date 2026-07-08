@@ -549,9 +549,9 @@ export default function LocalProductsDashboard() {
         localProductsApi.getImages().catch(() => ({ data: [] })),
         localProductsApi.getInventory({ limit: 500 }).catch(() => ({ data: [] })),
         localProductsApi.getPrices({ limit: 2000 }).catch(() => ({ data: [] })),
-        localProductsApi.getCategories().catch(() => []),
-        localProductsApi.getSubCategories().catch(() => []),
-        localProductsApi.getProductModels().catch(() => []),
+        localProductsApi.getCategories({ limit: 100 }).catch(() => []),
+        localProductsApi.getSubCategories({ limit: 500 }).catch(() => []),
+        localProductsApi.getProductModels({ limit: 1000 }).catch(() => []),
       ]);
 
       const productRows = normalizeProductList(productRes);

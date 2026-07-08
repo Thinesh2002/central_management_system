@@ -163,9 +163,9 @@ export default function LocalProductAddPage() {
 
     try {
       const [categoryRes, subCategoryRes, modelRes] = await Promise.all([
-        localProductsApi.getCategories().catch(() => []),
-        localProductsApi.getSubCategories().catch(() => []),
-        localProductsApi.getProductModels().catch(() => []),
+        localProductsApi.getCategories({ limit: 100 }).catch(() => []),
+        localProductsApi.getSubCategories({ limit: 500 }).catch(() => []),
+        localProductsApi.getProductModels({ limit: 1000 }).catch(() => []),
       ]);
 
       setCategories(normalizeList(categoryRes));
