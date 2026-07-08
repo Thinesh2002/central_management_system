@@ -61,21 +61,76 @@ async function getRecentOrderItems(sinceDate) {
 
 async function getCatalog() {
   const [productRows] = await productDb.query(
-    "SELECT sku, product_name FROM products WHERE deleted_at IS NULL"
+    "SELECT id, sku, product_name FROM products WHERE deleted_at IS NULL"
   );
 
   const [variantRows] = await productDb.query(
-    `SELECT pv.variant_sku AS sku, COALESCE(pv.variant_name, p.product_name) AS product_name
+    `SELECT pv.id, pv.product_id, pv.variant_sku AS sku, COALESCE(pv.variant_name, p.product_name) AS product_name
      FROM product_variants pv
      LEFT JOIN products p ON p.id = pv.product_id
      WHERE pv.deleted_at IS NULL`
   );
 
   const map = new Map();
-  [...productRows, ...variantRows].forEach((row) => {
-    if (row.sku) map.set(row.sku, row.product_name);
+
+  productRows.forEach((row) => {
+    if (!row.sku) return;
+    map.set(row.sku, { name: row.product_name, type: "product", id: row.id, product_id: row.id });
   });
+
+  variantRows.forEach((row) => {
+    if (!row.sku) return;
+    map.set(row.sku, {
+      name: row.product_name,
+      type: "variant",
+      id: row.id,
+      product_id: row.product_id,
+    });
+  });
+
   return map;
+}
+
+// Same id-first matching order as the SKU Economics Report's
+// getProductImages — the sku text column on product_images is sparse, so
+// matching by variant_id/product_id is the only reliable path.
+async function getImageMap() {
+  const [rows] = await productDb.query(
+    `SELECT product_id, variant_id, image_url
+     FROM product_images
+     WHERE deleted_at IS NULL
+     ORDER BY is_main DESC, sort_order ASC`
+  );
+
+  const byVariantId = new Map();
+  const byProductId = new Map();
+
+  rows.forEach((row) => {
+    if (row.variant_id && !byVariantId.has(String(row.variant_id))) {
+      byVariantId.set(String(row.variant_id), row.image_url);
+    } else if (!row.variant_id && row.product_id && !byProductId.has(String(row.product_id))) {
+      byProductId.set(String(row.product_id), row.image_url);
+    }
+  });
+
+  return { byVariantId, byProductId };
+}
+
+function resolveImageUrl(catalogEntry, imageMap) {
+  if (!catalogEntry) return null;
+
+  if (catalogEntry.type === "variant") {
+    const variantImage = imageMap.byVariantId.get(String(catalogEntry.id));
+    if (variantImage) return variantImage;
+  }
+
+  const productId = catalogEntry.type === "product" ? catalogEntry.id : catalogEntry.product_id;
+  if (productId) {
+    const productImage = imageMap.byProductId.get(String(productId));
+    if (productImage) return productImage;
+  }
+
+  return null;
 }
 
 async function getStockMap() {
@@ -93,11 +148,12 @@ async function getProductTrends() {
   const cutoff7 = daysAgo(7).getTime();
   const cutoff30 = daysAgo(30).getTime();
 
-  const [mappingMap, rawItems, catalogMap, stockMap] = await Promise.all([
+  const [mappingMap, rawItems, catalogMap, stockMap, imageMap] = await Promise.all([
     getSkuMappings(),
     getRecentOrderItems(since90),
     getCatalog(),
     getStockMap(),
+    getImageMap(),
   ]);
 
   const bySku = new Map();
@@ -129,10 +185,12 @@ async function getProductTrends() {
     const movement = bySku.get(sku) || { qty_7d: 0, qty_30d: 0, qty_90d: 0 };
     const stock = stockMap.get(sku) || null;
     const stockQty = stock ? Number(stock.stock_qty) || 0 : 0;
+    const catalogEntry = catalogMap.get(sku) || null;
 
     return {
       sku,
-      product_name: catalogMap.get(sku) || null,
+      product_name: catalogEntry?.name || null,
+      image_url: resolveImageUrl(catalogEntry, imageMap),
       qty_7d: movement.qty_7d,
       qty_30d: movement.qty_30d,
       qty_90d: movement.qty_90d,
