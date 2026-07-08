@@ -95,7 +95,7 @@ async function getLocalProduct(sku) {
   }
 
   const [variantRows] = await productDb.query(
-    `SELECT pv.id, pv.variant_sku, pv.variant_name, pv.colour_name, pv.status, p.product_name
+    `SELECT pv.id, pv.product_id, pv.variant_sku, pv.variant_name, pv.colour_name, pv.status, p.product_name
      FROM product_variants pv
      LEFT JOIN products p ON p.id = pv.product_id
      WHERE pv.variant_sku = ? AND pv.deleted_at IS NULL
@@ -108,6 +108,7 @@ async function getLocalProduct(sku) {
     return {
       type: "variant",
       id: row.id,
+      product_id: row.product_id,
       sku: row.variant_sku,
       title: row.variant_name || `${row.product_name || "Product"} - ${row.colour_name || ""}`.trim(),
       status: row.status,
@@ -134,15 +135,50 @@ async function getStockAndPrice(sku) {
   };
 }
 
-async function getProductImages(sku) {
-  const [rows] = await productDb.query(
+// The rest of the app (product_model.js's attachProductImages) matches
+// images by product_id/variant_id, not the sku text column on
+// product_images — that column isn't reliably populated on every row, so a
+// sku-only lookup silently returns nothing for products whose images were
+// only ever linked by id. Match by id first (the proven path), and fall
+// back to a sku-text match only if that comes up empty.
+async function getProductImages(sku, localProduct) {
+  if (localProduct?.type === "variant" && localProduct.id) {
+    const [variantImageRows] = await productDb.query(
+      `SELECT image_url FROM product_images
+       WHERE variant_id = ? AND deleted_at IS NULL
+       ORDER BY is_main DESC, sort_order ASC`,
+      [localProduct.id]
+    );
+
+    if (variantImageRows.length) {
+      return variantImageRows.map((row) => row.image_url).filter(Boolean);
+    }
+  }
+
+  const productId =
+    localProduct?.type === "product" ? localProduct.id : localProduct?.product_id;
+
+  if (productId) {
+    const [productImageRows] = await productDb.query(
+      `SELECT image_url FROM product_images
+       WHERE product_id = ? AND (variant_id IS NULL OR variant_id = 0) AND deleted_at IS NULL
+       ORDER BY is_main DESC, sort_order ASC`,
+      [productId]
+    );
+
+    if (productImageRows.length) {
+      return productImageRows.map((row) => row.image_url).filter(Boolean);
+    }
+  }
+
+  const [skuImageRows] = await productDb.query(
     `SELECT image_url FROM product_images
      WHERE sku = ? AND deleted_at IS NULL
      ORDER BY is_main DESC, sort_order ASC`,
     [sku]
   );
 
-  return rows.map((row) => row.image_url).filter(Boolean);
+  return skuImageRows.map((row) => row.image_url).filter(Boolean);
 }
 
 function inClause(values) {
@@ -353,10 +389,13 @@ async function getSkuReport(requestedSku) {
   const knownWrongSkus = await getKnownWrongSkusFor(sku);
   const skuVariants = Array.from(new Set([sku, requestedSku, ...knownWrongSkus].filter(Boolean)));
 
-  const [localProduct, stockAndPrice, images, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
-    getLocalProduct(sku),
+  // Images are matched by product_id/variant_id (see getProductImages), so
+  // the local product record has to be resolved first.
+  const localProduct = await getLocalProduct(sku);
+
+  const [stockAndPrice, images, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
     getStockAndPrice(sku),
-    getProductImages(sku),
+    getProductImages(sku, localProduct),
     getMarketplaceListings(skuVariants),
     getDarazHistory(skuVariants),
     getWooHistory(skuVariants),
