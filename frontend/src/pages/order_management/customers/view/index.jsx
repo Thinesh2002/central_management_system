@@ -212,8 +212,7 @@ export default function CustomerViewPage() {
             <div className="border-b border-slate-800 px-4 py-3">
               <h2 className="text-sm font-medium text-slate-100">Order History ({orders.length})</h2>
               <p className="text-[12px] text-slate-500">
-                Local (manual) orders placed by this customer. Daraz/WooCommerce orders aren't linked
-                to a customer record.
+                All orders placed by this customer, across local, Daraz and WooCommerce.
               </p>
             </div>
 
@@ -221,7 +220,7 @@ export default function CustomerViewPage() {
               <table className="min-w-full divide-y divide-slate-800">
                 <thead className="bg-slate-900">
                   <tr>
-                    {["Order No", "Date", "Status", "Total"].map((header) => (
+                    {["Order No", "Platform", "Account", "Date", "Status", "Total"].map((header) => (
                       <th
                         key={header}
                         className="px-3 py-2 text-left text-xs font-normal uppercase tracking-wide text-slate-500"
@@ -235,20 +234,20 @@ export default function CustomerViewPage() {
                 <tbody className="divide-y divide-slate-800">
                   {!orders.length && (
                     <tr>
-                      <td colSpan="4" className="px-3 py-5 text-center text-[13px] text-slate-500">
-                        No local orders found for this customer.
+                      <td colSpan="6" className="px-3 py-5 text-center text-[13px] text-slate-500">
+                        No orders found for this customer.
                       </td>
                     </tr>
                   )}
 
                   {orders.map((order) => (
-                    <tr key={order.id} className="bg-slate-950">
+                    <tr key={`${order.platform}-${order.id}`} className="bg-slate-950">
                       <td className="px-3 py-2 text-[13px] text-slate-200">{order.order_no || order.id}</td>
+                      <td className="px-3 py-2 text-[13px] text-slate-400">{order.platform}</td>
+                      <td className="px-3 py-2 text-[13px] text-slate-400">{order.account_name || "-"}</td>
                       <td className="px-3 py-2 text-[13px] text-slate-400">{formatDate(order.order_date)}</td>
                       <td className="px-3 py-2 text-[13px] text-slate-400">{order.order_status || "-"}</td>
-                      <td className="px-3 py-2 text-[13px] text-slate-200">
-                        {money(order.total_amount ?? order.grand_total ?? order.total)}
-                      </td>
+                      <td className="px-3 py-2 text-[13px] text-slate-200">{money(order.total)}</td>
                     </tr>
                   ))}
                 </tbody>
