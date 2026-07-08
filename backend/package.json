@@ -13,7 +13,8 @@
     "patch-variant-name": "node scripts/run-sql-file.js 09_product_variants_name_patch.sql",
     "patch-daraz-transfer": "node scripts/run-sql-file.js 10_daraz_transfer_patch.sql",
     "patch-sku-mapping": "node scripts/run-sql-file.js 11_sku_mapping_patch.sql",
-    "patch-order-customers-page": "node scripts/run-sql-file.js 12_order_customers_page_patch.sql"
+    "patch-order-customers-page": "node scripts/run-sql-file.js 12_order_customers_page_patch.sql",
+    "patch-product-trends-page": "node scripts/run-sql-file.js 13_product_trends_page_patch.sql"
   },
   "author": "",
   "license": "ISC",

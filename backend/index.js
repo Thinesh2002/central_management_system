@@ -36,6 +36,7 @@ const wooRoutes = require("./routes/woo/woo_route");
 
 const skuReportRoutes = require("./routes/order_management/sku_report_routes");
 const orderCustomersRoutes = require("./routes/order_management/customers_routes");
+const productTrendsRoutes = require("./routes/order_management/product_trends_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -178,6 +179,7 @@ app.use("/api/marketplace/woo", wooRoutes);
 
 app.use("/api/order-management/sku-report", skuReportRoutes);
 app.use("/api/order-management/customers", orderCustomersRoutes);
+app.use("/api/order-management/product-trends", productTrendsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

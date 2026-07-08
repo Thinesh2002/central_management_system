@@ -7,6 +7,7 @@ import ProtectedRoute from "../../config/ProtectedRoute";
 import SkuReportPage from "../../pages/order_management/sku_report/index";
 import CustomersPage from "../../pages/order_management/customers/index";
 import CustomerViewPage from "../../pages/order_management/customers/view/index";
+import ProductTrendsPage from "../../pages/order_management/product_trends/index";
 
 function ProtectedOrderPage({ children }) {
   return (
@@ -42,6 +43,15 @@ export default function OrderManagementRoutes() {
         element={
           <ProtectedOrderPage>
             <CustomerViewPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/product-trends"
+        element={
+          <ProtectedOrderPage>
+            <ProductTrendsPage />
           </ProtectedOrderPage>
         }
       />

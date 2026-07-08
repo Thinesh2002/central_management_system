@@ -165,6 +165,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "ORDER MANAGEMENT",
+    page_key: "product_trends",
+    page_name: "Product Trends",
+    path: "/order-management/product-trends",
+    icon: "BarChart3",
+    exact: true,
+  },
+  {
     section: "ACCOUNT MANAGEMENT",
     page_key: "users",
     page_name: "Users",
