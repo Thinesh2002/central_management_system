@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Edit3, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
+import { Edit3, ImageOff, Plus, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
@@ -39,5 +39,185 @@ export default function PriceDashboardPage(){
  function selectProduct(p){setSelectedProduct(p); setForm(prev=>({...prev, sku:p.sku, product_sku:p.product_sku||p.sku, variant_sku:p.variant_sku||"", product_name:p.product_name||"", image_url:p.image_url||"", colour_name:p.colour_name||""})); setProductMatches([]);}
  function autoCalculate(){const productSelling=calcProductSelling(form.cost_price,form.profit_percent).toFixed(2); const daraz=calcDaraz(form.cost_price,form.profit_percent,form.daraz_fee_percent,form.advertising_percent,form.packing_percent).toFixed(2); setForm(p=>({...p,sale_price:productSelling,local_selling_price:productSelling,daraz_price:daraz,woo_price:productSelling}));}
  async function submit(e){e.preventDefault();const s=clean(form.sku); if(!s)return alert('First SKU search panni product/variant select pannunga.'); const payload={...form, sku:s, product_sku:clean(form.product_sku)||s, variant_sku:clean(form.variant_sku), product_name:clean(form.product_name), image_url:clean(form.image_url), colour_name:clean(form.colour_name), cost_price:money(form.cost_price), sale_price:money(form.sale_price||form.local_selling_price), local_selling_price:money(form.local_selling_price||form.sale_price), daraz_price:money(form.daraz_price), woo_price:money(form.woo_price), packing_percent:money(form.packing_percent), profit_percent:money(form.profit_percent), daraz_fee_percent:money(form.daraz_fee_percent), advertising_percent:money(form.advertising_percent), currency:clean(form.currency)||'LKR'}; setSaving(true); try{const id=editing?.id||editing?.price_id; if(id) await localProductsApi.patchPrice(id,payload); else await localProductsApi.createPrice(payload); setModalOpen(false); showToast('Price saved successfully.'); await loadPrices();}catch(e){alert(getErrorMessage(e,'Unable to save price.'));}finally{setSaving(false);}}
- return <div className="min-h-screen bg-[#070b16] p-3 text-slate-100"><div className="mx-auto max-w-[1680px] space-y-3"><section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0b1220] shadow-xl shadow-black/20"><div className="flex flex-col gap-3 border-b border-slate-800 bg-[#07101f] px-4 py-4 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-3"><div><h1 className="text-base font-semibold text-white">Price Dashboard</h1><p className="text-xs font-semibold text-slate-500">Search SKU first, select product/variant, then enter cost and calculate selling prices.</p></div></div><div className={`grid gap-2 text-center text-xs font-black ${canViewCostPrice?'grid-cols-4':'grid-cols-3'}`}>{[...(canViewCostPrice?[['Cost',totals.cost,'text-slate-200']]:[]),['Product Selling',totals.local,'text-emerald-300'],['Daraz Selling',totals.daraz,'text-orange-300'],['Woo Selling',totals.woo,'text-cyan-300']].map(([l,v,c])=><div key={l} className="rounded-xl border border-slate-800 bg-[#0a101d] px-4 py-2"><p className="text-slate-500">{l}</p><p className={`mt-1 ${c}`}>{fmt(v)}</p></div>)}</div></div><div className="flex flex-col gap-2 border-b border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between"><label className="flex h-10 w-full max-w-md items-center rounded-xl border border-slate-700 bg-[#070b16] px-3 focus-within:border-emerald-400"><Search size={16} className="text-slate-500"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search SKU, product, colour..." className="h-full flex-1 bg-transparent px-2 text-sm font-semibold outline-none placeholder:text-slate-600"/></label><div className="flex gap-2"><button onClick={loadPrices} type="button" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-[#070b16] px-4 text-sm font-black text-slate-300 hover:border-emerald-400 hover:text-emerald-300"><RefreshCw size={15} className={loading?'animate-spin':''}/> Refresh</button><button onClick={openAdd} type="button" className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-400 px-4 text-sm font-black text-slate-950 hover:bg-emerald-300"><Plus size={15}/> Add Price</button></div></div><div className="overflow-x-auto"><table className="w-full min-w-[1280px] text-sm"><thead className="border-b border-slate-800 bg-[#111827] text-left text-[11px] font-black uppercase tracking-wide text-emerald-300"><tr><th className="px-4 py-3">Product</th><th className="px-4 py-3">SKU / Colour</th>{canViewCostPrice&&<th className="px-4 py-3 text-right">Cost</th>}<th className="px-4 py-3 text-right">Product Selling</th><th className="px-4 py-3 text-right">Daraz Selling</th><th className="px-4 py-3 text-right">Woo Price</th><th className="px-4 py-3 text-right">Profit %</th><th className="px-4 py-3">Currency</th><th className="px-4 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-slate-800 bg-[#0b1220]">{loading?<tr><td colSpan={canViewCostPrice?9:8} className="px-4 py-10"><Loader label="Loading prices..." minHeight="0" /></td></tr>:filtered.length?filtered.map((r,i)=>{const m=meta(r); const name=r.product_name||m.product_name||"Product"; return <tr key={r.id||`${sku(r)}-${i}`} className="hover:bg-[#111827]"><td className="px-4 py-3"><div className="flex items-center gap-3"><ProductImage src={r.image_url||m.image_url} name={name}/><div><p className="font-black text-white">{name}</p><p className="text-xs font-semibold text-slate-500">Product SKU: {r.product_sku||m.product_sku||'-'}</p></div></div></td><td className="px-4 py-3"><p className="font-black text-white">{sku(r)}</p><p className="text-xs text-slate-500">{r.variant_sku||m.variant_sku?'Variant SKU':''} {r.colour_name||m.colour_name?`/ ${r.colour_name||m.colour_name}`:''}</p></td>{canViewCostPrice&&<td className="px-4 py-3 text-right font-bold text-slate-300">{fmt(r.cost_price)}</td>}<td className="px-4 py-3 text-right font-bold text-emerald-300">{fmt(r.local_selling_price||r.sale_price)}</td><td className="px-4 py-3 text-right font-bold text-orange-300">{fmt(r.daraz_price)}</td><td className="px-4 py-3 text-right font-bold text-cyan-300">{fmt(r.woo_price)}</td><td className="px-4 py-3 text-right text-slate-300">{fmt(r.profit_percent)}</td><td className="px-4 py-3 text-slate-400">{r.currency||'LKR'}</td><td className="px-4 py-3 text-right"><button type="button" onClick={()=>openEdit(r)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-black text-slate-300 hover:border-emerald-400 hover:text-emerald-300"><Edit3 size={13}/> Modify</button></td></tr>}):<tr><td colSpan={canViewCostPrice?9:8} className="px-4 py-16 text-center text-slate-500">No price rows found.</td></tr>}</tbody></table></div></section></div>{modalOpen&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"><form onSubmit={submit} className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl"><div className="flex items-center justify-between border-b border-slate-800 px-5 py-4"><h2 className="text-lg font-black text-white">{editing?'Modify Price':'Add Price'}</h2><button type="button" onClick={()=>setModalOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"><X size={18}/></button></div><div className="space-y-4 p-5"><div className="rounded-2xl border border-slate-800 bg-[#070b16] p-4"><p className="mb-2 text-xs font-black uppercase text-emerald-300">1. First SKU Search</p><div className="flex gap-2"><input value={skuSearch} onChange={e=>setSkuSearch(e.target.value)} placeholder="Enter product SKU or variant SKU" className="h-11 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-3 text-sm font-semibold outline-none focus:border-emerald-400"/><button type="button" onClick={searchProducts} className="rounded-xl bg-emerald-400 px-4 text-sm font-black text-slate-950">{productLoading?'Searching...':'Search'}</button></div>{productMatches.length>0&&<div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800">{productMatches.map(p=><button type="button" key={`${p.sku}-${p.product_id}`} onClick={()=>selectProduct(p)} className="flex w-full items-center gap-3 border-b border-slate-800 px-3 py-2 text-left hover:bg-slate-800/60"><ProductImage src={p.image_url} name={p.product_name}/><div><p className="font-black text-white">{p.label}</p><p className="text-xs text-slate-500">{p.is_variant?'Variant stock/price SKU':'Single product SKU'} {p.colour_name?`• Colour: ${p.colour_name}`:''}</p></div></button>)}</div>}{selectedProduct&&<div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3"><ProductImage src={selectedProduct.image_url} name={selectedProduct.product_name}/><div><p className="font-black text-white">Selected: {selectedProduct.product_name}</p><p className="text-xs font-semibold text-emerald-300">SKU: {selectedProduct.sku} {selectedProduct.colour_name?`/ Colour: ${selectedProduct.colour_name}`:''}</p></div></div>}</div><div className="grid gap-3 md:grid-cols-3">{[...(canViewCostPrice?[['cost_price','2. Cost Price','number']]:[]),['profit_percent','Profit %','number'],['local_selling_price','Product Selling Price','number'],['daraz_fee_percent','Daraz Fee %','number'],['advertising_percent','Advertising %','number'],['packing_percent','Packing %','number'],['daraz_price','Daraz Selling Price','number'],['woo_price','Woo Price','number'],['currency','Currency','text']].map(([n,l,t])=><label key={n} className="space-y-1"><span className="text-xs font-black uppercase text-slate-500">{l}</span><input type={t} value={form[n]??''} onChange={e=>setField(n,e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-400"/></label>)}<label className="space-y-1"><span className="text-xs font-black uppercase text-slate-500">Status</span><select value={form.status||'active'} onChange={e=>setField('status',e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-400"><option value="active">active</option><option value="inactive">inactive</option></select></label></div></div><div className="flex justify-between gap-2 border-t border-slate-800 px-5 py-4">{canViewCostPrice?<button type="button" onClick={autoCalculate} className="rounded-xl border border-emerald-500/60 px-4 py-2 text-sm font-black text-emerald-300">Auto calculate Selling + Daraz</button>:<span/>}<div className="flex gap-2"><button type="button" onClick={()=>setModalOpen(false)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-300">Cancel</button><button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950 disabled:opacity-60"><Save size={15}/> {saving?'Saving...':'Save Price'}</button></div></div></form></div>}</div>;
+ return (
+  <div className="min-h-screen bg-[#070b16] p-3 text-slate-100">
+    <div className="mx-auto max-w-[1680px] space-y-3">
+      <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+          <h3 className="flex items-center gap-2 text-[13px] font-semibold text-white">
+            <Search size={15} className="text-emerald-400" />
+            Price Dashboard
+          </h3>
+
+          <button onClick={openAdd} type="button" className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-3 text-[11px] font-semibold text-white hover:bg-emerald-500">
+            <Plus size={13} /> ADD PRICE
+          </button>
+        </div>
+
+        <div className={`grid gap-2 px-4 py-3 text-center text-xs font-semibold ${canViewCostPrice ? "grid-cols-4" : "grid-cols-3"}`}>
+          {[
+            ...(canViewCostPrice ? [["Cost", totals.cost, "text-slate-200"]] : []),
+            ["Product Selling", totals.local, "text-emerald-300"],
+            ["Daraz Selling", totals.daraz, "text-orange-300"],
+            ["Woo Selling", totals.woo, "text-cyan-300"],
+          ].map(([l, v, c]) => (
+            <div key={l} className="border border-slate-800 bg-[#0a101d] px-4 py-2">
+              <p className="text-slate-500">{l}</p>
+              <p className={`mt-1 ${c}`}>{fmt(v)}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-slate-700 px-4 py-3">
+          <label className="flex h-9 w-full max-w-md items-center border border-slate-600 bg-[#2b3441] px-3 focus-within:border-emerald-400">
+            <Search size={15} className="text-slate-500" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SKU, product, colour..." className="h-full flex-1 bg-transparent px-2 text-[12px] font-medium text-slate-100 outline-none placeholder:text-slate-500" />
+          </label>
+        </div>
+      </section>
+
+      <section className="overflow-hidden border border-slate-800 bg-[#0b1220]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1280px] text-sm">
+            <thead className="border-b border-slate-800 bg-[#111827] text-left text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+              <tr>
+                <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">SKU / Colour</th>
+                {canViewCostPrice && <th className="px-4 py-3 text-right">Cost</th>}
+                <th className="px-4 py-3 text-right">Product Selling</th>
+                <th className="px-4 py-3 text-right">Daraz Selling</th>
+                <th className="px-4 py-3 text-right">Woo Price</th>
+                <th className="px-4 py-3 text-right">Profit %</th>
+                <th className="px-4 py-3">Currency</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 bg-[#0b1220]">
+              {loading ? (
+                <tr><td colSpan={canViewCostPrice ? 9 : 8} className="px-4 py-10"><Loader label="Loading prices..." minHeight="0" /></td></tr>
+              ) : filtered.length ? (
+                filtered.map((r, i) => {
+                  const m = meta(r);
+                  const name = r.product_name || m.product_name || "Product";
+                  return (
+                    <tr key={r.id || `${sku(r)}-${i}`} className="hover:bg-[#111827]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <ProductImage src={r.image_url || m.image_url} name={name} />
+                          <div>
+                            <p className="font-semibold text-white">{name}</p>
+                            <p className="text-xs font-semibold text-slate-500">Product SKU: {r.product_sku || m.product_sku || "-"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-white">{sku(r)}</p>
+                        <p className="text-xs text-slate-500">{r.variant_sku || m.variant_sku ? "Variant SKU" : ""} {r.colour_name || m.colour_name ? `/ ${r.colour_name || m.colour_name}` : ""}</p>
+                      </td>
+                      {canViewCostPrice && <td className="px-4 py-3 text-right font-semibold text-slate-300">{fmt(r.cost_price)}</td>}
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-300">{fmt(r.local_selling_price || r.sale_price)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-orange-300">{fmt(r.daraz_price)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-cyan-300">{fmt(r.woo_price)}</td>
+                      <td className="px-4 py-3 text-right text-slate-300">{fmt(r.profit_percent)}</td>
+                      <td className="px-4 py-3 text-slate-400">{r.currency || "LKR"}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button type="button" onClick={() => openEdit(r)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-emerald-400 hover:text-emerald-300">
+                          <Edit3 size={13} /> Modify
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr><td colSpan={canViewCostPrice ? 9 : 8} className="px-4 py-16 text-center text-slate-500">No price rows found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    {modalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+        <form onSubmit={submit} className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+            <h2 className="text-lg font-semibold text-white">{editing ? "Modify Price" : "Add Price"}</h2>
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="rounded-2xl border border-slate-800 bg-[#070b16] p-4">
+              <p className="mb-2 text-xs font-semibold uppercase text-emerald-300">1. First SKU Search</p>
+              <div className="flex gap-2">
+                <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Enter product SKU or variant SKU" className="h-11 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-3 text-sm font-semibold outline-none focus:border-emerald-400" />
+                <button type="button" onClick={searchProducts} className="rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-slate-950">{productLoading ? "Searching..." : "Search"}</button>
+              </div>
+              {productMatches.length > 0 && (
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800">
+                  {productMatches.map((p) => (
+                    <button type="button" key={`${p.sku}-${p.product_id}`} onClick={() => selectProduct(p)} className="flex w-full items-center gap-3 border-b border-slate-800 px-3 py-2 text-left hover:bg-slate-800/60">
+                      <ProductImage src={p.image_url} name={p.product_name} />
+                      <div>
+                        <p className="font-semibold text-white">{p.label}</p>
+                        <p className="text-xs text-slate-500">{p.is_variant ? "Variant stock/price SKU" : "Single product SKU"} {p.colour_name ? `• Colour: ${p.colour_name}` : ""}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedProduct && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+                  <ProductImage src={selectedProduct.image_url} name={selectedProduct.product_name} />
+                  <div>
+                    <p className="font-semibold text-white">Selected: {selectedProduct.product_name}</p>
+                    <p className="text-xs font-semibold text-emerald-300">SKU: {selectedProduct.sku} {selectedProduct.colour_name ? `/ Colour: ${selectedProduct.colour_name}` : ""}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                ...(canViewCostPrice ? [["cost_price", "2. Cost Price", "number"]] : []),
+                ["profit_percent", "Profit %", "number"],
+                ["local_selling_price", "Product Selling Price", "number"],
+                ["daraz_fee_percent", "Daraz Fee %", "number"],
+                ["advertising_percent", "Advertising %", "number"],
+                ["packing_percent", "Packing %", "number"],
+                ["daraz_price", "Daraz Selling Price", "number"],
+                ["woo_price", "Woo Price", "number"],
+                ["currency", "Currency", "text"],
+              ].map(([n, l, t]) => (
+                <label key={n} className="space-y-1">
+                  <span className="text-xs font-semibold uppercase text-slate-500">{l}</span>
+                  <input type={t} value={form[n] ?? ""} onChange={(e) => setField(n, e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-400" />
+                </label>
+              ))}
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase text-slate-500">Status</span>
+                <select value={form.status || "active"} onChange={(e) => setField("status", e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-400">
+                  <option value="active">active</option>
+                  <option value="inactive">inactive</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-between gap-2 border-t border-slate-800 px-5 py-4">
+            {canViewCostPrice ? (
+              <button type="button" onClick={autoCalculate} className="rounded-xl border border-emerald-500/60 px-4 py-2 text-sm font-semibold text-emerald-300">Auto calculate Selling + Daraz</button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300">Cancel</button>
+              <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60">
+                <Save size={15} /> {saving ? "Saving..." : "Save Price"}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    )}
+  </div>
+ );
 }

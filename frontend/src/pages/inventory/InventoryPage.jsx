@@ -48,5 +48,188 @@ export default function InventoryPage(){
 
  async function syncAllDaraz(){setSyncAllLoading(true);try{const res=await localProductsApi.syncAllDarazInventory();const d=res?.data?.data||res?.data||{};alert(`Daraz inventory sync finished. Success: ${d.success_records||0}, Failed: ${d.failed_records||0}, Skipped: ${d.skipped_records||0}`);await loadInventory();}catch(e){alert(getErrorMessage(e,"Unable to sync Daraz inventory."));}finally{setSyncAllLoading(false);}}
  async function submitForm(e){e.preventDefault();const s=clean(form.sku); if(!s)return alert("First SKU search panni product/variant select pannunga."); const stock=num(form.stock_qty); const reserved=num(form.reserved_qty??form.reserved_stock); const payload={...form,sku:s,product_sku:clean(form.product_sku)||s,variant_sku:clean(form.variant_sku),product_name:clean(form.product_name),image_url:clean(form.image_url),colour_name:clean(form.colour_name),location_code:clean(form.location_code)||"MAIN",total_stock:num(form.total_stock||stock),stock_qty:stock,quantity:num(form.quantity||stock),reserved_qty:reserved,reserved_stock:reserved,available_qty:Math.max(stock-reserved,0),available_stock:Math.max(stock-reserved,0),damaged_stock:num(form.damaged_stock),supplied_qty:num(form.supplied_qty),sold_qty:num(form.sold_qty),low_stock_alert_qty:num(form.low_stock_alert_qty||5)}; setSaving(true); try{const id=editing?.id||editing?.inventory_id; if(id)await localProductsApi.patchInventory(id,payload); else await localProductsApi.createInventory(payload); setModalOpen(false); showToast("Inventory saved successfully."); await loadInventory();}catch(e){alert(getErrorMessage(e,"Unable to save inventory."));}finally{setSaving(false);}}
- return <div className="min-h-screen bg-[#070b16] p-3 text-slate-100"><div className="mx-auto max-w-[1680px] space-y-3"><section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0b1220] shadow-xl shadow-black/20"><div className="flex flex-col gap-3 border-b border-slate-800 bg-[#07101f] px-4 py-4 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-3"><div><h1 className="text-base font-semibold text-white">Inventory Dashboard</h1><p className="text-xs font-semibold text-slate-500">Search SKU first, select product/variant, then add or modify stock.</p></div></div><div className={`grid grid-cols-4 gap-2 text-center text-xs font-black ${canViewCostPrice?"md:grid-cols-7":"md:grid-cols-6"}`}>{[["Total Stock",totals.stock,"text-orange-300"],["Reserved",totals.reserved,"text-cyan-300"],["Available",totals.available,"text-emerald-300"],["Low",totals.low,"text-amber-300"],["Out",totals.out,"text-rose-300"],...(canViewCostPrice?[["Total Cost Value",totals.costValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}),"text-sky-300"]]:[]),["Total Selling Value",totals.sellingValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}),"text-lime-300"]].map(([l,v,c])=><div key={l} className="border border-slate-800 bg-[#0a101d] px-4 py-2"><p className="text-slate-500">{l}</p><p className={`mt-1 ${c}`}>{typeof v==="number"?Number(v).toLocaleString():v}</p></div>)}</div></div><div className="flex flex-col gap-2 border-b border-slate-800 px-4 py-3 md:flex-row md:items-center md:justify-between"><label className="flex h-10 w-full max-w-md items-center border border-slate-700 bg-[#070b16] px-3 focus-within:border-orange-400"><Search size={16} className="text-slate-500"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search SKU, product, colour, location..." className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-semibold text-slate-100 outline-none placeholder:text-slate-600"/></label><div className="flex gap-2"><button type="button" onClick={loadInventory} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-[#070b16] px-4 text-sm font-black text-slate-300 hover:border-orange-400 hover:text-orange-300"><RefreshCw size={15} className={loading?"animate-spin":""}/> Refresh</button><button type="button" onClick={syncAllDaraz} disabled={syncAllLoading} className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 text-sm font-black text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-60"><RefreshCw size={15} className={syncAllLoading?"animate-spin":""}/> Sync Daraz Stock</button><button type="button" onClick={openAdd} className="inline-flex h-10 items-center gap-2 rounded-xl bg-orange-400 px-4 text-sm font-black text-slate-950 hover:bg-orange-300"><Plus size={15}/> Add Inventory</button></div></div><div className="overflow-x-auto"><table className="w-full min-w-[1280px] text-sm"><thead className="border-b border-slate-800 bg-[#111827] text-left text-[11px] font-black uppercase tracking-wide text-orange-300"><tr><th className="px-4 py-3">Product</th><th className="px-4 py-3">SKU / Colour</th><th className="px-4 py-3 text-right">Stock</th><th className="px-4 py-3 text-right">Reserved</th><th className="px-4 py-3 text-right">Available</th><th className="px-4 py-3 text-right">Low Alert</th><th className="px-4 py-3 text-center">Status</th><th className="px-4 py-3">Location</th><th className="px-4 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-slate-800 bg-[#0b1220]">{loading?<tr><td colSpan="9" className="px-4 py-10"><Loader label="Loading inventory..." minHeight="0" /></td></tr>:filteredRows.length?filteredRows.map((r,i)=>{const st=stockStatus(r);const m=meta(r);const name=r.product_name||m.product_name||"Product";return <tr key={r.id||r.inventory_id||`${getSku(r)}-${i}`} className="hover:bg-[#111827]"><td className="px-4 py-3"><div className="flex items-center gap-3"><ProductImage src={r.image_url||m.image_url} name={name}/><div><p className="font-black text-white">{name}</p><p className="text-xs font-semibold text-slate-500">Product SKU: {r.product_sku||m.product_sku||'-'}</p></div></div></td><td className="px-4 py-3"><p className="font-black text-white">{getSku(r)}</p><p className="text-xs text-slate-500">{r.variant_sku||m.variant_sku?'Variant SKU':''} {r.colour_name||m.colour_name?`/ ${r.colour_name||m.colour_name}`:''}</p></td><td className="px-4 py-3 text-right font-bold text-slate-200">{getStock(r).toLocaleString()}</td><td className="px-4 py-3 text-right font-bold text-cyan-300">{getReserved(r).toLocaleString()}</td><td className="px-4 py-3 text-right font-bold text-emerald-300">{getAvailable(r).toLocaleString()}</td><td className="px-4 py-3 text-right font-bold text-amber-300">{num(r.low_stock_alert_qty).toLocaleString()}</td><td className="px-4 py-3 text-center"><span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-black ${st.className}`}>{st.label}</span></td><td className="px-4 py-3 text-slate-400">{getLocation(r)}</td><td className="px-4 py-3 text-right"><button type="button" onClick={()=>openEdit(r)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-black text-slate-300 hover:border-orange-400 hover:text-orange-300"><Edit3 size={13}/> Modify</button></td></tr>}):<tr><td colSpan="9" className="px-4 py-16 text-center text-slate-500">No SKU rows found.</td></tr>}</tbody></table></div></section></div>{modalOpen&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"><form onSubmit={submitForm} className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl"><div className="flex items-center justify-between border-b border-slate-800 px-5 py-4"><h2 className="text-lg font-black text-white">{editing?"Modify Inventory":"Add Inventory"}</h2><button type="button" onClick={()=>setModalOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white"><X size={18}/></button></div><div className="space-y-4 p-5"><div className="rounded-2xl border border-slate-800 bg-[#070b16] p-4"><p className="mb-2 text-xs font-black uppercase text-orange-300">1. First SKU Search</p><div className="flex gap-2"><input value={skuSearch} onChange={e=>setSkuSearch(e.target.value)} placeholder="Enter product SKU or variant SKU" className="h-11 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-3 text-sm font-semibold outline-none focus:border-orange-400"/><button type="button" onClick={searchProducts} className="rounded-xl bg-orange-400 px-4 text-sm font-black text-slate-950">{productLoading?'Searching...':'Search'}</button></div>{productMatches.length>0&&<div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800">{productMatches.map(p=><button type="button" key={`${p.sku}-${p.product_id}`} onClick={()=>selectProduct(p)} className="flex w-full items-center gap-3 border-b border-slate-800 px-3 py-2 text-left hover:bg-slate-800/60"><ProductImage src={p.image_url} name={p.product_name}/><div><p className="font-black text-white">{p.label}</p><p className="text-xs text-slate-500">{p.is_variant?'Variant SKU stock':'Single product SKU stock'} {p.colour_name?`• Colour: ${p.colour_name}`:''}</p></div></button>)}</div>}{selectedProduct&&<div className="mt-3 flex items-center gap-3 rounded-xl border border-orange-500/30 bg-orange-500/5 p-3"><ProductImage src={selectedProduct.image_url} name={selectedProduct.product_name}/><div><p className="font-black text-white">Selected: {selectedProduct.product_name}</p><p className="text-xs font-semibold text-orange-300">SKU: {selectedProduct.sku} {selectedProduct.colour_name?`/ Colour: ${selectedProduct.colour_name}`:''}</p></div></div>}</div><div className="grid gap-3 md:grid-cols-3">{[["stock_qty","2. Stock Qty","number"],["reserved_qty","Reserved Qty","number"],["available_qty","Available Qty","number"],["location_code","Location Code","text"],["damaged_stock","Damaged Stock","number"],["supplied_qty","Supplied Qty","number"],["sold_qty","Sold Qty","number"],["low_stock_alert_qty","Low Stock Alert","number"]].map(([n,l,t])=><label key={n} className="space-y-1"><span className="text-xs font-black uppercase text-slate-500">{l}</span><input type={t} value={form[n]??""} onChange={e=>setField(n,e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-orange-400"/></label>)}<label className="space-y-1"><span className="text-xs font-black uppercase text-slate-500">Status</span><select value={form.status||"active"} onChange={e=>setField("status",e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-orange-400"><option value="active">active</option><option value="inactive">inactive</option></select></label></div></div><div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-4"><button type="button" onClick={()=>setModalOpen(false)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-black text-slate-300">Cancel</button><button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-black text-slate-950 disabled:opacity-60"><Save size={15}/> {saving?'Saving...':'Save Inventory'}</button></div></form></div>}</div>;
+ return (
+  <div className="min-h-screen bg-[#070b16] p-3 text-slate-100">
+    <div className="mx-auto max-w-[1680px] space-y-3">
+      <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+          <h3 className="flex items-center gap-2 text-[13px] font-semibold text-white">
+            <Search size={15} className="text-orange-400" />
+            Inventory Dashboard
+          </h3>
+
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={syncAllDaraz} disabled={syncAllLoading} className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-3 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-60">
+              <RefreshCw size={13} className={syncAllLoading ? "animate-spin" : ""} /> SYNC DARAZ STOCK
+            </button>
+            <button type="button" onClick={openAdd} className="flex h-7 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]">
+              <Plus size={13} /> ADD INVENTORY
+            </button>
+          </div>
+        </div>
+
+        <div className={`grid grid-cols-2 gap-2 px-4 py-3 text-center text-xs font-semibold md:grid-cols-4 ${canViewCostPrice ? "lg:grid-cols-7" : "lg:grid-cols-6"}`}>
+          {[
+            ["Total Stock", totals.stock, "text-orange-300"],
+            ["Reserved", totals.reserved, "text-cyan-300"],
+            ["Available", totals.available, "text-emerald-300"],
+            ["Low", totals.low, "text-amber-300"],
+            ["Out", totals.out, "text-rose-300"],
+            ...(canViewCostPrice ? [["Total Cost Value", totals.costValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), "text-sky-300"]] : []),
+            ["Total Selling Value", totals.sellingValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), "text-lime-300"],
+          ].map(([l, v, c]) => (
+            <div key={l} className="border border-slate-800 bg-[#0a101d] px-4 py-2">
+              <p className="text-slate-500">{l}</p>
+              <p className={`mt-1 ${c}`}>{typeof v === "number" ? Number(v).toLocaleString() : v}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-slate-700 px-4 py-3">
+          <label className="flex h-9 w-full max-w-md items-center border border-slate-600 bg-[#2b3441] px-3 focus-within:border-orange-400">
+            <Search size={15} className="text-slate-500" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SKU, product, colour, location..." className="h-full min-w-0 flex-1 bg-transparent px-2 text-[12px] font-medium text-slate-100 outline-none placeholder:text-slate-500" />
+          </label>
+        </div>
+      </section>
+
+      <section className="overflow-hidden border border-slate-800 bg-[#0b1220]">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1280px] text-sm">
+            <thead className="border-b border-slate-800 bg-[#111827] text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300">
+              <tr>
+                <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">SKU / Colour</th>
+                <th className="px-4 py-3 text-right">Stock</th>
+                <th className="px-4 py-3 text-right">Reserved</th>
+                <th className="px-4 py-3 text-right">Available</th>
+                <th className="px-4 py-3 text-right">Low Alert</th>
+                <th className="px-4 py-3 text-center">Status</th>
+                <th className="px-4 py-3">Location</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 bg-[#0b1220]">
+              {loading ? (
+                <tr><td colSpan="9" className="px-4 py-10"><Loader label="Loading inventory..." minHeight="0" /></td></tr>
+              ) : filteredRows.length ? (
+                filteredRows.map((r, i) => {
+                  const st = stockStatus(r);
+                  const m = meta(r);
+                  const name = r.product_name || m.product_name || "Product";
+                  return (
+                    <tr key={r.id || r.inventory_id || `${getSku(r)}-${i}`} className="hover:bg-[#111827]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <ProductImage src={r.image_url || m.image_url} name={name} />
+                          <div>
+                            <p className="font-semibold text-white">{name}</p>
+                            <p className="text-xs font-semibold text-slate-500">Product SKU: {r.product_sku || m.product_sku || "-"}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-white">{getSku(r)}</p>
+                        <p className="text-xs text-slate-500">{r.variant_sku || m.variant_sku ? "Variant SKU" : ""} {r.colour_name || m.colour_name ? `/ ${r.colour_name || m.colour_name}` : ""}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-200">{getStock(r).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-cyan-300">{getReserved(r).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-300">{getAvailable(r).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-amber-300">{num(r.low_stock_alert_qty).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${st.className}`}>{st.label}</span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-400">{getLocation(r)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button type="button" onClick={() => openEdit(r)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-orange-400 hover:text-orange-300">
+                          <Edit3 size={13} /> Modify
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr><td colSpan="9" className="px-4 py-16 text-center text-slate-500">No SKU rows found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    {modalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+        <form onSubmit={submitForm} className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+            <h2 className="text-lg font-semibold text-white">{editing ? "Modify Inventory" : "Add Inventory"}</h2>
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="space-y-4 p-5">
+            <div className="rounded-2xl border border-slate-800 bg-[#070b16] p-4">
+              <p className="mb-2 text-xs font-semibold uppercase text-orange-300">1. First SKU Search</p>
+              <div className="flex gap-2">
+                <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Enter product SKU or variant SKU" className="h-11 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-3 text-sm font-semibold outline-none focus:border-orange-400" />
+                <button type="button" onClick={searchProducts} className="rounded-xl bg-orange-400 px-4 text-sm font-semibold text-slate-950">{productLoading ? "Searching..." : "Search"}</button>
+              </div>
+              {productMatches.length > 0 && (
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800">
+                  {productMatches.map((p) => (
+                    <button type="button" key={`${p.sku}-${p.product_id}`} onClick={() => selectProduct(p)} className="flex w-full items-center gap-3 border-b border-slate-800 px-3 py-2 text-left hover:bg-slate-800/60">
+                      <ProductImage src={p.image_url} name={p.product_name} />
+                      <div>
+                        <p className="font-semibold text-white">{p.label}</p>
+                        <p className="text-xs text-slate-500">{p.is_variant ? "Variant SKU stock" : "Single product SKU stock"} {p.colour_name ? `• Colour: ${p.colour_name}` : ""}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedProduct && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-orange-500/30 bg-orange-500/5 p-3">
+                  <ProductImage src={selectedProduct.image_url} name={selectedProduct.product_name} />
+                  <div>
+                    <p className="font-semibold text-white">Selected: {selectedProduct.product_name}</p>
+                    <p className="text-xs font-semibold text-orange-300">SKU: {selectedProduct.sku} {selectedProduct.colour_name ? `/ Colour: ${selectedProduct.colour_name}` : ""}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {[
+                ["stock_qty", "2. Stock Qty", "number"],
+                ["reserved_qty", "Reserved Qty", "number"],
+                ["available_qty", "Available Qty", "number"],
+                ["location_code", "Location Code", "text"],
+                ["damaged_stock", "Damaged Stock", "number"],
+                ["supplied_qty", "Supplied Qty", "number"],
+                ["sold_qty", "Sold Qty", "number"],
+                ["low_stock_alert_qty", "Low Stock Alert", "number"],
+              ].map(([n, l, t]) => (
+                <label key={n} className="space-y-1">
+                  <span className="text-xs font-semibold uppercase text-slate-500">{l}</span>
+                  <input type={t} value={form[n] ?? ""} onChange={(e) => setField(n, e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-orange-400" />
+                </label>
+              ))}
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase text-slate-500">Status</span>
+                <select value={form.status || "active"} onChange={(e) => setField("status", e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-orange-400">
+                  <option value="active">active</option>
+                  <option value="inactive">inactive</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-4">
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300">Cancel</button>
+            <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-orange-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60">
+              <Save size={15} /> {saving ? "Saving..." : "Save Inventory"}
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
+  </div>
+ );
 }

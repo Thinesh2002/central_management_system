@@ -698,8 +698,6 @@ export default function LocalProductsDashboard() {
   return (
     <div className="min-h-screen bg-[#070b16] p-2 text-slate-100 lg:p-3">
       <div className="mx-auto max-w-[1680px] space-y-3">
- 
-
         <ProductFilterBar
           filters={filters}
           setFilters={setFilters}
@@ -709,6 +707,7 @@ export default function LocalProductsDashboard() {
           onOpenFilter={openFilterModal}
           onClear={clearAllFilters}
           onOpenExport={() => setExportOpen(true)}
+          onAddProduct={() => navigate("/product/local-products/create")}
         />
 
         <ProductsTable

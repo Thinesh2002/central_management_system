@@ -1,4 +1,4 @@
-import { Download, Filter, Search } from "lucide-react";
+import { Download, Filter, Plus, Search } from "lucide-react";
 
 const DATE_OPTIONS = [
   { value: "all", label: "All Dates" },
@@ -10,7 +10,7 @@ const DATE_OPTIONS = [
 
 function FieldLabel({ children }) {
   return (
-    <span className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-white">
+    <span className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-300">
       <span className="h-2 w-2 bg-orange-500" />
       {children}
     </span>
@@ -35,6 +35,7 @@ export default function ProductFilterBar({
   onOpenFilter,
   onClear,
   onOpenExport,
+  onAddProduct,
 }) {
   function updateFilter(key, value) {
     setFilters((prev) => ({
@@ -64,15 +65,35 @@ export default function ProductFilterBar({
 
   return (
     <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
-      <form onSubmit={handleSearch}>
-        <div className="border-b border-slate-700 px-4 py-3">
-          <h3 className="flex items-center gap-2 text-[12px] font-black text-white">
-            <Search size={15} className="text-orange-400" />
-            Search & Filter Local Products
-          </h3>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
+        <h3 className="flex items-center gap-2 text-[13px] font-semibold text-white">
+          <Search size={15} className="text-orange-400" />
+          Search & Filter Local Products
+        </h3>
 
-        <div className="grid grid-cols-1 gap-2 px-4 py-3 md:grid-cols-2 xl:grid-cols-[270px_270px_1fr_150px_150px_auto_auto_auto] xl:items-end">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onAddProduct}
+            className="flex h-7 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
+          >
+            <Plus size={13} />
+            ADD PRODUCT
+          </button>
+
+          <button
+            type="button"
+            onClick={onOpenExport}
+            className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-3 text-[11px] font-semibold text-white hover:bg-emerald-500"
+          >
+            <Download size={13} />
+            EXPORT CSV
+          </button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSearch}>
+        <div className="grid grid-cols-1 gap-2 px-4 py-3 md:grid-cols-2 xl:grid-cols-[270px_270px_1fr_150px_150px_auto_auto] xl:items-end">
           <label className="block">
             <FieldLabel>Date Range</FieldLabel>
             <select
@@ -126,7 +147,7 @@ export default function ProductFilterBar({
 
           <button
             type="submit"
-            className="inline-flex h-8 cursor-pointer items-center justify-center bg-orange-500 px-4 text-[12px] font-black text-white transition hover:bg-orange-400"
+            className="inline-flex h-8 cursor-pointer items-center justify-center bg-orange-500 px-4 text-[12px] font-semibold text-white transition hover:bg-orange-400"
           >
             SEARCH
           </button>
@@ -134,7 +155,7 @@ export default function ProductFilterBar({
           <button
             type="button"
             onClick={onOpenFilter}
-            className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 bg-indigo-500 px-4 text-[12px] font-black text-white transition hover:bg-indigo-400"
+            className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 bg-indigo-500 px-4 text-[12px] font-semibold text-white transition hover:bg-indigo-400"
           >
             <Filter size={14} />
             FILTERS
@@ -148,18 +169,9 @@ export default function ProductFilterBar({
           <button
             type="button"
             onClick={onClear}
-            className="inline-flex h-8 cursor-pointer items-center justify-center bg-white px-4 text-[12px] font-black text-slate-700 transition hover:bg-slate-100"
+            className="inline-flex h-8 cursor-pointer items-center justify-center bg-white px-4 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100"
           >
             CLEAR
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenExport}
-            className="inline-flex h-8 cursor-pointer items-center justify-center gap-2 bg-emerald-500 px-4 text-[12px] font-black text-white transition hover:bg-emerald-400"
-          >
-            <Download size={14} />
-            EXPORT CSV
           </button>
         </div>
       </form>
