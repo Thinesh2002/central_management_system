@@ -6,6 +6,7 @@ import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
 
 const HIDDEN_FIELDS = new Set(["id", "created_at", "updated_at"]);
+const HIDDEN_FIELD_PATTERN = /(^last_sync|_at$)/i;
 
 function isDayField(key) {
   return /day/i.test(key);
@@ -80,7 +81,9 @@ export default function OrderSyncSettingsPage() {
     }
   }
 
-  const editableKeys = Object.keys(form || {}).filter((key) => !HIDDEN_FIELDS.has(key));
+  const editableKeys = Object.keys(form || {}).filter(
+    (key) => !HIDDEN_FIELDS.has(key) && !HIDDEN_FIELD_PATTERN.test(key)
+  );
 
   return (
     <div className="space-y-3">

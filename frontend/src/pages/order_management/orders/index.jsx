@@ -15,6 +15,7 @@ import {
 import ordersApi from "../../../config/sub_api/order_management_api/orders_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
+import Loader from "../../../components/common/Loader";
 import OrderRow from "./components/OrderRow";
 import FilterDrawer from "./components/FilterDrawer";
 import ImagePreviewModal from "./components/ImagePreviewModal";
@@ -28,11 +29,19 @@ import {
   orderKey,
   orderSearchText,
 } from "./utils/orderHelpers";
+import {
+  closePrintWindow,
+  extractDarazActionMessage,
+  openBlankPrintWindow,
+  openDarazDocument,
+  writePrintWindowMessage,
+} from "./utils/darazDocument";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
-  { key: "pending", label: "New" },
-  { key: "packed", label: "To Pack" },
+  { key: "new", label: "New" },
+  { key: "to_pack", label: "To Pack" },
+  { key: "to_arrange_shipment", label: "To Arrange Shipment" },
   { key: "ready_to_ship", label: "Ready To Ship" },
   { key: "shipped", label: "Shipped" },
   { key: "delivered", label: "Delivered" },
@@ -238,6 +247,10 @@ export default function OrdersPage() {
       if (!invoiceNumber) return;
     }
 
+    // Opened synchronously (before the await below) so browsers don't treat
+    // it as an unsolicited popup — populated with the real PDF once the
+    // Daraz call resolves.
+    const printWindow = action === "print_awb" ? openBlankPrintWindow("Preparing AWB print...") : null;
     setBusy(true);
 
     try {
@@ -247,21 +260,29 @@ export default function OrdersPage() {
         invoice_number: invoiceNumber,
       });
 
-      if (result?.data?.pdf_url) {
-        window.open(result.data.pdf_url, "_blank");
-      }
+      const opened = action === "print_awb" ? openDarazDocument(result, printWindow) : openDarazDocument(result);
 
-      if (result?.data?.errors?.length) {
-        alert(
-          `${result.message}\n\n${result.data.errors.map((e) => `Order ${e.order_id}: ${e.reason}`).join("\n")}`
-        );
+      if (!opened && action === "print_awb") {
+        const message = extractDarazActionMessage(result) || "AWB document not returned by Daraz.";
+        writePrintWindowMessage(printWindow, message);
+        alert(message);
+      } else if (!opened && (result?.data?.errors?.length || result?.data?.skipped?.length)) {
+        alert(extractDarazActionMessage(result));
       } else {
         showToast(result?.message || "Daraz action submitted.");
       }
 
       await load();
     } catch (err) {
-      alert(getApiError(err, "Daraz action failed"));
+      const message = getApiError(err, "Daraz action failed");
+
+      if (action === "print_awb") {
+        writePrintWindowMessage(printWindow, message);
+      } else {
+        closePrintWindow(printWindow);
+      }
+
+      alert(message);
     } finally {
       setBusy(false);
     }
@@ -287,19 +308,24 @@ export default function OrdersPage() {
     <div className="space-y-3">
       <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-3 py-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-0.5 rounded-full border border-slate-700 bg-[#0f1b2a] p-1">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatus(tab.key)}
-                className={`h-7 rounded-sm border px-2.5 text-[11px] font-semibold ${
-                  status === tab.key
-                    ? "border-orange-400 bg-orange-500/10 text-orange-300"
-                    : "border-slate-700 bg-transparent text-slate-400 hover:text-slate-200"
+                className={`flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[11px] font-semibold transition ${
+                  status === tab.key ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                {tab.label} {counts[tab.key] !== undefined ? `(${counts[tab.key]})` : ""}
+                {tab.label}
+                <span
+                  className={`flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                    status === tab.key ? "bg-orange-500 text-white" : "bg-slate-800 text-slate-300"
+                  }`}
+                >
+                  {counts[tab.key] ?? 0}
+                </span>
               </button>
             ))}
           </div>
@@ -309,19 +335,19 @@ export default function OrdersPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="flex h-6 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2.5 text-[10px] font-semibold text-white hover:bg-[#52657f] disabled:opacity-60"
+              title="Refresh"
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-600 bg-[#44546b] text-white hover:bg-[#52657f] disabled:opacity-60"
             >
-              <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
-              REFRESH
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
             </button>
 
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
-              className="relative flex h-6 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2.5 text-[10px] font-semibold text-white hover:bg-[#52657f]"
+              title="Filter"
+              className="relative flex h-8 w-8 items-center justify-center rounded-md border border-slate-600 bg-[#44546b] text-white hover:bg-[#52657f]"
             >
-              <Filter size={11} />
-              FILTER
+              <Filter size={13} />
               {activeFilterCount(filters) > 0 && (
                 <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                   {activeFilterCount(filters)}
@@ -332,10 +358,10 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => navigate("/order-management/orders/create")}
-              className="flex h-6 items-center gap-1 rounded-sm border border-orange-500/40 bg-orange-500 px-2.5 text-[10px] font-semibold text-white hover:bg-orange-400"
+              className="flex h-8 items-center gap-1.5 rounded-full bg-orange-500 px-3.5 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
-              <Plus size={11} />
-              CREATE ORDER
+              <Plus size={13} />
+              Create Order
             </button>
           </div>
         </div>
@@ -432,8 +458,8 @@ export default function OrdersPage() {
       )}
 
       {loading ? (
-        <div className="border border-slate-800 bg-slate-950 p-5 text-center text-[12px] text-slate-500">
-          Loading orders...
+        <div className="border border-slate-800 bg-[#0b1220]">
+          <Loader label="Loading orders..." minHeight="0" className="py-16" />
         </div>
       ) : (
         <section className="overflow-visible border border-slate-800 bg-[#0b1220]">

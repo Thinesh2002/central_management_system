@@ -91,18 +91,49 @@ export function canDarazPrintAwb(order) {
   return Boolean(order.waybill_id);
 }
 
+// Buckets for the status tabs. "unpaid" (New) and "pending"-without-a-waybill
+// (To Pack) are both Daraz's own raw statuses; "packed" is a status this app
+// writes locally after a successful Pack action (see daraz_order_action_
+// controller's runPack) — it's the "To Arrange Shipment" bucket, i.e.
+// packed but not yet RTS-confirmed. These mirror canDarazPack/canDarazReady
+// below so the tab an order sits in always matches which bulk action it's
+// eligible for.
+const STATUS_BUCKETS = {
+  new: (order) => normalize(order.order_status) === "unpaid",
+  to_pack: (order) =>
+    ["pending", "new"].includes(normalize(order.order_status)) && !order.waybill_id,
+  to_arrange_shipment: (order) => normalize(order.order_status) === "packed",
+  ready_to_ship: (order) => normalize(order.order_status) === "ready_to_ship",
+  shipped: (order) => ["shipped", "dispatched"].includes(normalize(order.order_status)),
+  delivered: (order) => normalize(order.order_status) === "delivered",
+  cancelled: (order) => ["cancelled", "canceled", "failed"].includes(normalize(order.order_status)),
+  returned: (order) => ["returned", "shipped_back_success"].includes(normalize(order.order_status)),
+};
+
+export function matchesStatus(order, status) {
+  if (status === "all") return true;
+  const bucket = STATUS_BUCKETS[status];
+  return bucket ? bucket(order) : normalize(order.order_status) === status;
+}
+
 export function countByStatus(orders = []) {
   const map = { all: orders.length };
 
-  orders.forEach((order) => {
-    const key = normalize(order.order_status) || "unknown";
-    map[key] = (map[key] || 0) + 1;
+  Object.keys(STATUS_BUCKETS).forEach((key) => {
+    map[key] = orders.filter((order) => matchesStatus(order, key)).length;
   });
 
   return map;
 }
 
-export function matchesStatus(order, status) {
-  if (status === "all") return true;
-  return normalize(order.order_status) === status;
+export function fullAddress(order = {}) {
+  return [
+    order.shipping_address_line1,
+    order.shipping_address_line2,
+    order.shipping_city,
+    order.shipping_postal_code,
+    order.shipping_country,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }

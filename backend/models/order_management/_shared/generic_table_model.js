@@ -6,6 +6,39 @@ function qid(identifier) {
 
 const metaCache = new Map();
 
+// mysql2 (strict mode) rejects JS's native ISO 8601 format ("...T...Z") for
+// DATE/DATETIME/TIMESTAMP columns. Dynamic payloads in this module often
+// carry values that started life as a JS Date (JSON round-tripped through a
+// form, or serialized by axios/Express) or as a marketplace API's own date
+// string — neither is guaranteed to already be in MySQL's "YYYY-MM-DD
+// HH:MM:SS" shape, so every write is normalized before it reaches SQL.
+function toMysqlDateTime(value) {
+  if (value === undefined || value === null || value === "") return null;
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return value.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  if (typeof value === "number") {
+    const ms = value > 0 && value < 10000000000 ? value * 1000 : value;
+    const date = new Date(ms);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    // Already MySQL-safe ("YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS") — leave as-is.
+    if (/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$/.test(trimmed)) return trimmed;
+
+    const date = new Date(trimmed);
+    if (Number.isNaN(date.getTime())) return trimmed; // unparseable — let MySQL be the judge
+    return date.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  return value;
+}
+
 async function getTableMeta(tableName) {
   if (metaCache.has(tableName)) return metaCache.get(tableName);
 
@@ -22,6 +55,9 @@ async function getTableMeta(tableName) {
     searchableColumns: columns
       .filter((column) => /(char|text|json|enum)/i.test(column.type))
       .map((column) => column.name),
+    dateColumns: new Set(
+      columns.filter((column) => /^(date|datetime|timestamp)/.test(column.type)).map((column) => column.name)
+    ),
   };
 
   metaCache.set(tableName, meta);
@@ -153,7 +189,7 @@ function createGenericModel(tableName, { dateColumn = "created_at", defaultSort 
 
     Object.entries(data || {}).forEach(([key, value]) => {
       if (meta.columnSet.has(key) && value !== undefined) {
-        picked[key] = value;
+        picked[key] = meta.dateColumns.has(key) ? toMysqlDateTime(value) : value;
       }
     });
 
@@ -199,4 +235,4 @@ function createGenericModel(tableName, { dateColumn = "created_at", defaultSort 
   return { list, findById, findByColumn, create, update, pickAllowedData, tableName };
 }
 
-module.exports = { createGenericModel, db, qid };
+module.exports = { createGenericModel, db, qid, toMysqlDateTime };
