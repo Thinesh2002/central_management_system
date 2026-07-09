@@ -403,12 +403,12 @@ export default function MarketplaceAccountsPage() {
             type="button"
             onClick={handleCheckAllTokens}
             disabled={checkingAll}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0D1322] px-4 py-2.5 text-sm font-medium text-slate-200 shadow-xl shadow-black/10 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-[#0D1322] px-3 text-[12px] font-medium text-slate-200 shadow-xl shadow-black/10 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {checkingAll ? (
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={13} className="animate-spin" />
             ) : (
-              <ShieldCheck size={16} />
+              <ShieldCheck size={13} />
             )}
             Check Daraz Tokens
           </button>
@@ -417,17 +417,17 @@ export default function MarketplaceAccountsPage() {
             type="button"
             onClick={loadAccounts}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-[#0D1322] px-4 py-2.5 text-sm font-medium text-slate-200 shadow-xl shadow-black/10 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-[#0D1322] px-3 text-[12px] font-medium text-slate-200 shadow-xl shadow-black/10 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
 
           <Link
             to="/marketplace/accounts/add"
-            className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300"
           >
-            <Plus size={16} />
+            <Plus size={13} />
             Add Account
           </Link>
         </div>
@@ -471,7 +471,7 @@ export default function MarketplaceAccountsPage() {
         <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-center md:justify-between">
           <div className="relative w-full md:max-w-md">
             <Search
-              size={16}
+              size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
             />
 
@@ -480,7 +480,7 @@ export default function MarketplaceAccountsPage() {
               placeholder="Search account, platform, country..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-[#070B14] py-2.5 pl-9 pr-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/70 focus:ring-2 focus:ring-yellow-400/10"
+              className="h-9 w-full rounded-md border border-white/10 bg-[#070B14] pl-9 pr-3 text-[12px] text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/70 focus:ring-2 focus:ring-yellow-400/10"
             />
           </div>
 

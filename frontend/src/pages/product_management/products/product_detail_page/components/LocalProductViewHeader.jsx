@@ -29,7 +29,7 @@ function ActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${styles[variant]}`}
+      className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${styles[variant]}`}
     >
       {children}
     </button>
@@ -76,18 +76,18 @@ export default function LocalProductViewHeader({
 
         <div className="flex flex-wrap items-center gap-2">
           <ActionButton onClick={onBack}>
-            <ArrowLeft size={16} />
+            <ArrowLeft size={14} />
             Back
           </ActionButton>
 
           <ActionButton onClick={onRefresh} disabled={loading}>
-            <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
+            <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
             Refresh
           </ActionButton>
 
           {productId && (
             <ActionButton onClick={onEdit} variant="primary">
-              <Edit3 size={16} />
+              <Edit3 size={14} />
               Edit
             </ActionButton>
           )}

@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { TrendingUp } from "lucide-react";
 import {
   formatNumber,
   getProductVariants,
@@ -108,7 +110,10 @@ function VariantSubImages({ variant }) {
 }
 
 function VariationCard({ variant, index }) {
+  const navigate = useNavigate();
   const mainImage = getMainVariantImage(variant);
+  const variantSku = getVariantSku(variant);
+  const hasSku = variantSku && variantSku !== "-";
 
   return (
     <div className="rounded-xl border border-slate-800 bg-[#070b16] p-3">
@@ -136,7 +141,21 @@ function VariationCard({ variant, index }) {
               </h3>
 
               <p className="mt-1 text-xs text-slate-500">
-                SKU: {getVariantSku(variant)}
+                SKU:{" "}
+                {hasSku ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(`/order-management/sku-report/${encodeURIComponent(variantSku)}`)
+                    }
+                    className="cursor-pointer text-orange-300 underline decoration-dotted transition hover:text-orange-200"
+                    title={`View SKU economics report for ${variantSku}`}
+                  >
+                    {variantSku}
+                  </button>
+                ) : (
+                  variantSku
+                )}
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
@@ -144,7 +163,21 @@ function VariationCard({ variant, index }) {
               </p>
             </div>
 
-            <StockBadge variant={variant} />
+            <div className="flex flex-col items-end gap-1.5">
+              <StockBadge variant={variant} />
+
+              {hasSku && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(`/order-management/sku-report/${encodeURIComponent(variantSku)}`)
+                  }
+                  className="inline-flex items-center gap-1 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[10px] font-semibold text-orange-300 hover:bg-orange-500/20"
+                >
+                  <TrendingUp size={11} /> SKU Report
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="grid gap-2 sm:grid-cols-3">
@@ -188,6 +221,38 @@ function VariationCard({ variant, index }) {
   );
 }
 
+function ChildSkuQuickLinks({ variants }) {
+  const navigate = useNavigate();
+
+  const skus = variants
+    .map((variant) => getVariantSku(variant))
+    .filter((sku) => sku && sku !== "-");
+
+  if (!skus.length) return null;
+
+  return (
+    <div className="mb-4 rounded-lg border border-slate-800 bg-[#070b16] p-3">
+      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase text-slate-500">
+        <TrendingUp size={12} className="text-orange-400" />
+        All Child SKU Economic Reports
+      </p>
+
+      <div className="flex flex-wrap gap-1.5">
+        {skus.map((sku) => (
+          <button
+            key={sku}
+            type="button"
+            onClick={() => navigate(`/order-management/sku-report/${encodeURIComponent(sku)}`)}
+            className="cursor-pointer rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[11px] font-mono font-semibold text-orange-300 hover:bg-orange-500/20"
+          >
+            {sku}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LocalProductVariationsCard({ product = {} }) {
   if (!shouldShowProductVariations(product)) return null;
 
@@ -209,6 +274,8 @@ export default function LocalProductVariationsCard({ product = {} }) {
           {variants.length} variations
         </span>
       </div>
+
+      <ChildSkuQuickLinks variants={variants} />
 
       <div className="space-y-3">
         {variants.map((variant, index) => (
