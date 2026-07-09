@@ -9,13 +9,21 @@ export function money(value, currency = "LKR") {
   })}`;
 }
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
 export function niceDate(value) {
   if (!value) return "-";
   try {
     const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return { date: "-", time: "" };
+
     return {
-      date: date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }),
-      time: date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+      date: `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`,
+      time: date
+        .toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: true })
+        .toLowerCase(),
     };
   } catch {
     return { date: "-", time: "" };
@@ -44,20 +52,6 @@ export function orderSearchText(order = {}) {
 
 export function orderKey(order = {}) {
   return `${order.source}:${order.source_order_id}`;
-}
-
-export function statusBadgeClass(status) {
-  const s = normalize(status);
-  if (["delivered", "completed", "success"].includes(s)) {
-    return "text-emerald-400";
-  }
-  if (["cancelled", "canceled", "returned", "shipped_back_success", "failed"].includes(s)) {
-    return "text-red-400";
-  }
-  if (["shipped", "ready_to_ship", "packed"].includes(s)) {
-    return "text-sky-400";
-  }
-  return "text-amber-400";
 }
 
 export function sourceMeta(source) {
@@ -109,6 +103,46 @@ const STATUS_BUCKETS = {
   cancelled: (order) => ["cancelled", "canceled", "failed"].includes(normalize(order.order_status)),
   returned: (order) => ["returned", "shipped_back_success"].includes(normalize(order.order_status)),
 };
+
+const STATUS_LABELS = {
+  new: "New",
+  to_pack: "To Pack",
+  to_arrange_shipment: "To Arrange Shipment",
+  ready_to_ship: "Ready To Ship",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  returned: "Returned",
+};
+
+const STATUS_COLOR_CLASS = {
+  new: "text-amber-400",
+  to_pack: "text-amber-400",
+  to_arrange_shipment: "text-amber-400",
+  ready_to_ship: "text-sky-400",
+  shipped: "text-sky-400",
+  delivered: "text-emerald-400",
+  cancelled: "text-red-400",
+  returned: "text-red-400",
+};
+
+// The row's status column shows this bucket label ("To Arrange Shipment"),
+// not the raw internal order_status value ("packed") — the two only line up
+// by coincidence for a couple of statuses, so this must stay in sync with
+// STATUS_BUCKETS above rather than re-deriving from the raw string.
+export function statusBucketKey(order) {
+  return Object.keys(STATUS_BUCKETS).find((key) => STATUS_BUCKETS[key](order)) || null;
+}
+
+export function statusLabel(order) {
+  const key = statusBucketKey(order);
+  return key ? STATUS_LABELS[key] : order?.order_status || "-";
+}
+
+export function statusBadgeClass(order) {
+  const key = statusBucketKey(order);
+  return key ? STATUS_COLOR_CLASS[key] : "text-slate-400";
+}
 
 export function matchesStatus(order, status) {
   if (status === "all") return true;

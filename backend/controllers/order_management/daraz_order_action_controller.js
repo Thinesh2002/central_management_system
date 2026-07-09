@@ -7,6 +7,16 @@ function darazResultOf(response) {
   return response?.data?.result || response?.data || {};
 }
 
+// Daraz's field casing isn't confirmed for every nested response shape, so
+// check a couple of likely spellings rather than assuming one.
+function pick(obj, keys) {
+  if (!obj || typeof obj !== "object") return undefined;
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+  }
+  return undefined;
+}
+
 async function getOrderItemIds(order) {
   const itemIdColumn = await fulfillmentModel.getOrderItemIdColumn();
 
@@ -49,18 +59,34 @@ async function runPack({ account, credentials, order }) {
   });
 
   const result = darazResultOf(response);
-  const packedOrder = (result?.data?.pack_order_list || [])[0];
-  const packedItem = (packedOrder?.order_item_list || [])[0];
+  const data = pick(result, ["data"]) || result || {};
+  const packOrderList = pick(data, ["pack_order_list", "packOrderList"]) || [];
+  const packedOrder = packOrderList[0] || {};
+  const orderItemList = pick(packedOrder, ["order_item_list", "orderItemList"]) || [];
+  const packedItem = orderItemList[0] || {};
+  const packageId = pick(packedItem, ["package_id", "packageId"]);
+  const trackingNumber = pick(packedItem, ["tracking_number", "trackingNumber"]);
 
-  if (packedItem?.package_id) {
-    await fulfillmentModel.savePackageResult(order.id, {
-      packageId: packedItem.package_id,
-      trackingNumber: packedItem.tracking_number,
-      orderStatus: "packed",
-    });
+  // callDarazApi already throws on Daraz-reported errors (including the
+  // nested result.error_code/error_msg shape), but if it somehow returns a
+  // 200 with no package_id, don't silently report success while writing
+  // nothing — that's exactly what left orders stuck in "To Pack" with no
+  // waybill before this fix.
+  if (!packageId) {
+    const error = new Error(
+      "Daraz didn't return a package ID for this order — the pack call may not have actually succeeded."
+    );
+    error.statusCode = 502;
+    throw error;
   }
 
-  return { response, packageId: packedItem?.package_id || null };
+  await fulfillmentModel.savePackageResult(order.id, {
+    packageId,
+    trackingNumber,
+    orderStatus: "packed",
+  });
+
+  return { response, packageId };
 }
 
 async function requirePackageId(order) {

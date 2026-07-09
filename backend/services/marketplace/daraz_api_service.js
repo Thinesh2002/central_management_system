@@ -151,10 +151,31 @@ async function safeCreateApiLog(payload) {
   }
 }
 
+// Fulfillment-family endpoints (Pack, PrintAWB, ReadyToShip, DBS actions...)
+// report success/failure inside a nested "result" object even when the
+// top-level "code" is "0" — e.g. GetDocument's own documented sample:
+// {result: {success:"true", error_code:"123", error_msg:"package not found"}, code:"0"}.
+// A top-level code of "0" alone does NOT mean these calls actually succeeded.
+function getNestedResult(responseData) {
+  return responseData && typeof responseData.result === "object" ? responseData.result : null;
+}
+
+function isNestedResultError(nested) {
+  if (!nested) return false;
+  if (nested.success !== undefined && String(nested.success).toLowerCase() !== "true") return true;
+  if (nested.error_code && String(nested.error_code) !== "0") return true;
+  if (nested.error_msg) return true;
+  return false;
+}
+
 function getDarazErrorSource(responseData) {
   if (!responseData) return null;
   if (responseData.ErrorResponse) return responseData.ErrorResponse;
   if (responseData.error_response) return responseData.error_response;
+
+  const nested = getNestedResult(responseData);
+  if (isNestedResultError(nested)) return nested;
+
   return responseData;
 }
 
@@ -172,6 +193,7 @@ function normalizeDarazErrorPayload(error = null, responseData = null) {
     const message =
       source.message ||
       source.msg ||
+      source.error_msg ||
       source.error_message ||
       source.errorMessage ||
       "Daraz API error";
@@ -243,6 +265,8 @@ function isDarazApiError(responseData) {
   ) {
     return true;
   }
+
+  if (isNestedResultError(getNestedResult(responseData))) return true;
 
   return false;
 }

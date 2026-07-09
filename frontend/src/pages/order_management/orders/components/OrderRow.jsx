@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { ImageOff } from "lucide-react";
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
-import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass } from "../utils/orderHelpers";
+import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass, statusLabel } from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
 
 function ProductThumb({ order, onPreview }) {
@@ -115,13 +115,11 @@ function OrderRow({
         <p className="mt-0.5 text-[10px] text-slate-500">
           Discount: {money(order.discount_total, order.currency)}
         </p>
-        <p className="mt-0.5 text-[10px] text-slate-500">{order.payment_method || "-"}</p>
+        <p className="mt-0.5 text-[10px] uppercase text-slate-500">{order.payment_method || "-"}</p>
       </td>
 
       <td className="px-3 py-2.5 align-top">
-        <span className={`text-[11px] font-semibold ${statusBadgeClass(order.order_status)}`}>
-          {order.order_status || "-"}
-        </span>
+        <span className={`text-[11px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
       </td>
 
       <td className="px-3 py-2.5 text-right align-top">
