@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
+  ImageOff,
   Package,
   PackageCheck,
   Plus,
@@ -9,11 +10,13 @@ import {
   RefreshCw,
   Search,
   Truck,
+  X,
 } from "lucide-react";
 
 import ordersApi from "../../../config/sub_api/order_management_api/orders_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
+import { resolveImageUrl } from "../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -100,6 +103,58 @@ function orderKey(order) {
   return `${order.source}:${order.source_order_id}`;
 }
 
+function ProductThumb({ order, onPreview }) {
+  const url = resolveImageUrl(order.thumbnail_url || "");
+  const title = order.first_item_title || order.display_order_no;
+
+  return (
+    <button
+      type="button"
+      onClick={() => url && onPreview({ url, title })}
+      disabled={!url}
+      title={url ? "Click to preview" : "No image"}
+      className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-white disabled:cursor-default"
+    >
+      {url ? (
+        <img src={url} alt={title || "Product"} className="h-full w-full object-contain" />
+      ) : (
+        <ImageOff size={14} className="text-slate-400" />
+      )}
+    </button>
+  );
+}
+
+function ImagePreviewModal({ image, onClose }) {
+  if (!image) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg border border-slate-700 bg-[#0b1220] shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2.5">
+          <p className="truncate text-[12px] font-semibold text-white">{image.title || "Product image"}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center bg-white p-4">
+          <img src={image.url} alt={image.title || "Product"} className="max-h-[60vh] w-full object-contain" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function OrdersPage() {
   const navigate = useNavigate();
   const showToast = useToast();
@@ -115,6 +170,7 @@ export default function OrdersPage() {
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(1);
+  const [imagePreview, setImagePreview] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -410,7 +466,7 @@ export default function OrdersPage() {
                       className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
                     />
                   </th>
-                  {["Order No", "Source", "Account", "Customer", "Date", "Status", "Total", "Waybill", ""].map(
+                  {["Product", "Order No", "Source", "Account", "Customer", "Date", "Status", "Total", "Waybill", ""].map(
                     (header) => (
                       <th
                         key={header}
@@ -426,7 +482,7 @@ export default function OrdersPage() {
               <tbody className="divide-y divide-slate-800">
                 {!pagedOrders.length && (
                   <tr>
-                    <td colSpan="9" className="px-3 py-8 text-center text-[12px] text-slate-500">
+                    <td colSpan="10" className="px-3 py-8 text-center text-[12px] text-slate-500">
                       No orders found.
                     </td>
                   </tr>
@@ -445,6 +501,15 @@ export default function OrdersPage() {
                           onChange={() => toggleOrder(order)}
                           className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
                         />
+                      </td>
+
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <ProductThumb order={order} onPreview={setImagePreview} />
+                          <span className="max-w-[160px] truncate text-[11px] text-slate-400" title={order.first_item_title || ""}>
+                            {order.first_item_title || "-"}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="px-3 py-2.5">
@@ -562,6 +627,8 @@ export default function OrdersPage() {
           )}
         </section>
       )}
+
+      <ImagePreviewModal image={imagePreview} onClose={() => setImagePreview(null)} />
     </div>
   );
 }
