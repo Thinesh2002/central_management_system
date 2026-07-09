@@ -27,7 +27,7 @@ export function PageOverlayProvider({ children }) {
       {children}
 
       {url && (
-        <div className="fixed inset-0 z-[999] flex flex-col bg-slate-950">
+        <div className="fixed inset-y-0 right-0 left-0 z-60 flex flex-col border-l border-slate-800 bg-slate-950 lg:left-58">
           <div className="flex h-11 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0b1220] px-3">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               Central Management
