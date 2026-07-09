@@ -231,10 +231,21 @@ export default function OrdersPage() {
   async function runDarazAction(action, orderIds) {
     if (!orderIds.length) return;
 
+    let invoiceNumber;
+
+    if (action === "set_invoice_number") {
+      invoiceNumber = window.prompt("Enter the invoice number to set on the first item of each order");
+      if (!invoiceNumber) return;
+    }
+
     setBusy(true);
 
     try {
-      const result = await ordersApi.darazBulkAction({ action, order_ids: orderIds });
+      const result = await ordersApi.darazBulkAction({
+        action,
+        order_ids: orderIds,
+        invoice_number: invoiceNumber,
+      });
 
       if (result?.data?.pdf_url) {
         window.open(result.data.pdf_url, "_blank");

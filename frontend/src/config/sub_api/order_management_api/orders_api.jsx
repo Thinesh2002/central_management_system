@@ -42,6 +42,11 @@ const ordersApi = {
     return response.data;
   },
 
+  async getTracking(source, id) {
+    const response = await api.get(`${ORDERS_BASE_URL}/${source}/${id}/tracking`);
+    return response.data;
+  },
+
   async createManualOrder(payload) {
     const response = await api.post(ORDERS_BASE_URL, payload);
     return response.data;

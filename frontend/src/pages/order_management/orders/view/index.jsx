@@ -457,13 +457,75 @@ function TrackingMiniCard({ order, onTrack }) {
   );
 }
 
+function flattenTrackingRows(modules = []) {
+  const rows = [];
+
+  modules.forEach((moduleItem) => {
+    const packages = moduleItem.package_detail_info_list || [];
+
+    packages.forEach((pkg) => {
+      const events = pkg.logistic_detail_info_list || [];
+
+      events.forEach((event, index) => {
+        rows.push({
+          key: `${pkg.ofc_package_id || pkg.tracking_number}-${index}`,
+          packageId: pkg.ofc_package_id,
+          trackingNumber: pkg.tracking_number,
+          title: event.title || "Tracking update",
+          description: event.description || "",
+          eventTime: Number(event.event_time) || 0,
+        });
+      });
+    });
+  });
+
+  return rows.sort((a, b) => b.eventTime - a.eventTime);
+}
+
 function TrackOrderModal({ open, onClose, order }) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+
+    ordersApi
+      .getTracking(order.source, order.source_order_id)
+      .then((res) => {
+        if (cancelled) return;
+        setRows(flattenTrackingRows(res?.data || []));
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(getApiError(err, "Failed to load tracking"));
+        setRows([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, order.source, order.source_order_id]);
+
   if (!open) return null;
 
   const firstItem = order.items?.[0] || {};
+  const latest = rows[0];
   const tracking =
-    firstItem.tracking_code || firstItem.tracking_number || order.waybill_id || order.tracking_number;
-  const packageId = firstItem.package_id || order.package_id;
+    latest?.trackingNumber ||
+    firstItem.tracking_code ||
+    firstItem.tracking_number ||
+    order.waybill_id ||
+    order.tracking_number;
+  const packageId = latest?.packageId || firstItem.package_id || order.package_id;
   const provider = firstItem.shipment_provider || order.shipment_provider;
 
   return (
@@ -511,8 +573,37 @@ function TrackOrderModal({ open, onClose, order }) {
             </div>
           </div>
 
-          <div className="mt-4 border border-amber-900 bg-amber-950 p-3 text-[11px] text-amber-300">
-            Detailed tracking timeline needs the Daraz Order API connection — not available yet.
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[11px] font-semibold text-slate-300">Tracking Timeline</p>
+              <span className="text-[10px] text-slate-500">{rows.length} update{rows.length === 1 ? "" : "s"}</span>
+            </div>
+
+            {loading ? (
+              <p className="py-6 text-center text-[12px] text-slate-500">Loading tracking...</p>
+            ) : error ? (
+              <div className="border border-red-900 bg-red-950 p-3 text-[11px] text-red-300">{error}</div>
+            ) : rows.length ? (
+              <div className="space-y-2">
+                {rows.map((row) => (
+                  <div key={row.key} className="border border-slate-800 bg-[#070b16] p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[12px] font-semibold text-slate-100">{row.title}</p>
+                      <span className="text-[10px] text-slate-500">
+                        {row.eventTime ? new Date(row.eventTime).toLocaleString() : "-"}
+                      </span>
+                    </div>
+                    {row.description && (
+                      <p className="mt-1 text-[11px] text-slate-400">{row.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border border-amber-900 bg-amber-950 p-3 text-[11px] text-amber-300">
+                No tracking events yet — this becomes available once the order is packed and ready to ship.
+              </div>
+            )}
           </div>
         </div>
       </div>

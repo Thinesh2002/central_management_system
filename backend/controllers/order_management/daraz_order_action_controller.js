@@ -3,22 +3,16 @@ const tokenService = require("../../services/marketplace/token_service");
 const fulfillmentService = require("../../services/daraz/order_management/daraz_order_fulfillment_service");
 const fulfillmentModel = require("../../models/order_management/daraz_order_fulfillment_model");
 
-const NOT_IMPLEMENTED_ACTIONS = new Set(["deliver_digital", "set_invoice_number"]);
-
 function darazResultOf(response) {
   return response?.data?.result || response?.data || {};
 }
 
-// Pack an order: needs Daraz's own order_id (daraz_order_id) plus every
-// line item's Daraz order_item_id. If this table's item-id column can't be
-// found, refuse rather than send an empty/guessed item list to a live
-// seller account.
-async function runPack({ account, credentials, order }) {
+async function getOrderItemIds(order) {
   const itemIdColumn = await fulfillmentModel.getOrderItemIdColumn();
 
   if (!itemIdColumn) {
     const error = new Error(
-      "Can't find Daraz's order_item_id column on daraz_order_items — refusing to pack without it."
+      "Can't find Daraz's order_item_id column on daraz_order_items — refusing to proceed without it."
     );
     error.statusCode = 500;
     throw error;
@@ -32,6 +26,16 @@ async function runPack({ account, credentials, order }) {
     error.statusCode = 400;
     throw error;
   }
+
+  return orderItemIds;
+}
+
+// Pack an order: needs Daraz's own order_id (daraz_order_id) plus every
+// line item's Daraz order_item_id. If this table's item-id column can't be
+// found, refuse rather than send an empty/guessed item list to a live
+// seller account.
+async function runPack({ account, credentials, order }) {
+  const orderItemIds = await getOrderItemIds(order);
 
   const response = await fulfillmentService.packOrder({
     account,
@@ -67,10 +71,37 @@ async function requirePackageId(order) {
   throw error;
 }
 
-async function runAction({ action, account, credentials, order }) {
+async function runAction({ action, account, credentials, order, invoiceNumber }) {
   switch (action) {
     case "pack":
       return runPack({ account, credentials, order });
+
+    case "deliver_digital": {
+      const orderItemIds = await getOrderItemIds(order);
+      const response = await fulfillmentService.deliverDigital({
+        account,
+        credentials,
+        orders: [{ order_id: order.daraz_order_id, order_item_list: orderItemIds }],
+      });
+      return { response };
+    }
+
+    case "set_invoice_number": {
+      if (!invoiceNumber) {
+        const error = new Error("invoice_number is required for set_invoice_number.");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const orderItemIds = await getOrderItemIds(order);
+      const response = await fulfillmentService.setInvoiceNumber({
+        account,
+        credentials,
+        orderItemId: orderItemIds[0],
+        invoiceNumber,
+      });
+      return { response };
+    }
 
     case "ready_to_ship": {
       const packageIds = await requirePackageId(order);
@@ -121,7 +152,7 @@ async function runAction({ action, account, credentials, order }) {
 }
 
 const runBulkAction = asyncHandler(async (req, res) => {
-  const { action, order_ids: orderIds = [] } = req.body || {};
+  const { action, order_ids: orderIds = [], invoice_number: invoiceNumber } = req.body || {};
 
   if (!action) {
     return res.status(400).json({ success: false, message: "action is required." });
@@ -129,14 +160,6 @@ const runBulkAction = asyncHandler(async (req, res) => {
 
   if (!orderIds.length) {
     return res.status(400).json({ success: false, message: "order_ids is required." });
-  }
-
-  if (NOT_IMPLEMENTED_ACTIONS.has(action)) {
-    return res.status(501).json({
-      success: false,
-      message: `"${action}" isn't implemented yet — its request/response shape wasn't in the Daraz docs shared so far.`,
-      data: { errors: orderIds.map((id) => ({ order_id: id, reason: "Not implemented" })) },
-    });
   }
 
   const results = [];
@@ -162,7 +185,7 @@ const runBulkAction = asyncHandler(async (req, res) => {
 
       const { credentials } = await tokenService.getValidCredentialsForAccount(account.id);
 
-      const { response, pdfUrl } = await runAction({ action, account, credentials, order });
+      const { response, pdfUrl } = await runAction({ action, account, credentials, order, invoiceNumber });
 
       if (pdfUrl) lastPdfUrl = pdfUrl;
 

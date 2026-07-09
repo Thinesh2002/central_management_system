@@ -9,5 +9,6 @@ router.post("/", controller.createManualOrder);
 router.get("/:source/:id", controller.getOrder);
 router.patch("/:source/:id/status", controller.updateStatus);
 router.post("/:source/:id/waybill", controller.createWaybill);
+router.get("/:source/:id/tracking", controller.getTracking);
 
 module.exports = router;

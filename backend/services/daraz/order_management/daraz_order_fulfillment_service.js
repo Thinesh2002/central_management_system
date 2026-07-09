@@ -108,9 +108,38 @@ async function failedDeliveryForDBS({ account, credentials, packageIds = [] }) {
     method: "POST",
     requestType: "order_dbs_failed_delivery",
     query: {
-      dbsDeliveryReq: JSON.stringify({
+      dbsFailedDeliveryReq: JSON.stringify({
         packages: packageIds.map((packageId) => ({ package_id: packageId })),
       }),
+    },
+  });
+}
+
+async function deliverDigital({ account, credentials, orders = [] }) {
+  return callDarazApi({
+    account,
+    credentials,
+    apiPath: "/order/digital/delivered",
+    method: "POST",
+    requestType: "order_deliver_digital",
+    query: {
+      digitalDeliveryReq: JSON.stringify({ orders }),
+    },
+  });
+}
+
+async function setInvoiceNumber({ account, credentials, orderItemId, invoiceNumber }) {
+  return callDarazApi({
+    account,
+    credentials,
+    apiPath: "/order/invoice_number/set",
+    method: "POST",
+    requestType: "order_set_invoice_number",
+    // Unlike every other fulfillment call, SetInvoiceNumber takes flat
+    // params rather than one JSON-wrapped object — per its own docs.
+    query: {
+      order_item_id: orderItemId,
+      invoice_number: invoiceNumber,
     },
   });
 }
@@ -123,4 +152,6 @@ module.exports = {
   recreatePackage,
   confirmDeliveryForDBS,
   failedDeliveryForDBS,
+  deliverDigital,
+  setInvoiceNumber,
 };

@@ -1,15 +1,54 @@
 const tokenService = require("../../marketplace/token_service");
 const orderSyncSettingsModel = require("../../../models/order_management/order_sync_settings_model");
+const darazOrderApiService = require("./daraz_order_api_service");
+const darazOrderSyncModel = require("../../../models/order_management/daraz_order_sync_model");
 
-// The Daraz Order API (GetOrders/GetOrderItems) hasn't been wired up yet —
-// this file is the real entry point the cron job and the manual "Sync Now"
-// button both call, so plugging in the actual Daraz calls later only means
-// filling in fetchDarazOrders() below. Everything around it (day-range
-// resolution, per-account looping, error isolation) is already wired.
+const PAGE_SIZE = 100;
+
 async function fetchDarazOrders({ account, credentials, sinceDate }) {
-  throw new Error(
-    "Daraz Order API integration is not yet connected. Share the Daraz Order API docs (GetOrders/GetOrderItems) to enable real order sync."
-  );
+  let offset = 0;
+  let countTotal = Infinity;
+  let ordersFetched = 0;
+  let itemsFetched = 0;
+
+  while (offset < countTotal) {
+    const response = await darazOrderApiService.getOrders({
+      account,
+      credentials,
+      updateAfter: sinceDate.toISOString(),
+      offset,
+      limit: PAGE_SIZE,
+    });
+
+    const data = response?.data?.data || {};
+    const orders = data.orders || [];
+    countTotal = Number(data.countTotal || orders.length);
+
+    for (const order of orders) {
+      const localOrder = await darazOrderSyncModel.upsertOrder(order, account);
+
+      try {
+        const itemsResponse = await darazOrderApiService.getOrderItems({
+          account,
+          credentials,
+          orderId: order.order_id,
+        });
+
+        const items = itemsResponse?.data?.data || [];
+        await darazOrderSyncModel.upsertItems(items, localOrder.id);
+        itemsFetched += items.length;
+      } catch (itemError) {
+        console.error(`[DARAZ_ORDER_SYNC] Failed to fetch items for order ${order.order_id}:`, itemError.message);
+      }
+
+      ordersFetched += 1;
+    }
+
+    if (!orders.length) break;
+    offset += PAGE_SIZE;
+  }
+
+  return { orders_synced: ordersFetched, items_synced: itemsFetched };
 }
 
 function resolveSyncDays(settings) {
@@ -30,7 +69,7 @@ function resolveSyncDays(settings) {
 }
 
 async function syncOneAccount(account, sinceDate) {
-  const credentials = await tokenService.getValidCredentialsForAccount(account.id);
+  const { credentials } = await tokenService.getValidCredentialsForAccount(account.id);
   return fetchDarazOrders({ account, credentials, sinceDate });
 }
 
