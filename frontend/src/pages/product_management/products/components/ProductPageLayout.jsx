@@ -104,7 +104,7 @@ export default function ProductPageLayout({
                     type="button"
                     onClick={() => productId && navigate(tab.path(productId))}
                     disabled={!productId}
-                    className={`h-12 cursor-pointer whitespace-nowrap border-b-2 px-1 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`h-10 cursor-pointer whitespace-nowrap border-b-2 px-1 text-[12px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                       isActive
                         ? "border-white text-white"
                         : "border-transparent text-slate-500 hover:border-slate-500 hover:text-slate-200"

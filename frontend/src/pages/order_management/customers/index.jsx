@@ -92,22 +92,22 @@ export default function CustomersPage() {
           type="button"
           onClick={loadCustomers}
           disabled={loading}
-          className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[13px] text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <RefreshCw size={14} />
+          <RefreshCw size={12} />
           Refresh
         </button>
       </div>
 
       <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="relative">
-          <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, customer code, phone, email, city..."
-            className="h-9 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[13px] text-slate-300 outline-none placeholder:text-slate-600"
+            className="h-8 w-full border border-slate-800 bg-slate-900 pl-8 pr-3 text-[12px] text-slate-300 outline-none placeholder:text-slate-600"
           />
         </div>
       </div>

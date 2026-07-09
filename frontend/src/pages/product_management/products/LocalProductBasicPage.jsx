@@ -730,21 +730,21 @@ export default function LocalProductBasicPage() {
               <button
                 type="button"
                 onClick={() => regenerateSku()}
-                className="inline-flex h-10 cursor-pointer items-center gap-2 border border-slate-800 bg-[#070b16] px-4 text-sm font-bold text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 border border-slate-800 bg-[#070b16] px-3 text-[12px] font-semibold text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
               >
-                <RefreshCw size={15} />
+                <RefreshCw size={13} />
                 Regenerate SKU
               </button>
 
               <button
                 disabled={saving}
                 type="submit"
-                className="inline-flex h-10 cursor-pointer items-center gap-2 bg-orange-500 px-4 text-sm font-bold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 bg-orange-500 px-3 text-[12px] font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? (
-                  <RefreshCw size={15} className="animate-spin" />
+                  <RefreshCw size={13} className="animate-spin" />
                 ) : (
-                  <Save size={15} />
+                  <Save size={13} />
                 )}
                 {saving ? "Saving..." : "Save Basic Details"}
               </button>

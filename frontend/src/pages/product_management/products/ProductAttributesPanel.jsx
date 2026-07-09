@@ -182,31 +182,31 @@ export default function ProductAttributesPanel({ productId, variantId = null }) 
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="border border-slate-800 bg-[#0b1220] p-4">
-          <h2 className="mb-4 text-sm font-black text-white">Add New Attribute</h2>
+          <h2 className="mb-3 text-[12px] font-black text-white">Add New Attribute</h2>
           <div className="flex gap-2">
             <input
               value={newAttributeName}
               onChange={(e) => setNewAttributeName(e.target.value)}
               placeholder="Example: Wattage"
-              className="flex-1 border border-slate-700 bg-[#0a101d] px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-yellow-500"
+              className="h-9 flex-1 border border-slate-700 bg-[#0a101d] px-3 text-[12px] text-slate-100 outline-none placeholder:text-slate-600 focus:border-yellow-500"
             />
             <button
               type="button"
               onClick={addNewAttribute}
-              className="inline-flex cursor-pointer items-center gap-2 bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-400"
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 bg-orange-500 px-3 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
-              <Plus size={16} /> Add
+              <Plus size={14} /> Add
             </button>
           </div>
         </div>
 
         <div className="border border-slate-800 bg-[#0b1220] p-4">
-          <h2 className="mb-4 text-sm font-black text-white">Add New Attribute Value</h2>
+          <h2 className="mb-3 text-[12px] font-black text-white">Add New Attribute Value</h2>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_auto]">
             <select
               value={newValue.attribute_id}
               onChange={(e) => setNewValue((prev) => ({ ...prev, attribute_id: e.target.value }))}
-              className="border border-slate-700 bg-[#0a101d] px-4 py-3 text-sm text-slate-100 outline-none focus:border-yellow-500"
+              className="h-9 border border-slate-700 bg-[#0a101d] px-3 text-[12px] text-slate-100 outline-none focus:border-yellow-500"
             >
               <option value="">Select attribute</option>
               {attributes.map((item) => (
@@ -219,14 +219,14 @@ export default function ProductAttributesPanel({ productId, variantId = null }) 
               value={newValue.value}
               onChange={(e) => setNewValue((prev) => ({ ...prev, value: e.target.value }))}
               placeholder="Example: 10W"
-              className="border border-slate-700 bg-[#0a101d] px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-yellow-500"
+              className="h-9 border border-slate-700 bg-[#0a101d] px-3 text-[12px] text-slate-100 outline-none placeholder:text-slate-600 focus:border-yellow-500"
             />
             <button
               type="button"
               onClick={addNewAttributeValue}
-              className="inline-flex cursor-pointer items-center gap-2 bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-400"
+              className="inline-flex h-9 cursor-pointer items-center gap-1.5 bg-orange-500 px-3 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
-              <Plus size={16} /> Add
+              <Plus size={14} /> Add
             </button>
           </div>
         </div>
@@ -234,7 +234,7 @@ export default function ProductAttributesPanel({ productId, variantId = null }) 
 
       <div className="border border-slate-800 bg-[#0b1220] p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-black text-white">Assigned Attributes</h2>
+          <h2 className="text-[12px] font-black text-white">Assigned Attributes</h2>
           <button
             type="button"
             onClick={() => setRows((prev) => [...prev, { attribute_id: "", attribute_value_id: "", custom_value: "" }])}
@@ -307,9 +307,9 @@ export default function ProductAttributesPanel({ productId, variantId = null }) 
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className="inline-flex cursor-pointer items-center gap-2 bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 bg-orange-500 px-4 text-[12px] font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Save size={16} /> {saving ? "Saving..." : "Save Attributes"}
+            <Save size={14} /> {saving ? "Saving..." : "Save Attributes"}
           </button>
         </div>
       </div>

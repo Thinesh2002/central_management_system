@@ -308,7 +308,7 @@ export default function DarazTransferProductPage() {
                   <button
                     onClick={handleTransfer}
                     disabled={sending}
-                    className="inline-flex h-9 items-center gap-2 rounded-lg bg-yellow-500 px-4 text-sm font-semibold text-slate-950 hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-yellow-500 px-3 text-[12px] font-semibold text-slate-950 hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                     Transfer to Daraz

@@ -325,9 +325,9 @@ export default function VariantViewPage() {
                   type="button"
                   onClick={copySku}
                   title="Copy SKU"
-                  className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-slate-200"
+                  className="mt-2 inline-flex cursor-pointer items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-slate-200"
                 >
-                  <Package size={14} />
+                  <Package size={13} />
                   SKU: {variantSku || "-"}
                   {skuCopied ? (
                     <Check size={13} className="text-emerald-400" />

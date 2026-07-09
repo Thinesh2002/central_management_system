@@ -93,7 +93,7 @@ export default function ExportCsvModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-800 bg-[#07101f] px-4 py-3">
-          <h2 className="text-sm font-black text-white">{title}</h2>
+          <h2 className="text-[12px] font-black text-white">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -244,16 +244,16 @@ export default function ExportCsvModal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 cursor-pointer items-center border border-slate-700 bg-[#0b1220] px-4 text-sm font-bold text-slate-300 hover:border-slate-500 hover:text-white"
+            className="inline-flex h-8 cursor-pointer items-center border border-slate-700 bg-[#0b1220] px-3 text-[12px] font-semibold text-slate-300 hover:border-slate-500 hover:text-white"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleExport}
-            className={`inline-flex h-10 cursor-pointer items-center gap-2 px-4 text-sm font-bold transition ${buttonClass}`}
+            className={`inline-flex h-8 cursor-pointer items-center gap-1.5 px-3 text-[12px] font-semibold transition ${buttonClass}`}
           >
-            <Download size={15} />
+            <Download size={13} />
             Export CSV
           </button>
         </div>

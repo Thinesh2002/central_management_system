@@ -629,7 +629,7 @@ export default function EditMarketplaceAccountPage() {
                 type="button"
                 onClick={handleTestWooConnection}
                 disabled={testingWoo || saving}
-                className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mb-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 text-[12px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {testingWoo ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -643,7 +643,7 @@ export default function EditMarketplaceAccountPage() {
             <button
               type="submit"
               disabled={saving || testingWoo}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
                 <Loader2 size={16} className="animate-spin" />

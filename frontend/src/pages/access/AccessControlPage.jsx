@@ -288,7 +288,7 @@ export default function AccessControlPage() {
             <button
               type="button"
               onClick={loadAll}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
             >
               <RefreshCcw size={16} />
               Refresh
@@ -297,7 +297,7 @@ export default function AccessControlPage() {
             <button
               type="button"
               onClick={() => setOpenPageModal(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-blue-700 px-3 text-[12px] font-semibold text-white hover:bg-blue-600"
             >
               <Plus size={16} />
               Add Page
@@ -395,7 +395,7 @@ export default function AccessControlPage() {
               type="button"
               onClick={savePermissions}
               disabled={saving || loading || locked || !selectedUserId}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md bg-blue-700 px-3 text-[12px] font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={16} />
               {saving ? "Saving..." : "Save Access"}
@@ -584,7 +584,7 @@ export default function AccessControlPage() {
                 <button
                   type="button"
                   onClick={() => setOpenPageModal(false)}
-                  className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700"
+                  className="h-8 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
                 >
                   Cancel
                 </button>
@@ -592,7 +592,7 @@ export default function AccessControlPage() {
                 <button
                   type="submit"
                   disabled={creatingPage}
-                  className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-8 rounded-md bg-blue-700 px-3 text-[12px] font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {creatingPage ? "Creating..." : "Create Page"}
                 </button>

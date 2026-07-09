@@ -145,7 +145,7 @@ export default function CategoryCreatePage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-slate-200 disabled:opacity-60"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-[12px] font-semibold text-slate-950 hover:bg-slate-200 disabled:opacity-60"
           >
             <Save size={18} />
             {saving ? "Saving..." : "Save Category"}

@@ -381,12 +381,12 @@ export default function VariantPriceInventoryPage() {
           <button
             disabled={saving || loading}
             type="submit"
-            className="inline-flex cursor-pointer items-center gap-2 bg-orange-500 px-5 py-2.5 text-sm font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 bg-orange-500 px-4 text-[12px] font-semibold text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
-              <RefreshCw size={16} className="animate-spin" />
+              <RefreshCw size={14} className="animate-spin" />
             ) : (
-              <Save size={16} />
+              <Save size={14} />
             )}
             {saving ? "Saving..." : "Save Price & Inventory"}
           </button>

@@ -138,18 +138,18 @@ export default function UsersPage() {
           <div className="flex flex-wrap gap-2">
             <Link
               to="/access-control"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
             >
-              <KeyRound size={16} />
+              <KeyRound size={14} />
               Access
             </Link>
 
             <button
               type="button"
               onClick={loadUsers}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-700"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
             >
-              <RefreshCcw size={16} />
+              <RefreshCcw size={14} />
               Refresh
             </button>
           </div>
@@ -283,7 +283,7 @@ export default function UsersPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 flex-1 rounded-md bg-blue-700 text-[12px] font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Saving..." : editingId ? "Update" : "Create"}
             </button>
@@ -292,7 +292,7 @@ export default function UsersPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-slate-700"
+                className="h-9 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
               >
                 Cancel
               </button>

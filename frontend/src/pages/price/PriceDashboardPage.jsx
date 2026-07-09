@@ -139,19 +139,19 @@ export default function PriceDashboardPage(){
 
     {modalOpen && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
-        <form onSubmit={submit} className="w-full max-w-5xl rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
-          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-            <h2 className="text-lg font-semibold text-white">{editing ? "Modify Price" : "Add Price"}</h2>
-            <button type="button" onClick={() => setModalOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white">
-              <X size={18} />
+        <form onSubmit={submit} className="w-full max-w-5xl rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+            <h2 className="text-[14px] font-semibold text-white">{editing ? "Modify Price" : "Add Price"}</h2>
+            <button type="button" onClick={() => setModalOpen(false)} className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
+              <X size={16} />
             </button>
           </div>
-          <div className="space-y-4 p-5">
-            <div className="rounded-2xl border border-slate-800 bg-[#070b16] p-4">
-              <p className="mb-2 text-xs font-semibold uppercase text-emerald-300">1. First SKU Search</p>
+          <div className="space-y-3 p-4">
+            <div className="rounded-md border border-slate-800 bg-[#070b16] p-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase text-emerald-300">1. First SKU Search</p>
               <div className="flex gap-2">
-                <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Enter product SKU or variant SKU" className="h-11 flex-1 rounded-xl border border-slate-700 bg-[#020617] px-3 text-sm font-semibold outline-none focus:border-emerald-400" />
-                <button type="button" onClick={searchProducts} className="rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-slate-950">{productLoading ? "Searching..." : "Search"}</button>
+                <input value={skuSearch} onChange={(e) => setSkuSearch(e.target.value)} placeholder="Enter product SKU or variant SKU" className="h-9 flex-1 rounded-md border border-slate-700 bg-[#020617] px-3 text-[12px] font-semibold outline-none focus:border-emerald-400" />
+                <button type="button" onClick={searchProducts} className="h-9 rounded-md bg-emerald-400 px-3 text-[12px] font-semibold text-slate-950">{productLoading ? "Searching..." : "Search"}</button>
               </div>
               {productMatches.length > 0 && (
                 <div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-slate-800">
@@ -189,29 +189,29 @@ export default function PriceDashboardPage(){
                 ["currency", "Currency", "text"],
               ].map(([n, l, t]) => (
                 <label key={n} className="space-y-1">
-                  <span className="text-xs font-semibold uppercase text-slate-500">{l}</span>
-                  <input type={t} value={form[n] ?? ""} onChange={(e) => setField(n, e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-400" />
+                  <span className="text-[10px] font-semibold uppercase text-slate-500">{l}</span>
+                  <input type={t} value={form[n] ?? ""} onChange={(e) => setField(n, e.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-semibold text-slate-100 outline-none focus:border-emerald-400" />
                 </label>
               ))}
               <label className="space-y-1">
-                <span className="text-xs font-semibold uppercase text-slate-500">Status</span>
-                <select value={form.status || "active"} onChange={(e) => setField("status", e.target.value)} className="h-10 w-full rounded-xl border border-slate-700 bg-[#070b16] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-emerald-400">
+                <span className="text-[10px] font-semibold uppercase text-slate-500">Status</span>
+                <select value={form.status || "active"} onChange={(e) => setField("status", e.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-semibold text-slate-100 outline-none focus:border-emerald-400">
                   <option value="active">active</option>
                   <option value="inactive">inactive</option>
                 </select>
               </label>
             </div>
           </div>
-          <div className="flex justify-between gap-2 border-t border-slate-800 px-5 py-4">
+          <div className="flex justify-between gap-2 border-t border-slate-800 px-4 py-3">
             {canViewCostPrice ? (
-              <button type="button" onClick={autoCalculate} className="rounded-xl border border-emerald-500/60 px-4 py-2 text-sm font-semibold text-emerald-300">Auto calculate Selling + Daraz</button>
+              <button type="button" onClick={autoCalculate} className="h-8 rounded-md border border-emerald-500/60 px-3 text-[12px] font-semibold text-emerald-300">Auto calculate Selling + Daraz</button>
             ) : (
               <span />
             )}
             <div className="flex gap-2">
-              <button type="button" onClick={() => setModalOpen(false)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300">Cancel</button>
-              <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-60">
-                <Save size={15} /> {saving ? "Saving..." : "Save Price"}
+              <button type="button" onClick={() => setModalOpen(false)} className="h-8 rounded-md border border-slate-700 px-3 text-[12px] font-semibold text-slate-300">Cancel</button>
+              <button disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-400 px-3 text-[12px] font-semibold text-slate-950 disabled:opacity-60">
+                <Save size={13} /> {saving ? "Saving..." : "Save Price"}
               </button>
             </div>
           </div>

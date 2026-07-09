@@ -164,7 +164,7 @@ export default function MarketplaceAccountDetailsPage() {
               type="button"
               onClick={handleCheckToken}
               disabled={checkingToken}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {checkingToken ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -177,7 +177,7 @@ export default function MarketplaceAccountDetailsPage() {
             <button
               type="button"
               onClick={loadAccount}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
             >
               <RefreshCw size={16} />
               Refresh
@@ -296,7 +296,7 @@ export default function MarketplaceAccountDetailsPage() {
               type="button"
               onClick={handleManualSync}
               disabled={syncing}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-yellow-400 px-3 text-[12px] font-semibold text-slate-900 shadow-sm hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {syncing ? (
                 <Loader2 size={16} className="animate-spin" />

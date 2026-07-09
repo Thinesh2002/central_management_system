@@ -367,7 +367,7 @@ function ExtraImagesPopup({
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer border border-slate-700 px-3 py-1.5 text-sm font-bold text-slate-300 hover:text-white"
+            className="cursor-pointer border border-slate-700 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:text-white"
           >
             Close
           </button>

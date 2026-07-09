@@ -90,9 +90,9 @@ export default function CustomerViewPage() {
       <button
         type="button"
         onClick={() => navigate("/order-management/customers")}
-        className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-orange-300"
+        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-orange-300"
       >
-        <ArrowLeft size={16} />
+        <ArrowLeft size={14} />
         Back to Customers
       </button>
 

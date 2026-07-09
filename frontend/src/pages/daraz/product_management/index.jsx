@@ -1575,7 +1575,7 @@ export default function DarazDashboardPage() {
                           type="button"
                           onClick={() => openProduct(row)}
                           title={row.listingId}
-                          className="mx-auto block max-w-full cursor-pointer truncate text-center text-[13px] font-medium text-yellow-300 underline underline-offset-2 hover:text-yellow-200"
+                          className="mx-auto block max-w-full cursor-pointer truncate text-center text-[12px] font-medium text-yellow-300 underline underline-offset-2 hover:text-yellow-200"
                         >
                           {row.listingId || "-"}
                         </button>
@@ -1715,7 +1715,7 @@ export default function DarazDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => openProduct(row)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-zinc-200 hover:bg-white/5 hover:text-[#D0E7E6]"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-[#D0E7E6]"
                               >
                                 <Eye size={13} />
                                 View
@@ -1724,7 +1724,7 @@ export default function DarazDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => openEdit(row)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-zinc-200 hover:bg-white/5 hover:text-[#D0E7E6]"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-[#D0E7E6]"
                               >
                                 <Pencil size={13} />
                                 Edit
@@ -1733,7 +1733,7 @@ export default function DarazDashboardPage() {
                               <button
                                 type="button"
                                 onClick={() => openDelete(row)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-white/5"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-red-400 hover:bg-white/5"
                               >
                                 <Trash2 size={13} />
                                 Delete

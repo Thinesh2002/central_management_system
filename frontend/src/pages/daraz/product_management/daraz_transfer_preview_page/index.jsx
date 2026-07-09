@@ -700,13 +700,13 @@ export default function DarazTransferPreviewPage() {
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab.key)}
-                    className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
+                    className={`flex h-9 shrink-0 items-center gap-1.5 border-b-2 px-3 text-[12px] font-semibold transition ${
                       isActive
                         ? "border-orange-400 text-white"
                         : "border-transparent text-slate-500 hover:text-slate-300"
                     }`}
                   >
-                    <Icon size={15} />
+                    <Icon size={13} />
                     {tab.label}
                   </button>
                 );
@@ -1012,7 +1012,7 @@ export default function DarazTransferPreviewPage() {
               <button
                 onClick={handleTransfer}
                 disabled={sending || !categoryId}
-                className="inline-flex h-9 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-slate-950 hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-orange-500 px-3 text-[12px] font-semibold text-slate-950 hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 Transfer to {accountIds.length} Daraz Account(s)

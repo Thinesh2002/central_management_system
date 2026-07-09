@@ -97,7 +97,7 @@ export default function VariantPageLayout({
               onClick={() =>
                 navigate(`/product/local-products/edit/${productId}/variants`)
               }
-              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 border border-slate-700 px-3 text-xs font-bold text-slate-300 hover:border-orange-400 hover:text-orange-300"
+              className="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 border border-slate-700 px-2.5 text-[11px] font-semibold text-slate-300 hover:border-orange-400 hover:text-orange-300"
             >
               Back to Variations
             </button>
@@ -117,7 +117,7 @@ export default function VariantPageLayout({
                       !disabled && navigate(tab.path(productId, variantId))
                     }
                     disabled={disabled}
-                    className={`h-12 cursor-pointer whitespace-nowrap border-b-2 px-1 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    className={`h-10 cursor-pointer whitespace-nowrap border-b-2 px-1 text-[12px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                       isActive
                         ? "border-white text-white"
                         : "border-transparent text-slate-500 hover:border-slate-500 hover:text-slate-200"

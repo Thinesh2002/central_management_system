@@ -248,7 +248,7 @@ function FieldRow({ label, children, required = false, locked = false }) {
     <div className="grid grid-cols-1 gap-2 border-b border-slate-800 py-3 lg:grid-cols-[260px_1fr_34px] lg:items-center">
       <div className="flex items-center justify-start gap-2 lg:justify-end">
         {required ? <span className="text-slate-300">*</span> : null}
-        <span className="text-sm font-bold text-slate-300">{label}</span>
+        <span className="text-[12px] font-semibold text-slate-300">{label}</span>
       </div>
 
       <div>{children}</div>
@@ -645,12 +645,12 @@ export default function LocalProductPriceInventoryPage() {
           <button
             disabled={saving || loading || !canEdit}
             type="submit"
-            className="inline-flex cursor-pointer items-center gap-2 bg-slate-200 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 bg-slate-200 px-4 text-[12px] font-semibold text-slate-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
-              <RefreshCw size={16} className="animate-spin" />
+              <RefreshCw size={14} className="animate-spin" />
             ) : (
-              <Save size={16} />
+              <Save size={14} />
             )}
             {saving ? "Saving..." : "Save Inventory"}
           </button>

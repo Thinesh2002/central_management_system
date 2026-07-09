@@ -287,7 +287,7 @@ export default function VariantBasicPage() {
                   onClick={() =>
                     setForm((prev) => ({ ...prev, variant_sku: generateSku() }))
                   }
-                  className="h-11 cursor-pointer border border-slate-700 bg-slate-800/60 px-4 text-sm font-bold text-slate-200 hover:bg-slate-800"
+                  className="h-11 cursor-pointer border border-slate-700 bg-slate-800/60 px-4 text-[12px] font-semibold text-slate-200 hover:bg-slate-800"
                 >
                   SKU
                 </button>
@@ -317,12 +317,12 @@ export default function VariantBasicPage() {
           <button
             disabled={saving || loading}
             type="submit"
-            className="inline-flex cursor-pointer items-center gap-2 bg-orange-500 px-5 py-2.5 text-sm font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 bg-orange-500 px-4 text-[12px] font-black text-white transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? (
-              <RefreshCw size={16} className="animate-spin" />
+              <RefreshCw size={14} className="animate-spin" />
             ) : (
-              <Save size={16} />
+              <Save size={14} />
             )}
             {saving ? "Saving..." : isCreate ? "Create Variant" : "Save Variant"}
           </button>

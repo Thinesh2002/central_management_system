@@ -420,7 +420,7 @@ export default function DarazCreateProductPage() {
 
           <div className="flex justify-end gap-2 border-t border-slate-800 pt-4">
             <Link to="/product/daraz-products" className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-4 text-sm font-medium text-slate-300 hover:border-slate-500">Cancel</Link>
-            <button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-2 rounded-lg bg-yellow-500 px-4 text-sm font-semibold text-slate-950 hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="submit" disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-yellow-500 px-3 text-[12px] font-semibold text-slate-950 hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60">
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               Create on Daraz
             </button>

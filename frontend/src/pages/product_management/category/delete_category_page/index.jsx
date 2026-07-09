@@ -124,7 +124,7 @@ export default function CategoryDeletePage() {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting || loading}
-                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-red-600 px-3 text-[12px] font-semibold text-white hover:bg-red-500 disabled:opacity-60"
               >
                 <Trash2 size={18} />
                 {deleting ? "Deleting..." : "Yes, Delete"}
