@@ -223,7 +223,13 @@ const runBulkAction = asyncHandler(async (req, res) => {
 
   const allFailed = results.length === 0;
 
-  return res.status(allFailed ? 502 : 200).json({
+  // Always 200 here — this is a legitimate response with a real body
+  // explaining exactly which order(s) failed and why (data.errors[].reason).
+  // Returning an HTTP error status (the previous code used 502) makes axios
+  // throw on the frontend, which skips the code that shows that per-order
+  // reason and leaves the user staring at a generic "Bad Gateway" instead of
+  // the actual cause.
+  return res.status(200).json({
     success: !allFailed,
     message: allFailed
       ? `"${action}" failed for all ${orderIds.length} order(s).`
