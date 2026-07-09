@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { ImageOff } from "lucide-react";
+import { Eye, ImageOff, Pencil, Printer, Trash2 } from "lucide-react";
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass, statusLabel } from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
@@ -32,6 +32,25 @@ function ProductThumb({ order, item, onPreview }) {
   );
 }
 
+function IconButton({ icon, title, onClick, tone = "default" }) {
+  const Icon = icon;
+  const toneClass =
+    tone === "danger"
+      ? "text-slate-400 hover:bg-red-950 hover:text-red-400"
+      : "text-slate-400 hover:bg-slate-800 hover:text-white";
+
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`flex h-6 w-6 items-center justify-center rounded transition ${toneClass}`}
+    >
+      <Icon size={12} />
+    </button>
+  );
+}
+
 function OrderRow({
   order,
   isSelected,
@@ -39,6 +58,8 @@ function OrderRow({
   onPreviewImage,
   onView,
   onPrintInvoice,
+  onEdit,
+  onDelete,
   onTrack,
   onChangeStatus,
   onDarazAction,
@@ -149,14 +170,26 @@ function OrderRow({
       </td>
 
       <td className="px-3 py-2 text-right align-top">
-        <RowActionsMenu
-          order={order}
-          onView={() => onView(order)}
-          onPrintInvoice={() => onPrintInvoice(order)}
-          onTrack={() => onTrack(order)}
-          onChangeStatus={(status) => onChangeStatus(order, status)}
-          onDarazAction={(action) => onDarazAction(order, action)}
-        />
+        <div className="flex items-center justify-end gap-0.5">
+          <IconButton icon={Eye} title="View" onClick={() => onView(order)} />
+          <IconButton icon={Printer} title="Print Invoice" onClick={() => onPrintInvoice(order)} />
+
+          {order.source === "local" && (
+            <>
+              <IconButton icon={Pencil} title="Edit" onClick={() => onEdit(order)} />
+              <IconButton icon={Trash2} title="Delete" tone="danger" onClick={() => onDelete(order)} />
+            </>
+          )}
+
+          <RowActionsMenu
+            order={order}
+            onView={() => onView(order)}
+            onPrintInvoice={() => onPrintInvoice(order)}
+            onTrack={() => onTrack(order)}
+            onChangeStatus={(status) => onChangeStatus(order, status)}
+            onDarazAction={(action) => onDarazAction(order, action)}
+          />
+        </div>
       </td>
     </tr>
   );

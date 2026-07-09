@@ -7,6 +7,7 @@ router.get("/", controller.listOrders);
 router.get("/filter-options", controller.filterOptions);
 router.post("/", controller.createManualOrder);
 router.get("/:source/:id", controller.getOrder);
+router.delete("/:source/:id", controller.deleteOrder);
 router.patch("/:source/:id/status", controller.updateStatus);
 router.post("/:source/:id/waybill", controller.createWaybill);
 router.get("/:source/:id/tracking", controller.getTracking);

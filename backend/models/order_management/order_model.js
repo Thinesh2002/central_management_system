@@ -316,6 +316,27 @@ async function updateStatus(source, id, { status, waybill_id, tracking_number } 
   return model.update(id, payload);
 }
 
+// Manual orders only — a Daraz/Woo order is a synced mirror of something
+// that exists on the real marketplace, so deleting it here would just cause
+// the next sync to silently recreate it (or worse, desync waybill/tracking
+// state). Only orders this app itself created should be deletable.
+async function deleteLocalOrder(id) {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await connection.query("DELETE FROM order_items WHERE order_id = ?", [id]);
+    const [result] = await connection.query("DELETE FROM orders WHERE id = ?", [id]);
+    await connection.commit();
+    return result.affectedRows > 0;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 async function getFilterOptions() {
   const [accountRows] = await db.query(
     `SELECT DISTINCT account_name FROM orders WHERE account_name IS NOT NULL AND account_name <> ''
@@ -480,6 +501,7 @@ module.exports = {
   listUnified,
   getUnified,
   updateStatus,
+  deleteLocalOrder,
   getFilterOptions,
   createManualOrder,
   isCountableStatus,

@@ -225,6 +225,28 @@ export default function OrdersPage() {
     [navigate]
   );
 
+  // Manual orders only — the detail page is where waybill/status/items get
+  // edited; there's no separate edit form.
+  const handleEdit = useCallback(
+    (order) => navigate(`/order-management/orders/${order.source}/${order.source_order_id}`),
+    [navigate]
+  );
+
+  const handleDelete = useCallback(async (order) => {
+    if (!window.confirm(`Delete order ${order.display_order_no || order.order_no}? This can't be undone.`)) {
+      return;
+    }
+
+    try {
+      await ordersApi.deleteOrder(order.source, order.source_order_id);
+      showToast("Order deleted.");
+      await load();
+    } catch (err) {
+      alert(getApiError(err, "Failed to delete order"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleChangeStatus = useCallback(
     async (order, nextStatus) => {
       try {
@@ -310,15 +332,13 @@ export default function OrdersPage() {
     <div className="space-y-3">
       <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-          <div className="flex flex-wrap items-stretch overflow-hidden rounded-md border border-slate-700 bg-[#111827]">
-            {STATUS_TABS.map((tab, index) => (
+          <div className="flex flex-wrap items-stretch rounded-md bg-[#111827]">
+            {STATUS_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatus(tab.key)}
                 className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-[12px] font-bold transition ${
-                  index > 0 ? "border-l border-slate-700" : ""
-                } ${
                   status === tab.key
                     ? "border-b-orange-500 bg-[#1b2a3a] text-orange-300"
                     : "border-b-transparent text-slate-400 hover:bg-[#1b2a3a] hover:text-slate-200"
@@ -479,14 +499,16 @@ export default function OrdersPage() {
                       className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
                     />
                   </th>
-                  {["Marketplace", "Order / Product / SKU", "Customer", "Total", "Status", ""].map((header) => (
-                    <th
-                      key={header}
-                      className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300"
-                    >
-                      {header}
-                    </th>
-                  ))}
+                  {["Marketplace", "Order / Product / SKU", "Customer", "Total", "Status", "Actions"].map(
+                    (header) => (
+                      <th
+                        key={header}
+                        className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300"
+                      >
+                        {header}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
 
@@ -508,6 +530,8 @@ export default function OrdersPage() {
                     onPreviewImage={setImagePreview}
                     onView={handleView}
                     onPrintInvoice={handlePrintInvoice}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
                     onTrack={handleTrack}
                     onChangeStatus={handleChangeStatus}
                     onDarazAction={handleDarazRowAction}

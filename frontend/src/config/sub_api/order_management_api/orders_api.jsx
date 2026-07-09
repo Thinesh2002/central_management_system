@@ -57,6 +57,11 @@ const ordersApi = {
     return response.data;
   },
 
+  async deleteOrder(source, id) {
+    const response = await api.delete(`${ORDERS_BASE_URL}/${source}/${id}`);
+    return response.data;
+  },
+
   async darazBulkAction(payload) {
     const response = await api.post(DARAZ_ACTIONS_URL, payload);
     return response.data;
