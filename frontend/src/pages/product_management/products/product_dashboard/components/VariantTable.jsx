@@ -1,5 +1,6 @@
 import { Edit, Eye, Trash2 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
+import { openPopup } from "../../../../../utils/openPopup";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -275,9 +276,7 @@ export default function VariantTable({
                     {variantSku ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          window.open(`/order-management/sku-report/${encodeURIComponent(variantSku)}`, "_blank")
-                        }
+                        onClick={() => openPopup(`/order-management/sku-report/${encodeURIComponent(variantSku)}`)}
                         className="block w-full cursor-pointer truncate text-left text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
                         title={`View SKU report for ${variantSku}`}
                       >
@@ -311,10 +310,7 @@ export default function VariantTable({
                       <button
                         type="button"
                         onClick={() =>
-                          window.open(
-                            `/product/local-products/edit/${productId}/variants/${variantId}/view`,
-                            "_blank"
-                          )
+                          openPopup(`/product/local-products/edit/${productId}/variants/${variantId}/view`)
                         }
                         className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-slate-700 text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
                         title="View variant"
@@ -326,10 +322,7 @@ export default function VariantTable({
                         <button
                           type="button"
                           onClick={() =>
-                            window.open(
-                              `/product/local-products/edit/${productId}/variants/${variantId}/edit/basic`,
-                              "_blank"
-                            )
+                            openPopup(`/product/local-products/edit/${productId}/variants/${variantId}/edit/basic`)
                           }
                           className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-sky-500/40 bg-sky-500/10 text-sky-300 transition hover:bg-sky-500/20 hover:text-sky-200"
                           title="Edit variant"

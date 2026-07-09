@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Download,
   Eye,
-  MoreVertical,
   Package,
   Pencil,
   Plus,
@@ -21,6 +20,7 @@ import { darazProductsApi } from "../../../config/sub_api/daraz_api/daraz_produc
 import skuMappingApi from "../../../config/sub_api/product_management_api/sku_mapping_api";
 import ExportCsvModal from "../../../components/common/export/ExportCsvModal";
 import { exportRowsAsCsv } from "../../../utils/csvExport";
+import { openPopup } from "../../../utils/openPopup";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -662,8 +662,6 @@ function normalizeProduct(product, accountMap) {
 }
 
 export default function DarazDashboardPage() {
-  const actionRef = useRef(null);
-
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState([]);
   const [products, setProducts] = useState([]);
@@ -681,7 +679,6 @@ export default function DarazDashboardPage() {
   const [pageSize, setPageSize] = useState(50);
 
   const [selectedRows, setSelectedRows] = useState([]);
-  const [openActionKey, setOpenActionKey] = useState(null);
 
   const [accountFilterOpen, setAccountFilterOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -815,20 +812,6 @@ export default function DarazDashboardPage() {
     const exists = statusTabs.some((tab) => tab.key === activeTab);
     if (!exists) setActiveTab("all");
   }, [statusTabs, activeTab]);
-
-  useEffect(() => {
-    function closeActionMenu(event) {
-      if (actionRef.current && !actionRef.current.contains(event.target)) {
-        setOpenActionKey(null);
-      }
-    }
-
-    document.addEventListener("mousedown", closeActionMenu);
-
-    return () => {
-      document.removeEventListener("mousedown", closeActionMenu);
-    };
-  }, []);
 
   useEffect(() => {
     loadInitial();
@@ -998,7 +981,6 @@ export default function DarazDashboardPage() {
     setActiveTab("all");
     setSelectedAccountIds(accounts.map((account) => String(getAccountId(account))));
     setPage(1);
-    setOpenActionKey(null);
   }
 
   function toggleAccountFilter(accountId) {
@@ -1037,15 +1019,13 @@ export default function DarazDashboardPage() {
   }
 
   function openProduct(row) {
-    setOpenActionKey(null);
-
     if (row.id) {
-      window.open(`/product/daraz-products/view/${row.id}`, "_blank");
+      openPopup(`/product/daraz-products/view/${row.id}`);
       return;
     }
 
     if (row.accountId && row.listingId) {
-      window.open(`/product/daraz-products/item/${row.accountId}/${row.listingId}`, "_blank");
+      openPopup(`/product/daraz-products/item/${row.accountId}/${row.listingId}`);
       return;
     }
 
@@ -1054,19 +1034,17 @@ export default function DarazDashboardPage() {
 
   function openEdit(row) {
     const id = row.id || row.listingId;
-    setOpenActionKey(null);
 
     if (!id) {
       setError("Product ID missing.");
       return;
     }
 
-    window.open(`/product/daraz-products/edit/${id}`, "_blank");
+    openPopup(`/product/daraz-products/edit/${id}`);
   }
 
   async function openDelete(row) {
     const id = row.id || row.listingId;
-    setOpenActionKey(null);
 
     if (!id) {
       setError("Product ID missing.");
@@ -1140,7 +1118,6 @@ export default function DarazDashboardPage() {
 
   function goToPage(nextPage) {
     setPage(Math.min(Math.max(Number(nextPage), 1), totalPages));
-    setOpenActionKey(null);
   }
 
   function openSyncPopup() {
@@ -1257,7 +1234,7 @@ export default function DarazDashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => window.open("/product/daraz-products/create", "_blank")}
+                onClick={() => openPopup("/product/daraz-products/create")}
                 className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
               >
                 <Plus size={13} />
@@ -1266,7 +1243,7 @@ export default function DarazDashboardPage() {
 
               <button
                 type="button"
-                onClick={() => window.open("/product/daraz-products/transfer", "_blank")}
+                onClick={() => openPopup("/product/daraz-products/transfer")}
                 className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
               >
                 <Send size={13} />
@@ -1534,7 +1511,6 @@ export default function DarazDashboardPage() {
                 pageRows.map((row, index) => {
                   const key = String(row.id || row.listingId || row.sku || index);
                   const selected = selectedRows.includes(key);
-                  const actionOpen = openActionKey === key;
 
                   return (
                     <tr key={key} className="border-b border-zinc-800/60 hover:bg-white/[0.04]">
@@ -1600,9 +1576,7 @@ export default function DarazDashboardPage() {
                         {row.sku ? (
                           <button
                             type="button"
-                            onClick={() =>
-                              window.open(`/order-management/sku-report/${encodeURIComponent(row.sku)}`, "_blank")
-                            }
+                            onClick={() => openPopup(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)}
                             className="block w-full cursor-pointer truncate text-orange-300 underline decoration-dotted hover:text-orange-200"
                             title={`View SKU report for ${row.sku}`}
                           >
@@ -1695,49 +1669,34 @@ export default function DarazDashboardPage() {
                       </td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">{row.price}</td>
 
-                      <td className="relative px-2 py-2 text-center align-middle">
-                        <div ref={actionOpen ? actionRef : null} className="relative inline-block">
+                      <td className="px-2 py-2 text-center align-middle">
+                        <div className="flex items-center justify-center gap-0.5">
                           <button
                             type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setOpenActionKey(actionOpen ? null : key);
-                            }}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-zinc-500 hover:bg-white/5 hover:text-[#D0E7E6]"
+                            onClick={() => openProduct(row)}
+                            title="View"
+                            className="flex h-6 w-6 items-center justify-center rounded-sm text-zinc-400 hover:bg-white/5 hover:text-[#D0E7E6]"
                           >
-                            <MoreVertical size={16} />
+                            <Eye size={13} />
                           </button>
 
-                          {actionOpen ? (
-                            <div className="absolute right-0 top-8 z-30 w-32 rounded-sm border border-zinc-800/60 bg-[#050817] py-1 text-left shadow-xl">
-                              <button
-                                type="button"
-                                onClick={() => openProduct(row)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-[#D0E7E6]"
-                              >
-                                <Eye size={13} />
-                                View
-                              </button>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(row)}
+                            title="Edit"
+                            className="flex h-6 w-6 items-center justify-center rounded-sm text-zinc-400 hover:bg-white/5 hover:text-[#D0E7E6]"
+                          >
+                            <Pencil size={13} />
+                          </button>
 
-                              <button
-                                type="button"
-                                onClick={() => openEdit(row)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-[#D0E7E6]"
-                              >
-                                <Pencil size={13} />
-                                Edit
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => openDelete(row)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-red-400 hover:bg-white/5"
-                              >
-                                <Trash2 size={13} />
-                                Delete
-                              </button>
-                            </div>
-                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => openDelete(row)}
+                            title="Delete"
+                            className="flex h-6 w-6 items-center justify-center rounded-sm text-zinc-400 hover:bg-red-500/10 hover:text-red-400"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </td>
                     </tr>

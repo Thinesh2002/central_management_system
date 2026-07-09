@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
+import { openPopup } from "../../../../../utils/openPopup";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -97,15 +98,15 @@ export default function ProductRow({
   const price = getPriceText(product);
 
   function handleViewProduct() {
-    window.open(`/product/view/${productId}`, "_blank");
+    openPopup(`/product/view/${productId}`);
   }
 
   function handleEditProduct() {
-    window.open(`/product/local-products/edit/${productId}/basic`, "_blank");
+    openPopup(`/product/local-products/edit/${productId}/basic`);
   }
 
   function handleAddVariant() {
-    window.open(`/product/local-products/edit/${productId}/variants/create`, "_blank");
+    openPopup(`/product/local-products/edit/${productId}/variants/create`);
   }
 
   function handleRemoveProduct() {
@@ -192,9 +193,7 @@ export default function ProductRow({
             {sku && sku !== "-" ? (
               <button
                 type="button"
-                onClick={() =>
-                  window.open(`/order-management/sku-report/${encodeURIComponent(sku)}`, "_blank")
-                }
+                onClick={() => openPopup(`/order-management/sku-report/${encodeURIComponent(sku)}`)}
                 className="cursor-pointer truncate text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
                 title={`View SKU report for ${sku}`}
               >
@@ -224,82 +223,76 @@ export default function ProductRow({
 
         {/* Actions */}
         <td className="px-3 py-3 align-middle">
-          <div className="relative flex items-center justify-center" ref={actionOpen ? actionRef : null}>
+          <div className="flex items-center justify-center gap-0.5">
             <button
               type="button"
-              onClick={() => setActionOpen((prev) => !prev)}
-              className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
-              title="Actions"
+              onClick={handleViewProduct}
+              title="View"
+              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
             >
-              <MoreVertical size={14} />
+              <Eye size={13} />
             </button>
 
-            {actionOpen ? (
-              <div className="absolute right-0 top-7 z-30 w-40 rounded-sm border border-zinc-800/60 bg-[#0b1220] py-1 text-left shadow-xl">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={handleEditProduct}
+                title="Edit"
+                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
+              >
+                <Edit size={13} />
+              </button>
+            )}
+
+            {canDelete && (
+              <button
+                type="button"
+                onClick={handleRemoveProduct}
+                title="Delete"
+                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
+
+            {canEdit && (
+              <div className="relative" ref={actionOpen ? actionRef : null}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setActionOpen(false);
-                    handleViewProduct();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                  onClick={() => setActionOpen((prev) => !prev)}
+                  className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
+                  title="More actions"
                 >
-                  <Eye size={13} /> View
+                  <MoreVertical size={14} />
                 </button>
 
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionOpen(false);
-                      handleEditProduct();
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
-                  >
-                    <Edit size={13} /> Edit
-                  </button>
-                )}
+                {actionOpen ? (
+                  <div className="absolute right-0 top-7 z-30 w-44 rounded-sm border border-zinc-800/60 bg-[#0b1220] py-1 text-left shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionOpen(false);
+                        handleAddVariant();
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                    >
+                      <PackagePlus size={13} /> Add Variant
+                    </button>
 
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionOpen(false);
-                      handleAddVariant();
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
-                  >
-                    <PackagePlus size={13} /> Add Variant
-                  </button>
-                )}
-
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionOpen(false);
-                      setTransferOpen(true);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
-                  >
-                    <Send size={13} /> Transfer to Daraz
-                  </button>
-                )}
-
-                {canDelete && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionOpen(false);
-                      handleRemoveProduct();
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-red-300 hover:bg-red-500/10 hover:text-red-200"
-                  >
-                    <Trash2 size={13} /> Delete
-                  </button>
-                )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionOpen(false);
+                        setTransferOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
+                    >
+                      <Send size={13} /> Transfer to Daraz
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
+            )}
           </div>
         </td>
       </tr>

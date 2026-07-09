@@ -36,6 +36,7 @@ import {
   openDarazDocument,
   writePrintWindowMessage,
 } from "./utils/darazDocument";
+import { openPopup } from "../../../utils/openPopup";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -211,21 +212,21 @@ export default function OrdersPage() {
   }
 
   const handleView = useCallback((order) => {
-    window.open(`/order-management/orders/${order.source}/${order.source_order_id}`, "_blank");
+    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}`);
   }, []);
 
   const handlePrintInvoice = useCallback((order) => {
-    window.open(`/order-management/orders/${order.source}/${order.source_order_id}?print=1`, "_blank");
+    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}?print=1`);
   }, []);
 
   const handleTrack = useCallback((order) => {
-    window.open(`/order-management/orders/${order.source}/${order.source_order_id}`, "_blank");
+    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}`);
   }, []);
 
   // Manual orders only — the detail page is where waybill/status/items get
   // edited; there's no separate edit form.
   const handleEdit = useCallback((order) => {
-    window.open(`/order-management/orders/${order.source}/${order.source_order_id}`, "_blank");
+    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}`);
   }, []);
 
   const handleDelete = useCallback(async (order) => {
@@ -389,7 +390,7 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              onClick={() => window.open("/order-management/orders/create", "_blank")}
+              onClick={() => openPopup("/order-management/orders/create")}
               className="flex h-8 items-center gap-1.5 rounded-full bg-orange-500 px-3.5 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
               <Plus size={13} />

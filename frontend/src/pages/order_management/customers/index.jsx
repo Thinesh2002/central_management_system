@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Search, AlertCircle, RefreshCw, Users } from "lucide-react";
 
 import customersApi from "../../../config/sub_api/order_management_api/customers_api";
+import { openPopup } from "../../../utils/openPopup";
 
 function getApiMessage(error, fallback = "Something went wrong") {
   return error?.response?.data?.message || error?.message || fallback;
@@ -160,7 +161,7 @@ export default function CustomersPage() {
                 {filteredCustomers.map((row, index) => (
                   <tr
                     key={row.id}
-                    onClick={() => window.open(`/order-management/customers/${row.id}`, "_blank")}
+                    onClick={() => openPopup(`/order-management/customers/${row.id}`)}
                     className="cursor-pointer bg-slate-950 hover:bg-slate-900"
                   >
                     <td className="px-3 py-2 text-[13px] text-slate-500">{index + 1}</td>

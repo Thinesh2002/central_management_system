@@ -3,6 +3,7 @@ import { Eye, ImageOff, Pencil, Printer, Trash2 } from "lucide-react";
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass, statusLabel } from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
+import { openPopup } from "../../../../utils/openPopup";
 
 function ProductThumb({ order, item, onPreview }) {
   const url = resolveImageUrl(item?.image_url || order.thumbnail_url || "");
@@ -109,7 +110,7 @@ function OrderRow({
                   disabled={!item.sku}
                   onClick={() =>
                     item.sku &&
-                    window.open(`/order-management/sku-report/${encodeURIComponent(item.sku)}`, "_blank")
+                    openPopup(`/order-management/sku-report/${encodeURIComponent(item.sku)}`)
                   }
                   title={item.sku ? "Open SKU Economics Report" : ""}
                   className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-mono text-slate-300 hover:bg-slate-700 hover:text-orange-300 disabled:cursor-default disabled:hover:bg-slate-800 disabled:hover:text-slate-300"

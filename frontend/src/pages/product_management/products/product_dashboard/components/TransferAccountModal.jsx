@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Send, X } from "lucide-react";
 import { marketplaceApi } from "../../../../../config/sub_api/marketplace_management_api/marketplace_api";
+import { openPopup } from "../../../../../utils/openPopup";
 
 function getAccountId(account = {}) {
   return account.id || account.account_id;
@@ -61,7 +62,7 @@ export default function TransferAccountModal({ product, onClose }) {
       .map(encodeURIComponent)
       .join(",")}`;
 
-    window.open(url, "_blank", "noopener,noreferrer");
+    openPopup(url);
     onClose();
   }
 

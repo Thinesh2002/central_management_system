@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
+import { openPopup } from "../../../utils/openPopup";
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -422,15 +423,14 @@ export default function MarketplaceAccountsPage() {
             Refresh
           </button>
 
-          <a
-            href="/marketplace/accounts/add"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => openPopup("/marketplace/accounts/add")}
             className="inline-flex h-8 items-center gap-1.5 rounded-md bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300"
           >
             <Plus size={13} />
             Add Account
-          </a>
+          </button>
         </div>
       </div>
 
@@ -511,15 +511,14 @@ export default function MarketplaceAccountsPage() {
               and confirm the response key is data/accounts/rows.
             </p>
 
-            <a
-              href="/marketplace/accounts/add"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => openPopup("/marketplace/accounts/add")}
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-yellow-300"
             >
               <Plus size={16} />
               Add Account
-            </a>
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -617,38 +616,36 @@ export default function MarketplaceAccountsPage() {
                             </button>
                           )}
 
-                          <a
-                            href={`/marketplace/accounts/${accountId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
+                          <button
+                            type="button"
+                            onClick={() => openPopup(`/marketplace/accounts/${accountId}`)}
+                            title="View"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                           >
                             <Eye size={14} />
-                            View
-                          </a>
+                          </button>
 
-                          <a
-                            href={`/marketplace/accounts/${accountId}/edit`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
+                          <button
+                            type="button"
+                            onClick={() => openPopup(`/marketplace/accounts/${accountId}/edit`)}
+                            title="Edit"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                           >
                             <Pencil size={14} />
-                            Edit
-                          </a>
+                          </button>
 
                           <button
                             type="button"
                             onClick={() => handleDeleteAccount(account)}
                             disabled={deletingAccountId === accountId}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-red-400/30 bg-red-400/10 px-3 py-2 text-xs font-medium text-red-300 transition hover:border-red-400/60 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            title="Delete"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-red-400/30 bg-red-400/10 text-red-300 transition hover:border-red-400/60 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {deletingAccountId === accountId ? (
                               <Loader2 size={14} className="animate-spin" />
                             ) : (
                               <Trash2 size={14} />
                             )}
-                            Delete
                           </button>
                         </div>
                       </td>
