@@ -2,12 +2,20 @@
 -- 15_message_templates_patch.sql
 -- Customer message templates (order confirmation, shipped, delivered,
 -- custom, etc.) used to send Daraz Instant Messages to buyers from the
--- Order Detail page. message_logs records what was actually sent, to
--- which order, and whether Daraz accepted it.
+-- Order Detail page.
+--
+-- message_templates lives in its own new database, cm_message_management.
+-- message_logs (what was actually sent, to which order, success/failure)
+-- goes into the existing cm_logs_management database alongside the app's
+-- other audit-trail tables.
+--
 -- Run this after 01 to 14 database setup files.
 -- =====================================================================
 
-USE cm_order_management;
+CREATE DATABASE IF NOT EXISTS cm_message_management
+  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE cm_message_management;
 
 CREATE TABLE IF NOT EXISTS message_templates (
   id            BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -22,6 +30,12 @@ CREATE TABLE IF NOT EXISTS message_templates (
 
   KEY idx_message_templates_trigger_key (trigger_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- message_logs (sent-message audit trail) — cm_logs_management, next to
+-- this app's other *_logs tables rather than a new database of its own.
+-- ---------------------------------------------------------------------
+USE cm_logs_management;
 
 CREATE TABLE IF NOT EXISTS message_logs (
   id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

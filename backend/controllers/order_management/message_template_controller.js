@@ -6,8 +6,8 @@ function getUserId(req) {
 }
 
 const listTemplates = asyncHandler(async (req, res) => {
-  const templates = await messageTemplateModel.list({ limit: 500 });
-  return res.json({ success: true, message: "Templates loaded", data: templates.data });
+  const templates = await messageTemplateModel.list();
+  return res.json({ success: true, message: "Templates loaded", data: templates });
 });
 
 const createTemplate = asyncHandler(async (req, res) => {
