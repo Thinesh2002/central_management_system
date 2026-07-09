@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { getStoredUser } from "../config/auth";
+import api from "../config/api";
+import { getStoredUser, logout } from "../config/auth";
 import { useAccessMenu } from "../hooks/useAccessMenu";
 import { canAccessPage } from "../utils/accessMenu";
+import GlobalProductSearch from "./GlobalProductSearch";
 import {
   LayoutDashboard,
   Users,
   ScrollText,
   X,
+  LogOut,
   ShieldCheck,
   BarChart3,
   FilePlus2,
@@ -230,11 +233,21 @@ export default function Sidebar({ open, onClose }) {
 
   const groupedMenu = useMemo(() => groupMenu(visibleMenu), [visibleMenu]);
 
+  async function handleLogout() {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Ignore — clear local session below regardless of server response.
+    } finally {
+      logout();
+    }
+  }
+
   return (
     <>
       {/* Mobile overlay */}
       <div
-        className={`fixed bottom-0 left-0 right-0 top-16 z-30 bg-black/60 transition lg:hidden ${
+        className={`fixed inset-0 z-30 bg-black/60 transition lg:hidden ${
           open ? "block" : "hidden"
         }`}
         onClick={onClose}
@@ -242,24 +255,33 @@ export default function Sidebar({ open, onClose }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-16 z-40 flex h-[calc(100vh-4rem)] w-58 flex-col overflow-hidden border-r border-[#1d2940] bg-[#0f172a] text-slate-100 shadow-2xl shadow-black/40 transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-40 flex h-screen w-58 flex-col overflow-hidden border-r border-[#1d2940] bg-[#0f172a] text-slate-100 shadow-2xl shadow-black/40 transition-transform duration-300 lg:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Mobile close button */}
-        <div className="flex h-12 shrink-0 items-center justify-end border-b border-[#1d2940] px-4 lg:hidden">
+        {/* Logo + mobile close button */}
+        <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[#1d2940] px-3">
+          <NavLink to="/dashboard" onClick={onClose} className="truncate text-sm font-bold text-white">
+            Central Management
+          </NavLink>
+
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-md p-2 text-slate-400 transition hover:bg-[#16233a] hover:text-white"
+            className="cursor-pointer rounded-md p-2 text-slate-400 transition hover:bg-[#16233a] hover:text-white lg:hidden"
             aria-label="Close sidebar"
           >
             <X size={18} />
           </button>
         </div>
 
+        {/* Global search */}
+        <div className="shrink-0 border-b border-[#1d2940] px-3 py-2.5">
+          <GlobalProductSearch />
+        </div>
+
         {/* Navigation */}
-        <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden pb-20">
+        <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden">
           {Object.entries(groupedMenu).map(([sectionName, items]) => (
             <div key={sectionName} className="border-b border-[#1d2940] py-3">
               <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFD400]">
@@ -307,6 +329,21 @@ export default function Sidebar({ open, onClose }) {
             </div>
           ))}
         </nav>
+
+        {/* User + logout */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-[#1d2940] px-3 py-2.5">
+          <p className="min-w-0 truncate text-[12px] font-semibold text-slate-300">{user?.name || "User"}</p>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Logout"
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-[#1d2940] text-slate-400 transition hover:bg-red-950 hover:text-red-300"
+            aria-label="Logout"
+          >
+            <LogOut size={15} />
+          </button>
+        </div>
       </aside>
     </>
   );

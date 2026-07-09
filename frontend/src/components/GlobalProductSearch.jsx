@@ -248,7 +248,7 @@ export default function GlobalProductSearch() {
   }
 
   return (
-    <div ref={wrapperRef} className="relative hidden min-w-[260px] max-w-xl flex-1 md:block">
+    <div ref={wrapperRef} className="relative w-full">
       <div className="flex h-10 items-center overflow-hidden rounded-xl border border-slate-700 bg-[#0b1220] shadow-inner shadow-black/20 focus-within:border-orange-400">
         <div className="flex h-full w-10 items-center justify-center text-slate-500">
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
