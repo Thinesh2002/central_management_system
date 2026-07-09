@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
-import { openPopup } from "../../../../utils/openPopup";
+import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
 import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
 import FilterModal from "./components/FilterModal";
 import ImagePreviewModal from "./components/ImagePreviewModal";
@@ -493,6 +493,7 @@ function sortLatestProductsFirst(list = []) {
 
 export default function LocalProductsDashboard() {
   const showToast = useToast();
+  const { openOverlay } = usePageOverlay();
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -738,7 +739,7 @@ export default function LocalProductsDashboard() {
       return;
     }
 
-    openPopup(`/product/local-products/edit/${productId}/${section}`);
+    openOverlay(`/product/local-products/edit/${productId}/${section}`);
   }
 
   function openFilterModal() {
@@ -772,7 +773,7 @@ export default function LocalProductsDashboard() {
           onOpenFilter={openFilterModal}
           onClear={clearAllFilters}
           onOpenExport={() => setExportOpen(true)}
-          onAddProduct={() => openPopup("/product/local-products/create")}
+          onAddProduct={() => openOverlay("/product/local-products/create")}
         />
 
         {selectedKeys.length > 0 && (

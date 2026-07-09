@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { ToastProvider } from "./components/common/toast/ToastProvider.jsx";
 import { PermissionsProvider } from "./components/common/permissions/PermissionsProvider.jsx";
+import { PageOverlayProvider } from "./components/common/page_overlay/PageOverlayProvider.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
@@ -11,7 +12,9 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ToastProvider>
         <PermissionsProvider>
-          <App />
+          <PageOverlayProvider>
+            <App />
+          </PageOverlayProvider>
         </PermissionsProvider>
       </ToastProvider>
     </BrowserRouter>

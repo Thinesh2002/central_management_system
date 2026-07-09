@@ -20,7 +20,7 @@ import { darazProductsApi } from "../../../config/sub_api/daraz_api/daraz_produc
 import skuMappingApi from "../../../config/sub_api/product_management_api/sku_mapping_api";
 import ExportCsvModal from "../../../components/common/export/ExportCsvModal";
 import { exportRowsAsCsv } from "../../../utils/csvExport";
-import { openPopup } from "../../../utils/openPopup";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -662,6 +662,7 @@ function normalizeProduct(product, accountMap) {
 }
 
 export default function DarazDashboardPage() {
+  const { openOverlay } = usePageOverlay();
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState([]);
   const [products, setProducts] = useState([]);
@@ -1020,12 +1021,12 @@ export default function DarazDashboardPage() {
 
   function openProduct(row) {
     if (row.id) {
-      openPopup(`/product/daraz-products/view/${row.id}`);
+      openOverlay(`/product/daraz-products/view/${row.id}`);
       return;
     }
 
     if (row.accountId && row.listingId) {
-      openPopup(`/product/daraz-products/item/${row.accountId}/${row.listingId}`);
+      openOverlay(`/product/daraz-products/item/${row.accountId}/${row.listingId}`);
       return;
     }
 
@@ -1040,7 +1041,7 @@ export default function DarazDashboardPage() {
       return;
     }
 
-    openPopup(`/product/daraz-products/edit/${id}`);
+    openOverlay(`/product/daraz-products/edit/${id}`);
   }
 
   async function openDelete(row) {
@@ -1234,7 +1235,7 @@ export default function DarazDashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => openPopup("/product/daraz-products/create")}
+                onClick={() => openOverlay("/product/daraz-products/create")}
                 className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
               >
                 <Plus size={13} />
@@ -1243,7 +1244,7 @@ export default function DarazDashboardPage() {
 
               <button
                 type="button"
-                onClick={() => openPopup("/product/daraz-products/transfer")}
+                onClick={() => openOverlay("/product/daraz-products/transfer")}
                 className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
               >
                 <Send size={13} />
@@ -1576,7 +1577,7 @@ export default function DarazDashboardPage() {
                         {row.sku ? (
                           <button
                             type="button"
-                            onClick={() => openPopup(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)}
+                            onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)}
                             className="block w-full cursor-pointer truncate text-orange-300 underline decoration-dotted hover:text-orange-200"
                             title={`View SKU report for ${row.sku}`}
                           >

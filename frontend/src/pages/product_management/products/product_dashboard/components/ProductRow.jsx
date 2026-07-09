@@ -11,7 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
-import { openPopup } from "../../../../../utils/openPopup";
+import { usePageOverlay } from "../../../../../components/common/page_overlay/PageOverlayProvider";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -67,6 +67,7 @@ export default function ProductRow({
   setImagePreview,
 }) {
   const { canEdit, canDelete } = usePagePermission("local_products");
+  const { openOverlay } = usePageOverlay();
   const [actionOpen, setActionOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const actionRef = useRef(null);
@@ -98,15 +99,15 @@ export default function ProductRow({
   const price = getPriceText(product);
 
   function handleViewProduct() {
-    openPopup(`/product/view/${productId}`);
+    openOverlay(`/product/view/${productId}`);
   }
 
   function handleEditProduct() {
-    openPopup(`/product/local-products/edit/${productId}/basic`);
+    openOverlay(`/product/local-products/edit/${productId}/basic`);
   }
 
   function handleAddVariant() {
-    openPopup(`/product/local-products/edit/${productId}/variants/create`);
+    openOverlay(`/product/local-products/edit/${productId}/variants/create`);
   }
 
   function handleRemoveProduct() {
@@ -193,7 +194,7 @@ export default function ProductRow({
             {sku && sku !== "-" ? (
               <button
                 type="button"
-                onClick={() => openPopup(`/order-management/sku-report/${encodeURIComponent(sku)}`)}
+                onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(sku)}`)}
                 className="cursor-pointer truncate text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
                 title={`View SKU report for ${sku}`}
               >

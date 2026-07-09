@@ -36,7 +36,7 @@ import {
   openDarazDocument,
   writePrintWindowMessage,
 } from "./utils/darazDocument";
-import { openPopup } from "../../../utils/openPopup";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -126,6 +126,7 @@ const STATUS_KEYS = new Set(STATUS_TABS.map((tab) => tab.key));
 
 export default function OrdersPage() {
   const showToast = useToast();
+  const { openOverlay } = usePageOverlay();
   const [searchParams] = useSearchParams();
 
   const [orders, setOrders] = useState([]);
@@ -212,21 +213,21 @@ export default function OrdersPage() {
   }
 
   const handleView = useCallback((order) => {
-    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}`);
+    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}`);
   }, []);
 
   const handlePrintInvoice = useCallback((order) => {
-    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}?print=1`);
+    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}?print=1`);
   }, []);
 
   const handleTrack = useCallback((order) => {
-    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}`);
+    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}`);
   }, []);
 
   // Manual orders only — the detail page is where waybill/status/items get
   // edited; there's no separate edit form.
   const handleEdit = useCallback((order) => {
-    openPopup(`/order-management/orders/${order.source}/${order.source_order_id}`);
+    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}`);
   }, []);
 
   const handleDelete = useCallback(async (order) => {
@@ -390,7 +391,7 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              onClick={() => openPopup("/order-management/orders/create")}
+              onClick={() => openOverlay("/order-management/orders/create")}
               className="flex h-8 items-center gap-1.5 rounded-full bg-orange-500 px-3.5 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
               <Plus size={13} />

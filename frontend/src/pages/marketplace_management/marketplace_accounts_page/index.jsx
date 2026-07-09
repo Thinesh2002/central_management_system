@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
-import { openPopup } from "../../../utils/openPopup";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -173,6 +173,7 @@ function StatCard({ title, value, icon: Icon, tone = "slate" }) {
 }
 
 export default function MarketplaceAccountsPage() {
+  const { openOverlay } = usePageOverlay();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkingAll, setCheckingAll] = useState(false);
@@ -425,7 +426,7 @@ export default function MarketplaceAccountsPage() {
 
           <button
             type="button"
-            onClick={() => openPopup("/marketplace/accounts/add")}
+            onClick={() => openOverlay("/marketplace/accounts/add")}
             className="inline-flex h-8 items-center gap-1.5 rounded-md bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300"
           >
             <Plus size={13} />
@@ -513,7 +514,7 @@ export default function MarketplaceAccountsPage() {
 
             <button
               type="button"
-              onClick={() => openPopup("/marketplace/accounts/add")}
+              onClick={() => openOverlay("/marketplace/accounts/add")}
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-yellow-300"
             >
               <Plus size={16} />
@@ -618,7 +619,7 @@ export default function MarketplaceAccountsPage() {
 
                           <button
                             type="button"
-                            onClick={() => openPopup(`/marketplace/accounts/${accountId}`)}
+                            onClick={() => openOverlay(`/marketplace/accounts/${accountId}`)}
                             title="View"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                           >
@@ -627,7 +628,7 @@ export default function MarketplaceAccountsPage() {
 
                           <button
                             type="button"
-                            onClick={() => openPopup(`/marketplace/accounts/${accountId}/edit`)}
+                            onClick={() => openOverlay(`/marketplace/accounts/${accountId}/edit`)}
                             title="Edit"
                             className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                           >

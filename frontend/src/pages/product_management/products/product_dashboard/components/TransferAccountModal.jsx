@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Send, X } from "lucide-react";
 import { marketplaceApi } from "../../../../../config/sub_api/marketplace_management_api/marketplace_api";
-import { openPopup } from "../../../../../utils/openPopup";
+import { usePageOverlay } from "../../../../../components/common/page_overlay/PageOverlayProvider";
 
 function getAccountId(account = {}) {
   return account.id || account.account_id;
@@ -13,6 +13,7 @@ function getAccountName(account = {}) {
 }
 
 export default function TransferAccountModal({ product, onClose }) {
+  const { openOverlay } = usePageOverlay();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -62,7 +63,7 @@ export default function TransferAccountModal({ product, onClose }) {
       .map(encodeURIComponent)
       .join(",")}`;
 
-    openPopup(url);
+    openOverlay(url);
     onClose();
   }
 

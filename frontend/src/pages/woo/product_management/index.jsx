@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { wooProductApi } from "../../../config/sub_api/woo_api/woo_product_api";
 import Loader from "../../../components/common/Loader";
-import { openPopup } from "../../../utils/openPopup";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 const DETAIL_BASE_PATH = "/product/woo-products";
 
@@ -221,6 +221,7 @@ function StockBadge({ value }) {
 }
 
 export default function WooProductDashboardPage() {
+  const { openOverlay } = usePageOverlay();
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
 
@@ -503,7 +504,7 @@ export default function WooProductDashboardPage() {
                         <div className="flex min-w-[390px] items-center gap-3">
                           <button
                             type="button"
-                            onClick={() => openPopup(detailLink)}
+                            onClick={() => openOverlay(detailLink)}
                             className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white"
                             title="Open product detail"
                           >
@@ -534,7 +535,7 @@ export default function WooProductDashboardPage() {
                           <div className="min-w-0">
                             <button
                               type="button"
-                              onClick={() => openPopup(detailLink)}
+                              onClick={() => openOverlay(detailLink)}
                               className="line-clamp-2 cursor-pointer text-left text-[12px] font-medium leading-5 text-slate-100 underline-offset-2 transition hover:text-yellow-200 hover:underline"
                               title={product.name || "Unnamed Product"}
                             >
@@ -547,7 +548,7 @@ export default function WooProductDashboardPage() {
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    openPopup(`/order-management/sku-report/${encodeURIComponent(product.sku)}`)
+                                    openOverlay(`/order-management/sku-report/${encodeURIComponent(product.sku)}`)
                                   }
                                   className="cursor-pointer underline decoration-dotted hover:text-yellow-100"
                                   title={`View SKU report for ${product.sku}`}
@@ -590,7 +591,7 @@ export default function WooProductDashboardPage() {
                       <td className="px-3 py-3 text-right">
                         <button
                           type="button"
-                          onClick={() => openPopup(detailLink)}
+                          onClick={() => openOverlay(detailLink)}
                           title="View"
                           className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                         >

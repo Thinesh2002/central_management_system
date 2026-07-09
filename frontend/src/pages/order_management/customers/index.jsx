@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Search, AlertCircle, RefreshCw, Users } from "lucide-react";
 
 import customersApi from "../../../config/sub_api/order_management_api/customers_api";
-import { openPopup } from "../../../utils/openPopup";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 function getApiMessage(error, fallback = "Something went wrong") {
   return error?.response?.data?.message || error?.message || fallback;
@@ -36,6 +36,7 @@ function statusClass(status) {
 }
 
 export default function CustomersPage() {
+  const { openOverlay } = usePageOverlay();
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -161,7 +162,7 @@ export default function CustomersPage() {
                 {filteredCustomers.map((row, index) => (
                   <tr
                     key={row.id}
-                    onClick={() => openPopup(`/order-management/customers/${row.id}`)}
+                    onClick={() => openOverlay(`/order-management/customers/${row.id}`)}
                     className="cursor-pointer bg-slate-950 hover:bg-slate-900"
                   >
                     <td className="px-3 py-2 text-[13px] text-slate-500">{index + 1}</td>
