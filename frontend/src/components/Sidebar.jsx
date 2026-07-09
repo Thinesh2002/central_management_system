@@ -275,10 +275,7 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        {/* Global search */}
-        <div className="shrink-0 border-b border-[#1d2940] px-3 py-2.5">
-          <GlobalProductSearch />
-        </div>
+  
 
         {/* Navigation */}
         <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden">
