@@ -259,13 +259,15 @@ export default function OrderDetailPage() {
             <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} /> Refresh
           </button>
 
-          <button
-            type="button"
-            onClick={saveWaybill}
-            className="inline-flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-sky-950 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-900"
-          >
-            Set Waybill
-          </button>
+          {source === "local" && (
+            <button
+              type="button"
+              onClick={saveWaybill}
+              className="inline-flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-sky-950 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-900"
+            >
+              Set Waybill
+            </button>
+          )}
 
           <select
             defaultValue=""

@@ -493,14 +493,16 @@ export default function OrdersPage() {
 
                       <td className="px-3 py-2.5 text-right">
                         <div className="inline-flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => saveWaybill(order)}
-                            title="Set waybill / tracking number"
-                            className="h-7 rounded-sm border border-slate-700 px-2 text-[10px] font-semibold text-slate-300 hover:border-sky-400 hover:text-sky-300"
-                          >
-                            Waybill
-                          </button>
+                          {order.source === "local" && (
+                            <button
+                              type="button"
+                              onClick={() => saveWaybill(order)}
+                              title="Set waybill / tracking number"
+                              className="h-7 rounded-sm border border-slate-700 px-2 text-[10px] font-semibold text-slate-300 hover:border-sky-400 hover:text-sky-300"
+                            >
+                              Waybill
+                            </button>
+                          )}
 
                           <select
                             defaultValue=""
