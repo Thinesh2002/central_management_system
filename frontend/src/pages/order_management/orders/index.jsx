@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   Filter,
@@ -124,7 +124,6 @@ const PAGE_SIZE = 50;
 const STATUS_KEYS = new Set(STATUS_TABS.map((tab) => tab.key));
 
 export default function OrdersPage() {
-  const navigate = useNavigate();
   const showToast = useToast();
   const [searchParams] = useSearchParams();
 
@@ -211,26 +210,23 @@ export default function OrdersPage() {
     setSelectedKeys((prev) => Array.from(new Set([...prev, ...pagedKeys])));
   }
 
-  const handleView = useCallback(
-    (order) => navigate(`/order-management/orders/${order.source}/${order.source_order_id}`),
-    [navigate]
-  );
+  const handleView = useCallback((order) => {
+    window.open(`/order-management/orders/${order.source}/${order.source_order_id}`, "_blank");
+  }, []);
 
   const handlePrintInvoice = useCallback((order) => {
     window.open(`/order-management/orders/${order.source}/${order.source_order_id}?print=1`, "_blank");
   }, []);
 
-  const handleTrack = useCallback(
-    (order) => navigate(`/order-management/orders/${order.source}/${order.source_order_id}`),
-    [navigate]
-  );
+  const handleTrack = useCallback((order) => {
+    window.open(`/order-management/orders/${order.source}/${order.source_order_id}`, "_blank");
+  }, []);
 
   // Manual orders only — the detail page is where waybill/status/items get
   // edited; there's no separate edit form.
-  const handleEdit = useCallback(
-    (order) => navigate(`/order-management/orders/${order.source}/${order.source_order_id}`),
-    [navigate]
-  );
+  const handleEdit = useCallback((order) => {
+    window.open(`/order-management/orders/${order.source}/${order.source_order_id}`, "_blank");
+  }, []);
 
   const handleDelete = useCallback(async (order) => {
     if (!window.confirm(`Delete order ${order.display_order_no || order.order_no}? This can't be undone.`)) {
@@ -393,7 +389,7 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              onClick={() => navigate("/order-management/orders/create")}
+              onClick={() => window.open("/order-management/orders/create", "_blank")}
               className="flex h-8 items-center gap-1.5 rounded-full bg-orange-500 px-3.5 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
               <Plus size={13} />

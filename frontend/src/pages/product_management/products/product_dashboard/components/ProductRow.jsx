@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -67,7 +66,6 @@ export default function ProductRow({
   setImagePreview,
 }) {
   const { canEdit, canDelete } = usePagePermission("local_products");
-  const navigate = useNavigate();
   const [actionOpen, setActionOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const actionRef = useRef(null);
@@ -99,15 +97,15 @@ export default function ProductRow({
   const price = getPriceText(product);
 
   function handleViewProduct() {
-    navigate(`/product/view/${productId}`);
+    window.open(`/product/view/${productId}`, "_blank");
   }
 
   function handleEditProduct() {
-    navigate(`/product/local-products/edit/${productId}/basic`);
+    window.open(`/product/local-products/edit/${productId}/basic`, "_blank");
   }
 
   function handleAddVariant() {
-    navigate(`/product/local-products/edit/${productId}/variants/create`);
+    window.open(`/product/local-products/edit/${productId}/variants/create`, "_blank");
   }
 
   function handleRemoveProduct() {
@@ -195,7 +193,7 @@ export default function ProductRow({
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/order-management/sku-report/${encodeURIComponent(sku)}`)
+                  window.open(`/order-management/sku-report/${encodeURIComponent(sku)}`, "_blank")
                 }
                 className="cursor-pointer truncate text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
                 title={`View SKU report for ${sku}`}

@@ -16,7 +16,6 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import api from "../../../config/api";
 import { darazProductsApi } from "../../../config/sub_api/daraz_api/daraz_products_api";
 import skuMappingApi from "../../../config/sub_api/product_management_api/sku_mapping_api";
@@ -663,7 +662,6 @@ function normalizeProduct(product, accountMap) {
 }
 
 export default function DarazDashboardPage() {
-  const navigate = useNavigate();
   const actionRef = useRef(null);
 
   const [accounts, setAccounts] = useState([]);
@@ -1042,12 +1040,12 @@ export default function DarazDashboardPage() {
     setOpenActionKey(null);
 
     if (row.id) {
-      navigate(`/product/daraz-products/view/${row.id}`);
+      window.open(`/product/daraz-products/view/${row.id}`, "_blank");
       return;
     }
 
     if (row.accountId && row.listingId) {
-      navigate(`/product/daraz-products/item/${row.accountId}/${row.listingId}`);
+      window.open(`/product/daraz-products/item/${row.accountId}/${row.listingId}`, "_blank");
       return;
     }
 
@@ -1063,7 +1061,7 @@ export default function DarazDashboardPage() {
       return;
     }
 
-    navigate(`/product/daraz-products/edit/${id}`);
+    window.open(`/product/daraz-products/edit/${id}`, "_blank");
   }
 
   async function openDelete(row) {
@@ -1259,7 +1257,7 @@ export default function DarazDashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => navigate("/product/daraz-products/create")}
+                onClick={() => window.open("/product/daraz-products/create", "_blank")}
                 className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
               >
                 <Plus size={13} />
@@ -1268,7 +1266,7 @@ export default function DarazDashboardPage() {
 
               <button
                 type="button"
-                onClick={() => navigate("/product/daraz-products/transfer")}
+                onClick={() => window.open("/product/daraz-products/transfer", "_blank")}
                 className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
               >
                 <Send size={13} />
@@ -1603,7 +1601,7 @@ export default function DarazDashboardPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              navigate(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)
+                              window.open(`/order-management/sku-report/${encodeURIComponent(row.sku)}`, "_blank")
                             }
                             className="block w-full cursor-pointer truncate text-orange-300 underline decoration-dotted hover:text-orange-200"
                             title={`View SKU report for ${row.sku}`}

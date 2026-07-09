@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
 
@@ -423,13 +422,15 @@ export default function MarketplaceAccountsPage() {
             Refresh
           </button>
 
-          <Link
-            to="/marketplace/accounts/add"
+          <a
+            href="/marketplace/accounts/add"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex h-8 items-center gap-1.5 rounded-md bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300"
           >
             <Plus size={13} />
             Add Account
-          </Link>
+          </a>
         </div>
       </div>
 
@@ -510,13 +511,15 @@ export default function MarketplaceAccountsPage() {
               and confirm the response key is data/accounts/rows.
             </p>
 
-            <Link
-              to="/marketplace/accounts/add"
+            <a
+              href="/marketplace/accounts/add"
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-yellow-300"
             >
               <Plus size={16} />
               Add Account
-            </Link>
+            </a>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -614,21 +617,25 @@ export default function MarketplaceAccountsPage() {
                             </button>
                           )}
 
-                          <Link
-                            to={`/marketplace/accounts/${accountId}`}
+                          <a
+                            href={`/marketplace/accounts/${accountId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                           >
                             <Eye size={14} />
                             View
-                          </Link>
+                          </a>
 
-                          <Link
-                            to={`/marketplace/accounts/${accountId}/edit`}
+                          <a
+                            href={`/marketplace/accounts/${accountId}/edit`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                           >
                             <Pencil size={14} />
                             Edit
-                          </Link>
+                          </a>
 
                           <button
                             type="button"

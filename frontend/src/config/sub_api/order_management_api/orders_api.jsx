@@ -52,6 +52,16 @@ const ordersApi = {
     return response.data;
   },
 
+  async getMessages(source, id) {
+    const response = await api.get(`${ORDERS_BASE_URL}/${source}/${id}/messages`);
+    return response.data;
+  },
+
+  async sendMessage(source, id, payload) {
+    const response = await api.post(`${ORDERS_BASE_URL}/${source}/${id}/messages`, payload);
+    return response.data;
+  },
+
   async createManualOrder(payload) {
     const response = await api.post(ORDERS_BASE_URL, payload);
     return response.data;

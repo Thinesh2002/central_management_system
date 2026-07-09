@@ -32,6 +32,7 @@ import {
   Package,
   Clock,
   UserCog,
+  MessageSquare,
 } from "lucide-react";
 
 const iconMap = {
@@ -59,6 +60,7 @@ const iconMap = {
   Package,
   Clock,
   UserCog,
+  MessageSquare,
 };
 
 const staticMenu = [
@@ -169,6 +171,14 @@ const staticMenu = [
     page_name: "Daraz Sync Settings",
     path: "/order-management/sync-settings",
     icon: "Clock",
+    exact: true,
+  },
+  {
+    section: "ORDER MANAGEMENT",
+    page_key: "message_templates",
+    page_name: "Message Templates",
+    path: "/order-management/message-templates",
+    icon: "MessageSquare",
     exact: true,
   },
   {

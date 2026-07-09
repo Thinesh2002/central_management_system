@@ -12,6 +12,7 @@ import OrdersPage from "../../pages/order_management/orders/index";
 import OrderDetailPage from "../../pages/order_management/orders/view/index";
 import CreateManualOrderPage from "../../pages/order_management/orders/create/index";
 import OrderSyncSettingsPage from "../../pages/order_management/sync_settings/index";
+import MessageTemplatesPage from "../../pages/order_management/message_templates/index";
 
 function ProtectedOrderPage({ children }) {
   return (
@@ -92,6 +93,15 @@ export default function OrderManagementRoutes() {
         element={
           <ProtectedOrderPage>
             <OrderSyncSettingsPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/message-templates"
+        element={
+          <ProtectedOrderPage>
+            <MessageTemplatesPage />
           </ProtectedOrderPage>
         }
       />

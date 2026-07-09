@@ -9,7 +9,6 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { wooProductApi } from "../../../config/sub_api/woo_api/woo_product_api";
 import Loader from "../../../components/common/Loader";
 
@@ -501,8 +500,10 @@ export default function WooProductDashboardPage() {
                     >
                       <td className="px-3 py-3">
                         <div className="flex min-w-[390px] items-center gap-3">
-                          <Link
-                            to={detailLink}
+                          <a
+                            href={detailLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white"
                             title="Open product detail"
                           >
@@ -528,27 +529,31 @@ export default function WooProductDashboardPage() {
                             >
                               <Package size={18} />
                             </div>
-                          </Link>
+                          </a>
 
                           <div className="min-w-0">
-                            <Link
-                              to={detailLink}
+                            <a
+                              href={detailLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="line-clamp-2 cursor-pointer text-[12px] font-medium leading-5 text-slate-100 underline-offset-2 transition hover:text-yellow-200 hover:underline"
                               title={product.name || "Unnamed Product"}
                             >
                               {product.name || "Unnamed Product"}
-                            </Link>
+                            </a>
 
                             <div className="mt-0.5 font-mono text-[11px] text-yellow-200/80">
                               SKU:{" "}
                               {product.sku ? (
-                                <Link
-                                  to={`/order-management/sku-report/${encodeURIComponent(product.sku)}`}
+                                <a
+                                  href={`/order-management/sku-report/${encodeURIComponent(product.sku)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="cursor-pointer underline decoration-dotted hover:text-yellow-100"
                                   title={`View SKU report for ${product.sku}`}
                                 >
                                   {product.sku}
-                                </Link>
+                                </a>
                               ) : (
                                 "-"
                               )}
@@ -583,13 +588,15 @@ export default function WooProductDashboardPage() {
                       </td>
 
                       <td className="px-3 py-3 text-right">
-                        <Link
-                          to={detailLink}
+                        <a
+                          href={detailLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-[#070B14] px-3 py-1.5 text-[11px] font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
                         >
                           <Eye size={13} />
                           View
-                        </Link>
+                        </a>
                       </td>
                     </tr>
                   );

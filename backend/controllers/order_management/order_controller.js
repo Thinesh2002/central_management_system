@@ -4,6 +4,9 @@ const tokenService = require("../../services/marketplace/token_service");
 const fulfillmentModel = require("../../models/order_management/daraz_order_fulfillment_model");
 const darazOrderApiService = require("../../services/daraz/order_management/daraz_order_api_service");
 const darazFinanceApiService = require("../../services/daraz/order_management/daraz_finance_api_service");
+const darazMessageApiService = require("../../services/daraz/order_management/daraz_message_api_service");
+const messageTemplateModel = require("../../models/order_management/message_template_model");
+const messageLogModel = require("../../models/order_management/message_log_model");
 
 function getUserId(req) {
   return req?.user?.id || req?.user?.user_id || req?.body?.created_by || null;
@@ -182,6 +185,136 @@ const getFinance = asyncHandler(async (req, res) => {
   return res.json({ success: true, message: "Finance transactions loaded", data: transactions });
 });
 
+// The values a message template's {{placeholder}} tokens can resolve to —
+// kept in one place so the template editor's "insert placeholder" list and
+// the actual send-time rendering never drift apart.
+function buildTemplateValues(order) {
+  return {
+    customer_name: order.customer_name || order.shipping_name || "",
+    order_no: order.order_number || order.display_order_no || order.order_no || "",
+    total: order.grand_total || "",
+    currency: order.currency || "LKR",
+    tracking_number: order.tracking_number || "",
+    waybill_id: order.waybill_id || "",
+    status: order.order_status || "",
+    account_name: order.account_name || "",
+  };
+}
+
+const listOrderMessages = asyncHandler(async (req, res) => {
+  const { source, id } = req.params;
+
+  const order = await fulfillmentModel.getOrderRow(id);
+
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found." });
+  }
+
+  const logs = await messageLogModel.listForOrder(source, order.id);
+
+  return res.json({ success: true, message: "Message history loaded", data: logs });
+});
+
+// Sends a real Daraz Instant Message to the order's buyer — either a chosen
+// template (rendered with this order's own data) or raw free-typed content.
+// Every attempt is logged, success or failure, so message_logs is always
+// the authoritative record of what was actually sent to a buyer.
+const sendOrderMessage = asyncHandler(async (req, res) => {
+  const { source, id } = req.params;
+  const { template_id: templateId, content: rawContent } = req.body || {};
+
+  if (source !== "daraz") {
+    return res.status(400).json({ success: false, message: "Messaging is only available for Daraz orders." });
+  }
+
+  const order = await fulfillmentModel.getOrderRow(id);
+
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found." });
+  }
+
+  const account = await fulfillmentModel.resolveDarazAccount(order.account_name);
+
+  if (!account) {
+    return res.status(404).json({
+      success: false,
+      message: `No Daraz marketplace account found matching "${order.account_name}".`,
+    });
+  }
+
+  let content = rawContent;
+  let usedTemplateId = null;
+
+  if (templateId) {
+    const template = await messageTemplateModel.findById(templateId);
+
+    if (!template) {
+      return res.status(404).json({ success: false, message: "Template not found." });
+    }
+
+    content = messageTemplateModel.renderTemplate(template.content, buildTemplateValues(order));
+    usedTemplateId = template.id;
+  }
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ success: false, message: "Message content is required." });
+  }
+
+  const { credentials } = await tokenService.getValidCredentialsForAccount(account.id);
+
+  try {
+    const sessionResponse = await darazMessageApiService.openSession({
+      account,
+      credentials,
+      orderId: order.daraz_order_id,
+    });
+
+    const sessionId = sessionResponse?.data?.session_id;
+
+    if (!sessionId) {
+      throw new Error("Daraz didn't return a session ID for this order.");
+    }
+
+    const sendResponse = await darazMessageApiService.sendMessage({
+      account,
+      credentials,
+      sessionId,
+      txt: content,
+    });
+
+    const messageId = sendResponse?.data?.data?.message_id || sendResponse?.data?.message_id || null;
+
+    await messageLogModel.create({
+      source: "daraz",
+      source_order_id: order.id,
+      template_id: usedTemplateId,
+      session_id: sessionId,
+      daraz_message_id: messageId,
+      content,
+      status: "sent",
+      sent_by: getUserId(req),
+    });
+
+    return res.json({
+      success: true,
+      message: "Message sent",
+      data: { session_id: sessionId, message_id: messageId, content },
+    });
+  } catch (error) {
+    await messageLogModel.create({
+      source: "daraz",
+      source_order_id: order.id,
+      template_id: usedTemplateId,
+      content,
+      status: "failed",
+      error_message: error.message,
+      sent_by: getUserId(req),
+    });
+
+    throw error;
+  }
+});
+
 module.exports = {
   listOrders,
   getOrder,
@@ -192,4 +325,6 @@ module.exports = {
   deleteOrder,
   getTracking,
   getFinance,
+  listOrderMessages,
+  sendOrderMessage,
 };

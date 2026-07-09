@@ -15,7 +15,8 @@
     "patch-sku-mapping": "node scripts/run-sql-file.js 11_sku_mapping_patch.sql",
     "patch-order-customers-page": "node scripts/run-sql-file.js 12_order_customers_page_patch.sql",
     "patch-product-trends-page": "node scripts/run-sql-file.js 13_product_trends_page_patch.sql",
-    "patch-order-management-orders-page": "node scripts/run-sql-file.js 14_order_management_orders_page_patch.sql"
+    "patch-order-management-orders-page": "node scripts/run-sql-file.js 14_order_management_orders_page_patch.sql",
+    "patch-message-templates": "node scripts/run-sql-file.js 15_message_templates_patch.sql"
   },
   "author": "",
   "license": "ISC",

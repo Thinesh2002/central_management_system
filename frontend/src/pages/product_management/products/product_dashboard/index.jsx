@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
 import FilterModal from "./components/FilterModal";
@@ -492,7 +491,6 @@ function sortLatestProductsFirst(list = []) {
 }
 
 export default function LocalProductsDashboard() {
-  const navigate = useNavigate();
   const showToast = useToast();
 
   const [loading, setLoading] = useState(false);
@@ -739,7 +737,7 @@ export default function LocalProductsDashboard() {
       return;
     }
 
-    navigate(`/product/local-products/edit/${productId}/${section}`);
+    window.open(`/product/local-products/edit/${productId}/${section}`, "_blank");
   }
 
   function openFilterModal() {
@@ -773,7 +771,7 @@ export default function LocalProductsDashboard() {
           onOpenFilter={openFilterModal}
           onClear={clearAllFilters}
           onOpenExport={() => setExportOpen(true)}
-          onAddProduct={() => navigate("/product/local-products/create")}
+          onAddProduct={() => window.open("/product/local-products/create", "_blank")}
         />
 
         {selectedKeys.length > 0 && (

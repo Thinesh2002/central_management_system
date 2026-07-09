@@ -22,6 +22,7 @@ import {
 import ordersApi from "../../../../config/sub_api/order_management_api/orders_api";
 import { getApiError } from "../../../../config/api";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
+import SendMessageCard from "./components/SendMessageCard";
 
 const STATUS_OPTIONS = [
   "pending",
@@ -959,6 +960,8 @@ export default function OrderDetailPage() {
           {isDaraz && <TrackingMiniCard order={order} onTrack={() => setTrackOpen(true)} />}
 
           {isDaraz && <DarazFinanceTable transactions={transactions} currency={order.currency} />}
+
+          {isDaraz && <SendMessageCard order={order} />}
 
           <Card title="Notes / History" icon={ClipboardList}>
             <textarea

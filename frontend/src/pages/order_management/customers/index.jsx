@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Search, AlertCircle, RefreshCw, Users } from "lucide-react";
 
 import customersApi from "../../../config/sub_api/order_management_api/customers_api";
@@ -36,8 +35,6 @@ function statusClass(status) {
 }
 
 export default function CustomersPage() {
-  const navigate = useNavigate();
-
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -163,7 +160,7 @@ export default function CustomersPage() {
                 {filteredCustomers.map((row, index) => (
                   <tr
                     key={row.id}
-                    onClick={() => navigate(`/order-management/customers/${row.id}`)}
+                    onClick={() => window.open(`/order-management/customers/${row.id}`, "_blank")}
                     className="cursor-pointer bg-slate-950 hover:bg-slate-900"
                   >
                     <td className="px-3 py-2 text-[13px] text-slate-500">{index + 1}</td>
