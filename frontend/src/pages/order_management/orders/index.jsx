@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
   Filter,
@@ -41,7 +41,7 @@ const STATUS_TABS = [
   { key: "all", label: "All" },
   { key: "new", label: "New" },
   { key: "to_pack", label: "To Pack" },
-  { key: "to_arrange_shipment", label: "To Arrange Shipment" },
+  { key: "to_arrange_shipment", label: "Packed" },
   { key: "ready_to_ship", label: "Ready To Ship" },
   { key: "shipped", label: "Shipped" },
   { key: "delivered", label: "Delivered" },
@@ -122,13 +122,19 @@ function activeFilterCount(filters) {
 
 const PAGE_SIZE = 50;
 
+const STATUS_KEYS = new Set(STATUS_TABS.map((tab) => tab.key));
+
 export default function OrdersPage() {
   const navigate = useNavigate();
   const showToast = useToast();
+  const [searchParams] = useSearchParams();
 
   const [orders, setOrders] = useState([]);
   const [filterOptions, setFilterOptions] = useState({ accounts: [], payment_methods: [] });
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState(() => {
+    const fromUrl = searchParams.get("status");
+    return fromUrl && STATUS_KEYS.has(fromUrl) ? fromUrl : "all";
+  });
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState(blankFilters);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -305,20 +311,24 @@ export default function OrdersPage() {
     <div className="space-y-3">
       <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-3 py-2">
-          <div className="flex flex-wrap items-center gap-0.5 rounded-full border border-slate-700 bg-[#0f1b2a] p-1">
-            {STATUS_TABS.map((tab) => (
+          <div className="flex flex-wrap items-stretch overflow-hidden rounded-md border border-slate-700 bg-[#111827]">
+            {STATUS_TABS.map((tab, index) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatus(tab.key)}
-                className={`flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[11px] font-semibold transition ${
-                  status === tab.key ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
+                className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-[12px] font-bold transition ${
+                  index > 0 ? "border-l border-slate-700" : ""
+                } ${
+                  status === tab.key
+                    ? "border-b-orange-500 bg-[#1b2a3a] text-orange-300"
+                    : "border-b-transparent text-slate-400 hover:bg-[#1b2a3a] hover:text-slate-200"
                 }`}
               >
                 {tab.label}
                 <span
-                  className={`flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                    status === tab.key ? "bg-orange-500 text-white" : "bg-slate-800 text-slate-300"
+                  className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
+                    status === tab.key ? "bg-orange-500 text-white" : "bg-slate-700 text-slate-200"
                   }`}
                 >
                   {counts[tab.key] ?? 0}

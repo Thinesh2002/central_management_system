@@ -71,30 +71,37 @@ function OrderRow({
 
       <td className="px-3 py-2.5 align-top">
         <div className="min-w-0 max-w-60">
-          <button
-            type="button"
-            onClick={() => onView(order)}
-            className="cursor-pointer text-[10px] font-semibold text-sky-400 underline decoration-dotted hover:text-sky-300"
-          >
-            {order.display_order_no || order.order_no}
-          </button>
+          <div className="flex flex-wrap items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onView(order)}
+              className="cursor-pointer text-[9px] font-semibold text-sky-400 underline decoration-dotted hover:text-sky-300"
+            >
+              {order.display_order_no || order.order_no}
+            </button>
 
-          <div className="mt-1 flex flex-wrap items-center gap-1">
             {visibleSkus.length ? (
               visibleSkus.map((item, index) => (
-                <span
+                <button
                   key={item.id || index}
-                  className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-slate-300"
+                  type="button"
+                  disabled={!item.sku}
+                  onClick={() =>
+                    item.sku &&
+                    window.open(`/order-management/sku-report/${encodeURIComponent(item.sku)}`, "_blank")
+                  }
+                  title={item.sku ? "Open SKU Economics Report" : ""}
+                  className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono text-slate-300 hover:bg-slate-700 hover:text-orange-300 disabled:cursor-default disabled:hover:bg-slate-800 disabled:hover:text-slate-300"
                 >
-                  <span className="max-w-35 truncate">{item.sku || "-"}</span>
+                  <span className="max-w-28 truncate">{item.sku || "-"}</span>
                   <span className="text-slate-500">&times; {item.qty || 1}</span>
-                </span>
+                </button>
               ))
             ) : (
-              <span className="text-[10px] text-slate-600">No items</span>
+              <span className="text-[9px] text-slate-600">No items</span>
             )}
             {items.length > visibleSkus.length && (
-              <span className="text-[10px] text-slate-500">+{items.length - visibleSkus.length} more</span>
+              <span className="text-[9px] text-slate-500">+{items.length - visibleSkus.length}</span>
             )}
           </div>
 
