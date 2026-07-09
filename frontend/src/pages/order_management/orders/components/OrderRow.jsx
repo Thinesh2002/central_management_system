@@ -21,7 +21,7 @@ function ProductThumb({ order, item, onPreview }) {
       }
       disabled={!url}
       title={url ? "Click to preview" : "No image"}
-      className="relative z-0 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[3] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
+      className="relative z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[2.2] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
     >
       {url ? (
         <img src={url} alt={title || "Product"} className="h-full w-full object-contain" />
@@ -75,7 +75,7 @@ function OrderRow({
             <button
               type="button"
               onClick={() => onView(order)}
-              className="cursor-pointer text-[9px] font-semibold text-sky-400 underline decoration-dotted hover:text-sky-300"
+              className="cursor-pointer text-[9px] font-normal text-sky-400 underline decoration-dotted hover:text-sky-300"
             >
               {order.display_order_no || order.order_no}
             </button>
@@ -118,7 +118,7 @@ function OrderRow({
               <ProductThumb order={order} onPreview={onPreviewImage} />
             )}
             {items.length > visibleImages.length && (
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[9px] font-semibold text-slate-400">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[9px] font-semibold text-slate-400">
                 +{items.length - visibleImages.length}
               </span>
             )}

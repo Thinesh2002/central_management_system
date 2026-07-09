@@ -309,7 +309,7 @@ export default function OrdersPage() {
   return (
     <div className="space-y-3">
       <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
           <div className="flex flex-wrap items-stretch overflow-hidden rounded-md border border-slate-700 bg-[#111827]">
             {STATUS_TABS.map((tab, index) => (
               <button
@@ -335,6 +335,16 @@ export default function OrdersPage() {
               </button>
             ))}
           </div>
+
+          <label className="flex h-8 min-w-45 flex-1 items-center border border-slate-600 bg-[#2b3441] px-2.5 focus-within:border-orange-400">
+            <Search size={13} className="text-slate-500" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search order no, customer, phone, SKU, waybill..."
+              className="h-full min-w-0 flex-1 bg-transparent px-2 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
+            />
+          </label>
 
           <div className="flex items-center gap-1.5">
             <button
@@ -370,18 +380,6 @@ export default function OrdersPage() {
               Create Order
             </button>
           </div>
-        </div>
-
-        <div className="px-3 py-2.5">
-          <label className="flex h-8 w-full max-w-md items-center border border-slate-600 bg-[#2b3441] px-2.5 focus-within:border-orange-400">
-            <Search size={13} className="text-slate-500" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search order no, customer, phone, SKU, waybill..."
-              className="h-full min-w-0 flex-1 bg-transparent px-2 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
-            />
-          </label>
         </div>
       </section>
 
