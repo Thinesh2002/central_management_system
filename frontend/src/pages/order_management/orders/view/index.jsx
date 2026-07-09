@@ -39,9 +39,6 @@ const DARAZ_DETAIL_ACTIONS = [
   { value: "ready_to_ship", label: "Ready To Ship" },
   { value: "print_awb", label: "Print AWB" },
   { value: "recreate_package", label: "Recreate Package" },
-  { value: "confirm_dbs_delivered", label: "Confirm DBS Delivered" },
-  { value: "failed_dbs_delivery", label: "DBS Failed Delivery" },
-  { value: "deliver_digital", label: "Deliver Digital" },
   { value: "set_invoice_number", label: "Set Invoice Number" },
 ];
 

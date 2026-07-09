@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Eye, MoreVertical, Printer, Truck } from "lucide-react";
-import { canDarazPack, canDarazPrintAwb, canDarazReady } from "../utils/orderHelpers";
+import { ArrowRightCircle, Eye, MoreVertical, Printer, Truck } from "lucide-react";
+import { canDarazPrintAwb, nextDarazStep } from "../utils/orderHelpers";
 
 const MANUAL_STATUSES = [
   "pending",
@@ -17,9 +17,6 @@ const MANUAL_STATUSES = [
 const DARAZ_EXTRA_ACTIONS = [
   { value: "get_shipment_providers", label: "Get Shipment Providers" },
   { value: "recreate_package", label: "Recreate Package" },
-  { value: "confirm_dbs_delivered", label: "Confirm DBS Delivered" },
-  { value: "failed_dbs_delivery", label: "DBS Failed Delivery" },
-  { value: "deliver_digital", label: "Deliver Digital" },
   { value: "set_invoice_number", label: "Set Invoice Number" },
 ];
 
@@ -80,6 +77,7 @@ export default function RowActionsMenu({
   const isDaraz = order.source === "daraz";
   const isLocal = order.source === "local";
   const hasWaybill = Boolean(order.waybill_id || order.tracking_number);
+  const step = isDaraz ? nextDarazStep(order) : null;
 
   return (
     <>
@@ -157,23 +155,17 @@ export default function RowActionsMenu({
                   Daraz Actions
                 </div>
 
-                {canDarazPack(order) && (
+                {step && (
                   <button
                     type="button"
-                    onClick={() => run(() => onDarazAction("pack"))}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+                    onClick={() =>
+                      run(() =>
+                        step.kind === "status" ? onChangeStatus(step.status) : onDarazAction(step.action)
+                      )
+                    }
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] font-semibold text-orange-300 hover:bg-slate-800"
                   >
-                    Pack
-                  </button>
-                )}
-
-                {canDarazReady(order) && (
-                  <button
-                    type="button"
-                    onClick={() => run(() => onDarazAction("ready_to_ship"))}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
-                  >
-                    Ready To Ship
+                    <ArrowRightCircle size={12} /> {step.label}
                   </button>
                 )}
 

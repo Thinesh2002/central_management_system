@@ -144,6 +144,23 @@ export function statusBadgeClass(order) {
   return key ? STATUS_COLOR_CLASS[key] : "text-slate-400";
 }
 
+// Single contextual "what's next" step for a Daraz order — replaces
+// showing Pack/Ready-To-Ship as two separately-gated buttons with one
+// button whose label/action tracks the order's current bucket. Daraz has
+// no seller-triggered API for the step after Ready To Ship (the courier's
+// own pickup scan is what flips it to Shipped on Daraz's side), so
+// "Handover" only updates our own local order_status — it does not call
+// Daraz at all.
+export function nextDarazStep(order) {
+  if (normalize(order.source) !== "daraz") return null;
+
+  const key = statusBucketKey(order);
+  if (key === "new" || key === "to_pack") return { kind: "action", action: "pack", label: "Pack" };
+  if (key === "to_arrange_shipment") return { kind: "action", action: "ready_to_ship", label: "Ready To Ship" };
+  if (key === "ready_to_ship") return { kind: "status", status: "shipped", label: "Handover" };
+  return null;
+}
+
 export function matchesStatus(order, status) {
   if (status === "all") return true;
   const bucket = STATUS_BUCKETS[status];

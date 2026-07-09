@@ -52,9 +52,6 @@ const STATUS_TABS = [
 const DARAZ_EXTRA_ACTIONS = [
   { value: "get_shipment_providers", label: "Get Shipment Providers" },
   { value: "recreate_package", label: "Recreate Package" },
-  { value: "confirm_dbs_delivered", label: "Confirm DBS Delivered" },
-  { value: "failed_dbs_delivery", label: "DBS Failed Delivery" },
-  { value: "deliver_digital", label: "Deliver Digital" },
   { value: "set_invoice_number", label: "Set Invoice Number" },
 ];
 

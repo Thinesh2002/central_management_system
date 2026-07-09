@@ -4,9 +4,9 @@ import { resolveImageUrl } from "../../../product_management/products/product_da
 import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass, statusLabel } from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
 
-function ProductThumb({ order, onPreview }) {
-  const url = resolveImageUrl(order.thumbnail_url || "");
-  const title = order.first_item_title || order.display_order_no;
+function ProductThumb({ order, item, onPreview }) {
+  const url = resolveImageUrl(item?.image_url || order.thumbnail_url || "");
+  const title = item?.product_title || order.first_item_title || order.display_order_no;
 
   return (
     <button
@@ -45,7 +45,10 @@ function OrderRow({
 }) {
   const source = sourceMeta(order.source);
   const dateParts = niceDate(order.order_date);
-  const skus = (order.items || []).slice(0, 3);
+  const items = order.items || [];
+  const isMulti = items.length > 1;
+  const visibleSkus = items.slice(0, 3);
+  const visibleImages = items.slice(0, 4);
 
   return (
     <tr className={`transition ${isSelected ? "bg-orange-500/5" : "hover:bg-[#111827]"}`}>
@@ -71,31 +74,47 @@ function OrderRow({
           <button
             type="button"
             onClick={() => onView(order)}
-            className="cursor-pointer text-[12px] font-semibold text-sky-400 underline decoration-dotted hover:text-sky-300"
+            className="cursor-pointer text-[11px] font-semibold text-sky-400 underline decoration-dotted hover:text-sky-300"
           >
             {order.display_order_no || order.order_no}
           </button>
 
           <div className="mt-1 flex flex-wrap items-center gap-1">
-            {skus.length ? (
-              skus.map((item, index) => (
+            {visibleSkus.length ? (
+              visibleSkus.map((item, index) => (
                 <span
                   key={item.id || index}
                   className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-slate-300"
                 >
-                  <span className="max-w-35 truncate">{item.sku || item.local_sku || "-"}</span>
+                  <span className="max-w-35 truncate">{item.sku || "-"}</span>
                   <span className="text-slate-500">&times; {item.qty || 1}</span>
                 </span>
               ))
             ) : (
               <span className="text-[10px] text-slate-600">No items</span>
             )}
+            {items.length > visibleSkus.length && (
+              <span className="text-[10px] text-slate-500">+{items.length - visibleSkus.length} more</span>
+            )}
           </div>
 
-          <p className="mt-1 truncate text-[11px] text-slate-400">{order.first_item_title || "-"}</p>
+          <p className="mt-1 truncate text-[11px] text-slate-400">
+            {isMulti ? `Multiple Items (${items.length})` : items[0]?.product_title || order.first_item_title || "-"}
+          </p>
 
-          <div className="mt-1.5">
-            <ProductThumb order={order} onPreview={onPreviewImage} />
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {visibleImages.length ? (
+              visibleImages.map((item, index) => (
+                <ProductThumb key={item.id || index} order={order} item={item} onPreview={onPreviewImage} />
+              ))
+            ) : (
+              <ProductThumb order={order} onPreview={onPreviewImage} />
+            )}
+            {items.length > visibleImages.length && (
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[10px] font-semibold text-slate-400">
+                +{items.length - visibleImages.length}
+              </span>
+            )}
           </div>
         </div>
       </td>

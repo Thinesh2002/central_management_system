@@ -47,32 +47,37 @@ function extractItemTitle(item = {}) {
   return item.product_title || item.name || item.product_name || item.title || null;
 }
 
-// One representative thumbnail per order for the list view — first item's
-// image. Local orders are matched by product_id/variant_id (the sku text
+// seller_sku/local_sku/marketplace_sku are this app's own normalized columns
+// (populated by daraz_order_sync_model's mapItemPayload from Daraz's
+// shop_sku/sku respectively) — prefer those over a raw platform "sku" field
+// so a multi-pack order's chips show the seller's own SKU, not whatever
+// internal identifier the marketplace happens to also call "sku".
+function extractItemSku(item = {}) {
+  return item.seller_sku || item.local_sku || item.marketplace_sku || item.sku || null;
+}
+
+function extractItemQty(item = {}) {
+  return Number(item.qty || item.quantity || 1);
+}
+
+// Every line item for these orders, each with its own resolved image — a
+// multi-pack order needs one thumbnail per product, not just the first
+// item's. Local orders are matched by product_id/variant_id (the sku text
 // column on product_images is sparse — same rule as the SKU Economics
 // Report); daraz/woo item image column names were never independently
 // confirmed, so those are scanned defensively by field name.
-async function getLocalOrderThumbnails(orderIds) {
+async function getLocalOrderItems(orderIds) {
   if (!orderIds.length) return new Map();
 
-  const [firstIdRows] = await db.query(
-    `SELECT order_id, MIN(id) AS first_item_id
-     FROM order_items
-     WHERE order_id IN (${inClause(orderIds)})
-     GROUP BY order_id`,
+  const [itemRows] = await db.query(
+    `SELECT * FROM order_items WHERE order_id IN (${inClause(orderIds)}) ORDER BY id ASC`,
     orderIds
   );
 
-  const firstItemIds = firstIdRows.map((row) => row.first_item_id).filter(Boolean);
-  if (!firstItemIds.length) return new Map();
+  if (!itemRows.length) return new Map();
 
-  const [itemRows] = await db.query(
-    `SELECT id, order_id, product_id, variant_id, product_title FROM order_items WHERE id IN (${inClause(firstItemIds)})`,
-    firstItemIds
-  );
-
-  const variantIds = itemRows.map((row) => row.variant_id).filter(Boolean);
-  const productIds = itemRows.map((row) => row.product_id).filter(Boolean);
+  const variantIds = [...new Set(itemRows.map((row) => row.variant_id).filter(Boolean))];
+  const productIds = [...new Set(itemRows.map((row) => row.product_id).filter(Boolean))];
 
   const [variantImageRows] = variantIds.length
     ? await productDb.query(
@@ -109,46 +114,50 @@ async function getLocalOrderThumbnails(orderIds) {
       (row.product_id && byProductId.get(row.product_id)) ||
       null;
 
-    if (image || row.product_title) {
-      map.set(row.order_id, { image_url: image, product_title: row.product_title || null });
-    }
+    const list = map.get(row.order_id) || [];
+    list.push({
+      id: row.id,
+      sku: extractItemSku(row),
+      qty: extractItemQty(row),
+      product_title: row.product_title || null,
+      image_url: image,
+    });
+    map.set(row.order_id, list);
   });
 
   return map;
 }
 
-async function getMarketplaceOrderThumbnails(config, orderIds) {
+async function getMarketplaceOrderItems(config, orderIds) {
   if (!orderIds.length) return new Map();
 
-  const [firstIdRows] = await db.query(
-    `SELECT ${qid(config.itemsFk)} AS order_id, MIN(id) AS first_item_id
-     FROM ${qid(config.itemsTable)}
-     WHERE ${qid(config.itemsFk)} IN (${inClause(orderIds)})
-     GROUP BY ${qid(config.itemsFk)}`,
-    orderIds
-  );
-
-  const firstItemIds = firstIdRows.map((row) => row.first_item_id).filter(Boolean);
-  if (!firstItemIds.length) return new Map();
-
   const [itemRows] = await db.query(
-    `SELECT * FROM ${qid(config.itemsTable)} WHERE id IN (${inClause(firstItemIds)})`,
-    firstItemIds
+    `SELECT * FROM ${qid(config.itemsTable)} WHERE ${qid(config.itemsFk)} IN (${inClause(orderIds)}) ORDER BY id ASC`,
+    orderIds
   );
 
   const map = new Map();
   itemRows.forEach((row) => {
-    const image = extractItemImage(row);
-    const title = extractItemTitle(row);
-    if (image || title) map.set(row[config.itemsFk], { image_url: image, product_title: title });
+    const orderId = row[config.itemsFk];
+    const list = map.get(orderId) || [];
+
+    list.push({
+      id: row.id,
+      sku: extractItemSku(row),
+      qty: extractItemQty(row),
+      product_title: extractItemTitle(row),
+      image_url: extractItemImage(row),
+    });
+
+    map.set(orderId, list);
   });
 
   return map;
 }
 
-async function getOrderThumbnails(source, config, orderIds) {
-  if (source === "local") return getLocalOrderThumbnails(orderIds);
-  return getMarketplaceOrderThumbnails(config, orderIds);
+async function getOrderItemsMap(source, config, orderIds) {
+  if (source === "local") return getLocalOrderItems(orderIds);
+  return getMarketplaceOrderItems(config, orderIds);
 }
 
 async function findByIdWithItems(id) {
@@ -207,15 +216,17 @@ async function listUnified({ limit = 1000, dateFrom, dateTo } = {}) {
       [...values, safeLimit]
     );
 
-    const thumbnails = await getOrderThumbnails(source, config, rows.map((row) => row.id));
+    const itemsMap = await getOrderItemsMap(source, config, rows.map((row) => row.id));
 
     return rows.map((row) => {
-      const thumb = thumbnails.get(row.id) || {};
+      const items = itemsMap.get(row.id) || [];
+      const firstItem = items[0] || {};
 
       return {
         ...normalizeOrderRow(row, source),
-        thumbnail_url: thumb.image_url || null,
-        first_item_title: thumb.product_title || null,
+        items,
+        thumbnail_url: firstItem.image_url || null,
+        first_item_title: firstItem.product_title || null,
       };
     });
   });
