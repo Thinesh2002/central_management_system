@@ -96,7 +96,7 @@ function OrderRow({
             <button
               type="button"
               onClick={() => onView(order)}
-              className="cursor-pointer text-[9px] font-normal text-sky-400 underline decoration-dotted hover:text-sky-300"
+              className="cursor-pointer text-[8px] font-normal text-slate-400 hover:text-sky-300 hover:underline"
             >
               {order.display_order_no || order.order_no}
             </button>
@@ -112,17 +112,17 @@ function OrderRow({
                     window.open(`/order-management/sku-report/${encodeURIComponent(item.sku)}`, "_blank")
                   }
                   title={item.sku ? "Open SKU Economics Report" : ""}
-                  className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono text-slate-300 hover:bg-slate-700 hover:text-orange-300 disabled:cursor-default disabled:hover:bg-slate-800 disabled:hover:text-slate-300"
+                  className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-mono text-slate-300 hover:bg-slate-700 hover:text-orange-300 disabled:cursor-default disabled:hover:bg-slate-800 disabled:hover:text-slate-300"
                 >
                   <span className="max-w-28 truncate">{item.sku || "-"}</span>
                   <span className="text-slate-500">&times; {item.qty || 1}</span>
                 </button>
               ))
             ) : (
-              <span className="text-[9px] text-slate-600">No items</span>
+              <span className="text-[8px] text-slate-600">No items</span>
             )}
             {items.length > visibleSkus.length && (
-              <span className="text-[9px] text-slate-500">+{items.length - visibleSkus.length}</span>
+              <span className="text-[8px] text-slate-500">+{items.length - visibleSkus.length}</span>
             )}
           </div>
 

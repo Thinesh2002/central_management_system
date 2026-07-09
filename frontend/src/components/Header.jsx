@@ -1,19 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  Clock3,
-  LogOut,
-  Menu,
-  ScrollText,
-  Settings,
-  ShieldCheck,
-  UserCog,
-} from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { LogOut, Menu } from "lucide-react";
 
 import api from "../config/api";
 import { getStoredUser, logout } from "../config/auth";
-import { useAccessMenu } from "../hooks/useAccessMenu";
-import { canAccessPage } from "../utils/accessMenu";
 import GlobalProductSearch from "./GlobalProductSearch";
 
 function formatDateTime(date) {
@@ -35,43 +25,7 @@ function formatDateTime(date) {
 
 export default function Header({ onMenuClick }) {
   const user = getStoredUser();
-  const navigate = useNavigate();
-
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const accessMenu = useAccessMenu();
   const [now, setNow] = useState(() => new Date());
-
-  const dropdownRef = useRef(null);
-
-  const settingsLinks = useMemo(
-    () => [
-      {
-        label: "User Settings",
-        path: "/users",
-        pageKeys: ["users", "user_settings"],
-        icon: UserCog,
-      },
-      {
-        label: "Page Access",
-        path: "/access-control",
-        pageKeys: ["access_control", "page_access"],
-        icon: ShieldCheck,
-      },
-      {
-        label: "Logs",
-        path: "/logs",
-        pageKeys: ["logs", "login_logs", "system_logs"],
-        icon: ScrollText,
-      },
-    ],
-    []
-  );
-
-  const visibleSettingsLinks = useMemo(() => {
-    return settingsLinks.filter((link) =>
-      canAccessPage(accessMenu, user, link)
-    );
-  }, [settingsLinks, accessMenu, user]);
 
   const dateTime = useMemo(() => formatDateTime(now), [now]);
 
@@ -79,33 +33,15 @@ export default function Header({ onMenuClick }) {
     try {
       await api.post("/auth/logout");
     } catch {
+      // Ignore — clear local session below regardless of server response.
     } finally {
       logout();
     }
   }
 
-  function handleNavigate(path) {
-    setSettingsOpen(false);
-    navigate(path);
-  }
-
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setSettingsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
   }, []);
 
   return (
@@ -131,9 +67,8 @@ export default function Header({ onMenuClick }) {
 
         <GlobalProductSearch />
 
-        <div className="relative flex shrink-0 items-center gap-2" ref={dropdownRef}>
-          <div className="hidden items-center gap-2 rounded-xl  bg-[#0b1220] px-3 py-1.5 text-xs font-bold text-slate-300 xl:flex">
-          
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-xl bg-[#0b1220] px-3 py-1.5 text-xs font-bold text-slate-300 xl:flex">
             <div className="leading-tight">
               <p className="tabular-nums text-[14px] font-black text-slate-100">{dateTime.time}</p>
               <p className="mt-0.5 text-[10px] font-bold text-orange-300">{dateTime.date}</p>
@@ -146,50 +81,13 @@ export default function Header({ onMenuClick }) {
 
           <button
             type="button"
-            onClick={() => setSettingsOpen((prev) => !prev)}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:bg-slate-800 hover:text-white"
-            aria-label="Open settings"
+            onClick={handleLogout}
+            title="Logout"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 transition hover:bg-red-950 hover:text-red-300"
+            aria-label="Logout"
           >
-            <Settings size={15} />
+            <LogOut size={15} />
           </button>
-
-          {settingsOpen && (
-            <div className="absolute right-0 top-10 z-50 w-44 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-xl shadow-black/40">
-              <div className="mb-1 rounded-md bg-[#07111f] px-2 py-1.5 xl:hidden">
-                <p className="text-[12px] font-black text-slate-100">{dateTime.time}</p>
-                <p className="mt-0.5 text-[11px] font-bold text-orange-300">{dateTime.date}</p>
-              </div>
-
-              {visibleSettingsLinks.map((link) => {
-                const Icon = link.icon;
-
-                return (
-                  <button
-                    key={link.path}
-                    type="button"
-                    onClick={() => handleNavigate(link.path)}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-medium text-slate-200 transition hover:bg-slate-800 hover:text-white"
-                  >
-                    <Icon size={13} />
-                    {link.label}
-                  </button>
-                );
-              })}
-
-              {visibleSettingsLinks.length > 0 && (
-                <div className="my-1 border-t border-slate-700" />
-              )}
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-medium text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
-              >
-                <LogOut size={13} />
-                Logout
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </header>

@@ -28,6 +28,7 @@ import {
   DollarSign,
   Package,
   Clock,
+  UserCog,
 } from "lucide-react";
 
 const iconMap = {
@@ -54,6 +55,7 @@ const iconMap = {
   DollarSign,
   Package,
   Clock,
+  UserCog,
 };
 
 const staticMenu = [
@@ -175,7 +177,25 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "SYSTEM",
+    section: "SETTINGS",
+    page_key: "user_settings",
+    pageKeys: ["users", "user_settings"],
+    page_name: "User Settings",
+    path: "/users",
+    icon: "UserCog",
+    exact: true,
+  },
+  {
+    section: "SETTINGS",
+    page_key: "page_access",
+    pageKeys: ["access_control", "page_access"],
+    page_name: "Page Access",
+    path: "/access-control",
+    icon: "ShieldCheck",
+    exact: true,
+  },
+  {
+    section: "SETTINGS",
     page_key: "system_logs",
     pageKeys: ["system_logs", "logs", "daraz_sync_logs", "sync_logs"],
     page_name: "Logs",
