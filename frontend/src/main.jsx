@@ -17,3 +17,11 @@ createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+
+// Registers a minimal service worker so the browser offers "Install app" —
+// required for PWA installability alongside the manifest link in index.html.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
