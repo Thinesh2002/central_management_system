@@ -144,7 +144,59 @@ function createGenericModel(tableName, { dateColumn = "created_at", defaultSort 
     return rows;
   }
 
-  return { list, findById, findByColumn, tableName };
+  // Only ever writes columns that genuinely exist on the live table (via
+  // SHOW COLUMNS) — this lets callers build payloads without needing to
+  // hardcode the exact schema of tables owned by a separate project.
+  async function pickAllowedData(data = {}) {
+    const meta = await getTableMeta(tableName);
+    const picked = {};
+
+    Object.entries(data || {}).forEach(([key, value]) => {
+      if (meta.columnSet.has(key) && value !== undefined) {
+        picked[key] = value;
+      }
+    });
+
+    return picked;
+  }
+
+  async function create(data = {}) {
+    const picked = await pickAllowedData(data);
+
+    if (!Object.keys(picked).length) {
+      throw new Error(`No valid columns to insert into ${tableName}`);
+    }
+
+    const columns = Object.keys(picked);
+    const placeholders = columns.map(() => "?").join(",");
+
+    const [result] = await db.query(
+      `INSERT INTO ${qid(tableName)} (${columns.map(qid).join(",")}) VALUES (${placeholders})`,
+      columns.map((column) => picked[column])
+    );
+
+    return findById(result.insertId);
+  }
+
+  async function update(id, data = {}) {
+    const picked = await pickAllowedData(data);
+
+    if (!Object.keys(picked).length) {
+      return findById(id);
+    }
+
+    const columns = Object.keys(picked);
+    const setClause = columns.map((column) => `${qid(column)} = ?`).join(", ");
+
+    await db.query(`UPDATE ${qid(tableName)} SET ${setClause} WHERE ${qid("id")} = ?`, [
+      ...columns.map((column) => picked[column]),
+      id,
+    ]);
+
+    return findById(id);
+  }
+
+  return { list, findById, findByColumn, create, update, pickAllowedData, tableName };
 }
 
 module.exports = { createGenericModel, db, qid };

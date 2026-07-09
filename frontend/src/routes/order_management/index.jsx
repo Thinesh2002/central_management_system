@@ -8,6 +8,10 @@ import SkuReportPage from "../../pages/order_management/sku_report/index";
 import CustomersPage from "../../pages/order_management/customers/index";
 import CustomerViewPage from "../../pages/order_management/customers/view/index";
 import ProductTrendsPage from "../../pages/order_management/product_trends/index";
+import OrdersPage from "../../pages/order_management/orders/index";
+import OrderDetailPage from "../../pages/order_management/orders/view/index";
+import CreateManualOrderPage from "../../pages/order_management/orders/create/index";
+import OrderSyncSettingsPage from "../../pages/order_management/sync_settings/index";
 
 function ProtectedOrderPage({ children }) {
   return (
@@ -52,6 +56,42 @@ export default function OrderManagementRoutes() {
         element={
           <ProtectedOrderPage>
             <ProductTrendsPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/orders"
+        element={
+          <ProtectedOrderPage>
+            <OrdersPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/orders/create"
+        element={
+          <ProtectedOrderPage>
+            <CreateManualOrderPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/orders/:source/:id"
+        element={
+          <ProtectedOrderPage>
+            <OrderDetailPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/sync-settings"
+        element={
+          <ProtectedOrderPage>
+            <OrderSyncSettingsPage />
           </ProtectedOrderPage>
         }
       />

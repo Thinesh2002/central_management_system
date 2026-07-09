@@ -37,6 +37,9 @@ const wooRoutes = require("./routes/woo/woo_route");
 const skuReportRoutes = require("./routes/order_management/sku_report_routes");
 const orderCustomersRoutes = require("./routes/order_management/customers_routes");
 const productTrendsRoutes = require("./routes/order_management/product_trends_routes");
+const ordersRoutes = require("./routes/order_management/orders_routes");
+const darazOrderActionsRoutes = require("./routes/order_management/daraz_order_actions_routes");
+const orderSyncSettingsRoutes = require("./routes/order_management/order_sync_settings_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -51,6 +54,10 @@ const {
 const {
   startDarazInventorySyncJob,
 } = require("./jobs/daraz/inventory/daraz_inventory_sync_job");
+
+const {
+  startDarazOrderSyncJob,
+} = require("./jobs/daraz/order_management/daraz_order_sync_job");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -180,6 +187,9 @@ app.use("/api/marketplace/woo", wooRoutes);
 app.use("/api/order-management/sku-report", skuReportRoutes);
 app.use("/api/order-management/customers", orderCustomersRoutes);
 app.use("/api/order-management/product-trends", productTrendsRoutes);
+app.use("/api/order-management/orders", ordersRoutes);
+app.use("/api/order-management/daraz-actions", darazOrderActionsRoutes);
+app.use("/api/order-management/sync-settings", orderSyncSettingsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -226,6 +236,7 @@ async function startServer() {
     startJob("MARKETPLACE_TOKEN_JOB", startMarketplaceTokenCheckerJob);
     startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
     startJob("DARAZ_INVENTORY_SYNC_JOB", startDarazInventorySyncJob);
+    startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
   });
 }
 

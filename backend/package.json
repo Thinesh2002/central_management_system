@@ -1,7 +1,7 @@
 {
   "name": "cm-auth-management-backend",
   "version": "1.0.0",
-  "description": "Central Management backend: auth, product, inventory, listing, marketplace accounts. No order/finance modules.",
+  "description": "Central Management backend: auth, product, inventory, listing, marketplace accounts, order management.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -14,7 +14,8 @@
     "patch-daraz-transfer": "node scripts/run-sql-file.js 10_daraz_transfer_patch.sql",
     "patch-sku-mapping": "node scripts/run-sql-file.js 11_sku_mapping_patch.sql",
     "patch-order-customers-page": "node scripts/run-sql-file.js 12_order_customers_page_patch.sql",
-    "patch-product-trends-page": "node scripts/run-sql-file.js 13_product_trends_page_patch.sql"
+    "patch-product-trends-page": "node scripts/run-sql-file.js 13_product_trends_page_patch.sql",
+    "patch-order-management-orders-page": "node scripts/run-sql-file.js 14_order_management_orders_page_patch.sql"
   },
   "author": "",
   "license": "ISC",

@@ -26,6 +26,8 @@ import {
   FileSpreadsheet,
   Palette,
   DollarSign,
+  Package,
+  Clock,
 } from "lucide-react";
 
 const iconMap = {
@@ -50,6 +52,8 @@ const iconMap = {
   FileSpreadsheet,
   Palette,
   DollarSign,
+  Package,
+  Clock,
 };
 
 const staticMenu = [
@@ -132,6 +136,14 @@ const staticMenu = [
   },
   {
     section: "ORDER MANAGEMENT",
+    page_key: "orders",
+    page_name: "Orders",
+    path: "/order-management/orders",
+    icon: "Package",
+    exact: false,
+  },
+  {
+    section: "ORDER MANAGEMENT",
     page_key: "order_customers",
     page_name: "Customers",
     path: "/order-management/customers",
@@ -144,6 +156,14 @@ const staticMenu = [
     page_name: "Product Trends",
     path: "/order-management/product-trends",
     icon: "BarChart3",
+    exact: true,
+  },
+  {
+    section: "ORDER MANAGEMENT",
+    page_key: "order_sync_settings",
+    page_name: "Daraz Sync Settings",
+    path: "/order-management/sync-settings",
+    icon: "Clock",
     exact: true,
   },
   {

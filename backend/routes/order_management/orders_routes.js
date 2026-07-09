@@ -1,0 +1,13 @@
+const express = require("express");
+const controller = require("../../controllers/order_management/order_controller");
+
+const router = express.Router();
+
+router.get("/", controller.listOrders);
+router.get("/filter-options", controller.filterOptions);
+router.post("/", controller.createManualOrder);
+router.get("/:source/:id", controller.getOrder);
+router.patch("/:source/:id/status", controller.updateStatus);
+router.post("/:source/:id/waybill", controller.createWaybill);
+
+module.exports = router;
