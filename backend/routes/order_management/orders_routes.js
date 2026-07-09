@@ -10,5 +10,6 @@ router.get("/:source/:id", controller.getOrder);
 router.patch("/:source/:id/status", controller.updateStatus);
 router.post("/:source/:id/waybill", controller.createWaybill);
 router.get("/:source/:id/tracking", controller.getTracking);
+router.get("/:source/:id/finance", controller.getFinance);
 
 module.exports = router;

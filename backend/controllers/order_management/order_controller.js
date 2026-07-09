@@ -3,6 +3,7 @@ const orderModel = require("../../models/order_management/order_model");
 const tokenService = require("../../services/marketplace/token_service");
 const fulfillmentModel = require("../../models/order_management/daraz_order_fulfillment_model");
 const darazOrderApiService = require("../../services/daraz/order_management/daraz_order_api_service");
+const darazFinanceApiService = require("../../services/daraz/order_management/daraz_finance_api_service");
 
 function getUserId(req) {
   return req?.user?.id || req?.user?.user_id || req?.body?.created_by || null;
@@ -112,6 +113,56 @@ const getTracking = asyncHandler(async (req, res) => {
   return res.json({ success: true, message: "Tracking loaded", data: result.data || [] });
 });
 
+function toDateParam(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+// Finance API requires start_time/end_time with the gap under 180 days
+// (error 1000012), so the window is anchored on the order's own date rather
+// than an arbitrary fixed range — 1 day before the order (covers same-day
+// fee postings) through 179 days after, capped at today.
+const getFinance = asyncHandler(async (req, res) => {
+  const { source, id } = req.params;
+
+  if (source !== "daraz") {
+    return res.status(400).json({ success: false, message: "Finance details are only available for Daraz orders." });
+  }
+
+  const order = await fulfillmentModel.getOrderRow(id);
+
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Order not found." });
+  }
+
+  const account = await fulfillmentModel.resolveDarazAccount(order.account_name);
+
+  if (!account) {
+    return res.status(404).json({
+      success: false,
+      message: `No Daraz marketplace account found matching "${order.account_name}".`,
+    });
+  }
+
+  const { credentials } = await tokenService.getValidCredentialsForAccount(account.id);
+
+  const orderDate = order.order_date ? new Date(order.order_date) : new Date();
+  const startDate = new Date(orderDate.getTime() - 24 * 60 * 60 * 1000);
+  const maxEndDate = new Date(startDate.getTime() + 179 * 24 * 60 * 60 * 1000);
+  const endDate = new Date(Math.min(Date.now(), maxEndDate.getTime()));
+
+  const response = await darazFinanceApiService.getTransactionDetails({
+    account,
+    credentials,
+    tradeOrderId: order.daraz_order_id,
+    startTime: toDateParam(startDate),
+    endTime: toDateParam(endDate),
+  });
+
+  const transactions = response?.data?.data || [];
+
+  return res.json({ success: true, message: "Finance transactions loaded", data: transactions });
+});
+
 module.exports = {
   listOrders,
   getOrder,
@@ -120,4 +171,5 @@ module.exports = {
   createWaybill,
   createManualOrder,
   getTracking,
+  getFinance,
 };

@@ -679,6 +679,7 @@ export default function OrderDetailPage() {
   const [trackOpen, setTrackOpen] = useState(false);
   const [detailDarazAction, setDetailDarazAction] = useState("get_shipment_providers");
   const [darazBusy, setDarazBusy] = useState(false);
+  const [transactions, setTransactions] = useState([]);
 
   async function load(refresh = false) {
     if (refresh) setRefreshing(true);
@@ -701,14 +702,26 @@ export default function OrderDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, id]);
 
-  const items = order?.items || [];
+  useEffect(() => {
+    if (source !== "daraz") return;
 
-  const transactions = useMemo(() => {
-    if (!order) return [];
-    return order.daraz_live?.finance_transactions?.length
-      ? order.daraz_live.finance_transactions
-      : order.daraz_cached?.transactions || [];
-  }, [order]);
+    let cancelled = false;
+
+    ordersApi
+      .getFinance(source, id)
+      .then((res) => {
+        if (!cancelled) setTransactions(res?.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setTransactions([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [source, id]);
+
+  const items = order?.items || [];
 
   const amounts = useMemo(() => getAmountBreakdown(order || {}, items, transactions), [order, items, transactions]);
 

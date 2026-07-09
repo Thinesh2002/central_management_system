@@ -47,6 +47,11 @@ const ordersApi = {
     return response.data;
   },
 
+  async getFinance(source, id) {
+    const response = await api.get(`${ORDERS_BASE_URL}/${source}/${id}/finance`);
+    return response.data;
+  },
+
   async createManualOrder(payload) {
     const response = await api.post(ORDERS_BASE_URL, payload);
     return response.data;
