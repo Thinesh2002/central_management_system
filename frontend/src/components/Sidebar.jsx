@@ -28,7 +28,6 @@ import {
   DollarSign,
   Package,
   Clock,
-  PackageCheck,
 } from "lucide-react";
 
 const iconMap = {
@@ -55,7 +54,6 @@ const iconMap = {
   DollarSign,
   Package,
   Clock,
-  PackageCheck,
 };
 
 const staticMenu = [
@@ -143,15 +141,6 @@ const staticMenu = [
     path: "/order-management/orders",
     icon: "Package",
     exact: false,
-  },
-  {
-    section: "ORDER MANAGEMENT",
-    page_key: "pack_list",
-    pageKeys: ["orders"],
-    page_name: "Pack List",
-    path: "/order-management/orders?status=to_pack",
-    icon: "PackageCheck",
-    exact: true,
   },
   {
     section: "ORDER MANAGEMENT",

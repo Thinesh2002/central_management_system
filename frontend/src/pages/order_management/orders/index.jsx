@@ -39,7 +39,6 @@ import {
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
-  { key: "new", label: "New" },
   { key: "to_pack", label: "To Pack" },
   { key: "to_arrange_shipment", label: "Packed" },
   { key: "ready_to_ship", label: "Ready To Ship" },

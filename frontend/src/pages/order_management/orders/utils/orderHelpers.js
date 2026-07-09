@@ -85,17 +85,18 @@ export function canDarazPrintAwb(order) {
   return Boolean(order.waybill_id);
 }
 
-// Buckets for the status tabs. "unpaid" (New) and "pending"-without-a-waybill
-// (To Pack) are both Daraz's own raw statuses; "packed" is a status this app
-// writes locally after a successful Pack action (see daraz_order_action_
-// controller's runPack) — it's the "To Arrange Shipment" bucket, i.e.
-// packed but not yet RTS-confirmed. These mirror canDarazPack/canDarazReady
-// below so the tab an order sits in always matches which bulk action it's
-// eligible for.
+// Buckets for the status tabs. "unpaid" and "pending" (Daraz's own raw
+// statuses) are merged into one "To Pack" bucket — they were split into
+// separate "New"/"To Pack" tabs before, but that distinction wasn't
+// meaningful in practice (same eligible action, same UI), so it's one tab
+// now. "packed" is a status this app writes locally after a successful Pack
+// action (see daraz_order_action_controller's runPack) — it's the
+// "To Arrange Shipment" bucket, i.e. packed but not yet RTS-confirmed.
+// These mirror canDarazPack/canDarazReady below so the tab an order sits in
+// always matches which bulk action it's eligible for.
 const STATUS_BUCKETS = {
-  new: (order) => normalize(order.order_status) === "unpaid",
   to_pack: (order) =>
-    ["pending", "new"].includes(normalize(order.order_status)) && !order.waybill_id,
+    ["unpaid", "pending", "new"].includes(normalize(order.order_status)) && !order.waybill_id,
   to_arrange_shipment: (order) => normalize(order.order_status) === "packed",
   ready_to_ship: (order) => normalize(order.order_status) === "ready_to_ship",
   shipped: (order) => ["shipped", "dispatched"].includes(normalize(order.order_status)),
@@ -105,7 +106,6 @@ const STATUS_BUCKETS = {
 };
 
 const STATUS_LABELS = {
-  new: "New",
   to_pack: "To Pack",
   to_arrange_shipment: "To Arrange Shipment",
   ready_to_ship: "Ready To Ship",
@@ -116,7 +116,6 @@ const STATUS_LABELS = {
 };
 
 const STATUS_COLOR_CLASS = {
-  new: "text-amber-400",
   to_pack: "text-amber-400",
   to_arrange_shipment: "text-amber-400",
   ready_to_ship: "text-sky-400",
@@ -155,7 +154,7 @@ export function nextDarazStep(order) {
   if (normalize(order.source) !== "daraz") return null;
 
   const key = statusBucketKey(order);
-  if (key === "new" || key === "to_pack") return { kind: "action", action: "pack", label: "Pack" };
+  if (key === "to_pack") return { kind: "action", action: "pack", label: "Pack" };
   if (key === "to_arrange_shipment") return { kind: "action", action: "ready_to_ship", label: "Ready To Ship" };
   if (key === "ready_to_ship") return { kind: "status", status: "shipped", label: "Handover" };
   return null;

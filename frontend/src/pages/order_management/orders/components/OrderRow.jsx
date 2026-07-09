@@ -21,7 +21,7 @@ function ProductThumb({ order, item, onPreview }) {
       }
       disabled={!url}
       title={url ? "Click to preview" : "No image"}
-      className="relative z-0 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[2.8] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
+      className="relative z-0 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[3] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
     >
       {url ? (
         <img src={url} alt={title || "Product"} className="h-full w-full object-contain" />
@@ -48,7 +48,7 @@ function OrderRow({
   const items = order.items || [];
   const isMulti = items.length > 1;
   const visibleSkus = items.slice(0, 3);
-  const visibleImages = items.slice(0, 4);
+  const visibleImages = items.slice(0, 3);
 
   return (
     <tr className={`transition ${isSelected ? "bg-orange-500/5" : "hover:bg-[#111827]"}`}>
@@ -61,15 +61,15 @@ function OrderRow({
         />
       </td>
 
-      <td className="px-3 py-2.5 align-top">
-        <p className={`text-[11px] font-semibold ${source.className}`}>{source.label}</p>
-        <p className="mt-0.5 text-[11px] text-slate-300">{order.account_name || "-"}</p>
-        <p className="mt-0.5 text-[10px] text-slate-500">
+      <td className="px-3 py-2 align-top">
+        <p className={`text-[10px] font-semibold ${source.className}`}>{source.label}</p>
+        <p className="mt-0.5 text-[10px] text-slate-300">{order.account_name || "-"}</p>
+        <p className="mt-0.5 text-[9px] text-slate-500">
           {dateParts.date} {dateParts.time}
         </p>
       </td>
 
-      <td className="px-3 py-2.5 align-top">
+      <td className="px-3 py-2 align-top">
         <div className="min-w-0 max-w-60">
           <div className="flex flex-wrap items-center gap-1">
             <button
@@ -105,7 +105,7 @@ function OrderRow({
             )}
           </div>
 
-          <p className="mt-1 truncate text-[11px] text-slate-400">
+          <p className="mt-1 truncate text-[10px] text-slate-400">
             {isMulti ? `Multiple Items (${items.length})` : items[0]?.product_title || order.first_item_title || "-"}
           </p>
 
@@ -118,7 +118,7 @@ function OrderRow({
               <ProductThumb order={order} onPreview={onPreviewImage} />
             )}
             {items.length > visibleImages.length && (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[10px] font-semibold text-slate-400">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[9px] font-semibold text-slate-400">
                 +{items.length - visibleImages.length}
               </span>
             )}
@@ -126,29 +126,29 @@ function OrderRow({
         </div>
       </td>
 
-      <td className="px-3 py-2.5 align-top">
-        <p className="text-[12px] font-semibold text-slate-200">
+      <td className="px-3 py-2 align-top">
+        <p className="text-[11px] font-semibold text-slate-200">
           {order.customer_name || order.shipping_name || "-"}
         </p>
-        <p className="mt-0.5 text-[11px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
-        <p className="mt-0.5 max-w-55 text-[10px] leading-4 text-slate-500">
+        <p className="mt-0.5 text-[10px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
+        <p className="mt-0.5 max-w-55 text-[9px] leading-4 text-slate-500">
           {fullAddress(order) || "-"}
         </p>
       </td>
 
-      <td className="px-3 py-2.5 align-top">
-        <p className="text-[12px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
-        <p className="mt-0.5 text-[10px] text-slate-500">
+      <td className="px-3 py-2 align-top">
+        <p className="text-[11px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
+        <p className="mt-0.5 text-[9px] text-slate-500">
           Discount: {money(order.discount_total, order.currency)}
         </p>
-        <p className="mt-0.5 text-[10px] uppercase text-slate-500">{order.payment_method || "-"}</p>
+        <p className="mt-0.5 text-[9px] uppercase text-slate-500">{order.payment_method || "-"}</p>
       </td>
 
-      <td className="px-3 py-2.5 align-top">
-        <span className={`text-[11px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
+      <td className="px-3 py-2 align-top">
+        <span className={`text-[10px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
       </td>
 
-      <td className="px-3 py-2.5 text-right align-top">
+      <td className="px-3 py-2 text-right align-top">
         <RowActionsMenu
           order={order}
           onView={() => onView(order)}

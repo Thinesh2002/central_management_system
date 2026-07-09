@@ -32,6 +32,50 @@ function inClause(values) {
   return values.map(() => "?").join(",");
 }
 
+// Item tables on marketplace sources may carry large raw-payload/JSON
+// snapshot columns alongside the handful of fields the list view actually
+// needs — `SELECT *` across every item for up to a thousand orders was
+// dragging all of that along on every page load. This narrows the SELECT to
+// only the columns this file's extractItem* helpers actually read, using
+// SHOW COLUMNS (cached) so it still adapts to whichever of these candidate
+// names really exist on a given table rather than guessing.
+const ITEM_COLUMN_CANDIDATES = [
+  "product_main_image",
+  "product_image_url",
+  "image_url",
+  "image",
+  "product_image",
+  "product_title",
+  "name",
+  "product_name",
+  "title",
+  "seller_sku",
+  "local_sku",
+  "marketplace_sku",
+  "sku",
+  "qty",
+  "quantity",
+];
+
+const safeItemColumnsCache = new Map();
+
+async function getSafeItemColumns(tableName, fkColumn) {
+  if (safeItemColumnsCache.has(tableName)) return safeItemColumnsCache.get(tableName);
+
+  const [rows] = await db.query(`SHOW COLUMNS FROM ${qid(tableName)}`);
+  const existing = new Set(rows.map((row) => row.Field));
+
+  const columns = [
+    "id",
+    fkColumn,
+    ...ITEM_COLUMN_CANDIDATES.filter((name) => existing.has(name)),
+  ];
+
+  const unique = [...new Set(columns)];
+  safeItemColumnsCache.set(tableName, unique);
+  return unique;
+}
+
 function extractItemImage(item = {}) {
   return (
     item.product_main_image ||
@@ -69,8 +113,11 @@ function extractItemQty(item = {}) {
 async function getLocalOrderItems(orderIds) {
   if (!orderIds.length) return new Map();
 
+  const safeColumns = await getSafeItemColumns("order_items", "order_id");
+  const selectColumns = [...new Set([...safeColumns, "product_id", "variant_id"])];
+
   const [itemRows] = await db.query(
-    `SELECT * FROM order_items WHERE order_id IN (${inClause(orderIds)}) ORDER BY id ASC`,
+    `SELECT ${selectColumns.map(qid).join(",")} FROM order_items WHERE order_id IN (${inClause(orderIds)}) ORDER BY id ASC`,
     orderIds
   );
 
@@ -131,8 +178,10 @@ async function getLocalOrderItems(orderIds) {
 async function getMarketplaceOrderItems(config, orderIds) {
   if (!orderIds.length) return new Map();
 
+  const selectColumns = await getSafeItemColumns(config.itemsTable, config.itemsFk);
+
   const [itemRows] = await db.query(
-    `SELECT * FROM ${qid(config.itemsTable)} WHERE ${qid(config.itemsFk)} IN (${inClause(orderIds)}) ORDER BY id ASC`,
+    `SELECT ${selectColumns.map(qid).join(",")} FROM ${qid(config.itemsTable)} WHERE ${qid(config.itemsFk)} IN (${inClause(orderIds)}) ORDER BY id ASC`,
     orderIds
   );
 
