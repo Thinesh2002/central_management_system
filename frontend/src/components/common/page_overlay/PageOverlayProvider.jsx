@@ -27,23 +27,25 @@ export function PageOverlayProvider({ children }) {
       {children}
 
       {url && (
-        <div className="fixed inset-y-0 right-0 left-0 z-60 flex flex-col border-l border-slate-800 bg-slate-950 lg:left-58">
-          <div className="flex h-11 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0b1220] px-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Central Management
-            </span>
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm sm:p-8">
+          <div className="flex h-full w-full max-w-350 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/60">
+            <div className="flex h-11 shrink-0 items-center justify-between rounded-t-xl border-b border-slate-800 bg-[#0b1220] px-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Central Management
+              </span>
 
-            <button
-              type="button"
-              onClick={closeOverlay}
-              className="flex h-7 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-200 hover:bg-slate-800"
-            >
-              <X size={13} />
-              Close
-            </button>
+              <button
+                type="button"
+                onClick={closeOverlay}
+                title="Close"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <iframe title="Page overlay" src={url} className="h-full w-full flex-1 border-0 bg-slate-950" />
           </div>
-
-          <iframe title="Page overlay" src={url} className="h-full w-full flex-1 border-0 bg-slate-950" />
         </div>
       )}
     </OverlayContext.Provider>
