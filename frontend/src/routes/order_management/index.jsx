@@ -13,6 +13,7 @@ import OrderDetailPage from "../../pages/order_management/orders/view/index";
 import CreateManualOrderPage from "../../pages/order_management/orders/create/index";
 import OrderSyncSettingsPage from "../../pages/order_management/sync_settings/index";
 import MessageTemplatesPage from "../../pages/order_management/message_templates/index";
+import DarazFinancePage from "../../pages/order_management/daraz_finance/index";
 
 function ProtectedOrderPage({ children }) {
   return (
@@ -102,6 +103,15 @@ export default function OrderManagementRoutes() {
         element={
           <ProtectedOrderPage>
             <MessageTemplatesPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      <Route
+        path="/order-management/finance"
+        element={
+          <ProtectedOrderPage>
+            <DarazFinancePage />
           </ProtectedOrderPage>
         }
       />

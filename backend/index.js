@@ -41,6 +41,7 @@ const ordersRoutes = require("./routes/order_management/orders_routes");
 const darazOrderActionsRoutes = require("./routes/order_management/daraz_order_actions_routes");
 const orderSyncSettingsRoutes = require("./routes/order_management/order_sync_settings_routes");
 const messageTemplatesRoutes = require("./routes/order_management/message_templates_routes");
+const darazFinanceRoutes = require("./routes/daraz/finance_management/daraz_finance_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -59,6 +60,10 @@ const {
 const {
   startDarazOrderSyncJob,
 } = require("./jobs/daraz/order_management/daraz_order_sync_job");
+
+const {
+  startDarazFinanceSyncJob,
+} = require("./jobs/daraz/finance_management/daraz_finance_sync_job");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -192,6 +197,7 @@ app.use("/api/order-management/orders", ordersRoutes);
 app.use("/api/order-management/daraz-actions", darazOrderActionsRoutes);
 app.use("/api/order-management/sync-settings", orderSyncSettingsRoutes);
 app.use("/api/order-management/message-templates", messageTemplatesRoutes);
+app.use("/api/daraz/finance", darazFinanceRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -239,6 +245,7 @@ async function startServer() {
     startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
     startJob("DARAZ_INVENTORY_SYNC_JOB", startDarazInventorySyncJob);
     startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
+    startJob("DARAZ_FINANCE_SYNC_JOB", startDarazFinanceSyncJob);
   });
 }
 

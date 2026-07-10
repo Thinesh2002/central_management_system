@@ -175,6 +175,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "ORDER MANAGEMENT",
+    page_key: "daraz_finance",
+    page_name: "Daraz Finance",
+    path: "/order-management/finance",
+    icon: "DollarSign",
+    exact: true,
+  },
+  {
     section: "MESSAGES",
     page_key: "message_templates",
     page_name: "Message Templates",
