@@ -175,7 +175,7 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "ORDER MANAGEMENT",
+    section: "FINANCE",
     page_key: "daraz_finance",
     page_name: "Daraz Finance",
     path: "/order-management/finance",

@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { DollarSign, Loader2, RefreshCw, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  Banknote,
+  DollarSign,
+  ImageOff,
+  Loader2,
+  PiggyBank,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  X,
+} from "lucide-react";
 
 import darazFinanceApi from "../../../config/sub_api/daraz_api/daraz_finance_api";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
@@ -41,6 +53,118 @@ function formatDate(value) {
   return date.toLocaleString();
 }
 
+function groupTransactionsByOrder(rows) {
+  const map = new Map();
+
+  rows.forEach((row) => {
+    const key = row.order_no || `no-order-${row.id}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        order_no: row.order_no || "-",
+        thumbnail_url: row.thumbnail_url || null,
+        product_title: row.product_title || null,
+        account_id: row.account_id,
+        latest_date: row.transaction_date || null,
+        transactions: [],
+        totalAmount: 0,
+      });
+    }
+
+    const group = map.get(key);
+    group.transactions.push(row);
+    group.totalAmount += Number(row.amount) || 0;
+  });
+
+  return Array.from(map.values());
+}
+
+function StatCard({ icon: Icon, label, value, tone = "slate" }) {
+  const tones = {
+    slate: "border-white/10 bg-[#0D1322] text-slate-200",
+    green: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+    red: "border-red-400/20 bg-red-400/10 text-red-300",
+    orange: "border-orange-400/20 bg-orange-400/10 text-orange-300",
+    blue: "border-sky-400/20 bg-sky-400/10 text-sky-300",
+  };
+
+  return (
+    <div className={`rounded-lg border p-3 ${tones[tone] || tones.slate}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
+          <p className="mt-1 truncate text-[15px] font-bold text-white">{value}</p>
+        </div>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5">
+          <Icon size={15} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderTransactionsModal({ group, onClose }) {
+  if (!group) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden border border-purple-500/40 bg-slate-950 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-[14px] font-semibold text-white">Order {group.order_no}</h3>
+            <p className="text-[11px] text-purple-200/80">
+              {group.transactions.length} transaction{group.transactions.length === 1 ? "" : "s"} · Net {money(group.totalAmount)}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto">
+          <table className="min-w-full divide-y divide-slate-800 text-[12px]">
+            <thead className="bg-slate-900">
+              <tr>
+                {["Transaction", "Type", "Fee Name", "SKU", "Amount", "Paid Status", "Date"].map((header) => (
+                  <th key={header} className="px-3 py-2 text-left font-normal uppercase tracking-wide text-slate-500">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {group.transactions.map((row) => (
+                <tr key={row.id} className="hover:bg-slate-900">
+                  <td className="px-3 py-2 font-mono text-slate-300">{row.transaction_number}</td>
+                  <td className="px-3 py-2 text-slate-300">{row.transaction_type || "-"}</td>
+                  <td className="px-3 py-2 text-slate-400">{row.fee_name || "-"}</td>
+                  <td className="px-3 py-2 font-mono text-slate-400">{row.seller_sku || row.lazada_sku || "-"}</td>
+                  <td className={`px-3 py-2 font-semibold ${Number(row.amount) < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                    {money(row.amount)}
+                  </td>
+                  <td className="px-3 py-2 text-slate-300">{row.paid_status || "-"}</td>
+                  <td className="px-3 py-2 text-slate-400">{row.transaction_date || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DarazFinancePage() {
   const showToast = useToast();
 
@@ -50,6 +174,9 @@ export default function DarazFinancePage() {
 
   const [payouts, setPayouts] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [payoutSummary, setPayoutSummary] = useState(null);
+  const [transactionSummary, setTransactionSummary] = useState(null);
+  const [openOrderGroup, setOpenOrderGroup] = useState(null);
 
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
@@ -62,9 +189,7 @@ export default function DarazFinancePage() {
       try {
         setLoadingAccounts(true);
         const res = await marketplaceApi.getAccounts({ platform_code: "DARAZ" });
-        const rows = extractAccounts(res);
-        setAccounts(rows);
-        if (rows.length) setAccountId(String(getAccountId(rows[0])));
+        setAccounts(extractAccounts(res));
       } catch (err) {
         setError(getApiError(err, "Failed to load Daraz accounts"));
       } finally {
@@ -76,18 +201,27 @@ export default function DarazFinancePage() {
   }, []);
 
   async function loadData() {
-    if (!accountId) return;
-
     setLoadingData(true);
     setError("");
 
+    const params = accountId ? { account_id: accountId, limit: 1000 } : { limit: 1000 };
+    const summaryParams = accountId ? { account_id: accountId } : {};
+
     try {
       if (tab === "payouts") {
-        const res = await darazFinanceApi.listPayouts({ account_id: accountId, limit: 200 });
-        setPayouts(res?.data?.data || []);
+        const [listRes, summaryRes] = await Promise.all([
+          darazFinanceApi.listPayouts(params),
+          darazFinanceApi.getPayoutSummary(summaryParams),
+        ]);
+        setPayouts(listRes?.data?.data || []);
+        setPayoutSummary(summaryRes?.data?.data || null);
       } else {
-        const res = await darazFinanceApi.listTransactions({ account_id: accountId, limit: 200 });
-        setTransactions(res?.data?.data || []);
+        const [listRes, summaryRes] = await Promise.all([
+          darazFinanceApi.listTransactions(params),
+          darazFinanceApi.getTransactionSummary(summaryParams),
+        ]);
+        setTransactions(listRes?.data?.data || []);
+        setTransactionSummary(summaryRes?.data?.data || null);
       }
     } catch (err) {
       setError(getApiError(err, "Failed to load finance data"));
@@ -102,7 +236,10 @@ export default function DarazFinancePage() {
   }, [accountId, tab]);
 
   async function syncPayoutsNow() {
-    if (!accountId) return;
+    if (!accountId) {
+      showToast("Pick a specific account to sync (not All Accounts).");
+      return;
+    }
 
     setSyncingPayouts(true);
     setError("");
@@ -120,7 +257,10 @@ export default function DarazFinancePage() {
   }
 
   async function syncTransactionsNow() {
-    if (!accountId) return;
+    if (!accountId) {
+      showToast("Pick a specific account to sync (not All Accounts).");
+      return;
+    }
 
     setSyncingTransactions(true);
     setError("");
@@ -137,10 +277,7 @@ export default function DarazFinancePage() {
     }
   }
 
-  const selectedAccountName = useMemo(() => {
-    const account = accounts.find((row) => String(getAccountId(row)) === String(accountId));
-    return account ? getAccountName(account) : "";
-  }, [accounts, accountId]);
+  const orderGroups = useMemo(() => groupTransactionsByOrder(transactions), [transactions]);
 
   return (
     <div className="space-y-3">
@@ -159,10 +296,10 @@ export default function DarazFinancePage() {
           <select
             value={accountId}
             onChange={(e) => setAccountId(e.target.value)}
-            disabled={loadingAccounts || !accounts.length}
+            disabled={loadingAccounts}
             className="h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-[12px] text-slate-200 outline-none"
           >
-            {!accounts.length && <option value="">No Daraz accounts</option>}
+            <option value="">All Accounts</option>
             {accounts.map((account) => (
               <option key={getAccountId(account)} value={getAccountId(account)}>
                 {getAccountName(account)}
@@ -173,7 +310,8 @@ export default function DarazFinancePage() {
           <button
             type="button"
             onClick={syncPayoutsNow}
-            disabled={!accountId || syncingPayouts}
+            disabled={syncingPayouts}
+            title={!accountId ? "Pick a specific account first" : "Sync payouts for this account"}
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {syncingPayouts ? <Loader2 size={12} className="animate-spin" /> : <Wallet size={12} />}
@@ -183,7 +321,8 @@ export default function DarazFinancePage() {
           <button
             type="button"
             onClick={syncTransactionsNow}
-            disabled={!accountId || syncingTransactions}
+            disabled={syncingTransactions}
+            title={!accountId ? "Pick a specific account first" : "Sync transactions for this account"}
             className="inline-flex h-8 items-center gap-1.5 rounded-md bg-orange-500 px-2.5 text-[11px] font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {syncingTransactions ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
@@ -215,8 +354,22 @@ export default function DarazFinancePage() {
         ))}
       </div>
 
-      {selectedAccountName && (
-        <p className="text-[11px] text-slate-500">Showing data for {selectedAccountName}.</p>
+      {tab === "payouts" ? (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <StatCard icon={Wallet} label="Opening Balance" value={money(payoutSummary?.total_opening_balance)} tone="slate" />
+          <StatCard icon={PiggyBank} label="Closing Balance" value={money(payoutSummary?.total_closing_balance)} tone="blue" />
+          <StatCard icon={TrendingUp} label="Item Revenue" value={money(payoutSummary?.total_item_revenue)} tone="green" />
+          <StatCard icon={TrendingDown} label="Fees Total" value={money(payoutSummary?.total_fees)} tone="red" />
+          <StatCard icon={Banknote} label="Refunds" value={money(payoutSummary?.total_refunds)} tone="orange" />
+          <StatCard icon={AlertTriangle} label="Guarantee Deposit" value={money(payoutSummary?.total_guarantee_deposit)} tone="slate" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <StatCard icon={TrendingUp} label="Total Income" value={money(transactionSummary?.total_income)} tone="green" />
+          <StatCard icon={TrendingDown} label="Total Expense" value={money(transactionSummary?.total_expense)} tone="red" />
+          <StatCard icon={DollarSign} label="Net Sales" value={money(transactionSummary?.net_sales)} tone="blue" />
+          <StatCard icon={AlertTriangle} label="Total Penalties" value={money(transactionSummary?.total_penalties)} tone="orange" />
+        </div>
       )}
 
       {loadingData ? (
@@ -260,7 +413,7 @@ export default function DarazFinancePage() {
           <table className="min-w-full divide-y divide-slate-800 text-[12px]">
             <thead className="bg-slate-900">
               <tr>
-                {["Transaction", "Order No", "Type", "SKU", "Amount", "Paid Status", "Date"].map((header) => (
+                {["", "Order No", "Product", "Lines", "Net Amount", "Latest Date"].map((header) => (
                   <th key={header} className="px-3 py-2 text-left font-normal uppercase tracking-wide text-slate-500">
                     {header}
                   </th>
@@ -268,34 +421,48 @@ export default function DarazFinancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {!transactions.length && (
+              {!orderGroups.length && (
                 <tr>
-                  <td colSpan="7" className="px-3 py-6 text-center text-slate-500">
+                  <td colSpan="6" className="px-3 py-6 text-center text-slate-500">
                     No transactions yet.
                   </td>
                 </tr>
               )}
-              {transactions.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-900">
-                  <td className="px-3 py-2 font-mono text-slate-300">{row.transaction_number}</td>
-                  <td className="px-3 py-2 text-slate-300">{row.order_no || "-"}</td>
-                  <td className="px-3 py-2 text-slate-300">{row.transaction_type || "-"}</td>
-                  <td className="px-3 py-2 font-mono text-slate-400">{row.seller_sku || row.lazada_sku || "-"}</td>
-                  <td
-                    className={`px-3 py-2 font-semibold ${
-                      Number(row.amount) < 0 ? "text-red-400" : "text-emerald-400"
-                    }`}
-                  >
-                    {money(row.amount)}
+              {orderGroups.map((group) => (
+                <tr key={group.order_no} className="hover:bg-slate-900">
+                  <td className="px-3 py-2">
+                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded border border-slate-700 bg-white">
+                      {group.thumbnail_url ? (
+                        <img src={group.thumbnail_url} alt={group.product_title || "Order"} className="h-full w-full object-contain" />
+                      ) : (
+                        <ImageOff size={14} className="text-slate-400" />
+                      )}
+                    </div>
                   </td>
-                  <td className="px-3 py-2 text-slate-300">{row.paid_status || "-"}</td>
-                  <td className="px-3 py-2 text-slate-400">{row.transaction_date || "-"}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setOpenOrderGroup(group)}
+                      className="cursor-pointer font-mono text-orange-300 underline decoration-dotted hover:text-orange-200"
+                      title="View all transactions for this order"
+                    >
+                      {group.order_no}
+                    </button>
+                  </td>
+                  <td className="max-w-60 truncate px-3 py-2 text-slate-300">{group.product_title || "-"}</td>
+                  <td className="px-3 py-2 text-slate-300">{group.transactions.length}</td>
+                  <td className={`px-3 py-2 font-semibold ${group.totalAmount < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                    {money(group.totalAmount)}
+                  </td>
+                  <td className="px-3 py-2 text-slate-400">{group.latest_date || "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <OrderTransactionsModal group={openOrderGroup} onClose={() => setOpenOrderGroup(null)} />
     </div>
   );
 }
