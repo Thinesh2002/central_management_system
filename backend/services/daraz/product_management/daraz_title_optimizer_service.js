@@ -1,8 +1,9 @@
 const { getGeminiClient } = require("../../ai/gemini_client");
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
-const RATE_LIMIT_RETRIES = 2;
-const DEFAULT_RETRY_DELAY_MS = 20000;
+const TRANSIENT_RETRIES = 2;
+const DEFAULT_RATE_LIMIT_DELAY_MS = 20000;
+const OVERLOAD_RETRY_DELAY_MS = 8000;
 
 const SYSTEM_PROMPT = `You optimize product titles for Daraz (a Southeast/South Asian e-commerce marketplace) listings.
 
@@ -47,17 +48,33 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function parseGeminiRateLimit(error) {
+function parseGeminiTransientError(error) {
   try {
     const parsed = typeof error.message === "string" ? JSON.parse(error.message) : null;
-    if (parsed?.error?.code !== 429) return null;
+    const code = parsed?.error?.code;
 
-    const retryDetail = (parsed.error.details || []).find((detail) =>
-      String(detail["@type"] || "").includes("RetryInfo")
-    );
-    const seconds = retryDetail?.retryDelay ? parseFloat(retryDetail.retryDelay) : null;
+    if (code === 429) {
+      const retryDetail = (parsed.error.details || []).find((detail) =>
+        String(detail["@type"] || "").includes("RetryInfo")
+      );
+      const seconds = retryDetail?.retryDelay ? parseFloat(retryDetail.retryDelay) : null;
 
-    return { retryDelayMs: Number.isFinite(seconds) ? seconds * 1000 + 1000 : DEFAULT_RETRY_DELAY_MS };
+      return {
+        code,
+        retryDelayMs: Number.isFinite(seconds) ? seconds * 1000 + 1000 : DEFAULT_RATE_LIMIT_DELAY_MS,
+        message: "Gemini rate limit exceeded for this scan. Try again in a minute, or scan fewer products at a time.",
+      };
+    }
+
+    if (code === 503) {
+      return {
+        code,
+        retryDelayMs: OVERLOAD_RETRY_DELAY_MS,
+        message: "Gemini is temporarily overloaded. Try scanning again in a moment.",
+      };
+    }
+
+    return null;
   } catch {
     return null;
   }
@@ -67,17 +84,17 @@ async function callGemini(client, params, retriesLeft) {
   try {
     return await client.models.generateContent(params);
   } catch (error) {
-    const rateLimit = parseGeminiRateLimit(error);
+    const transient = parseGeminiTransientError(error);
 
-    if (rateLimit && retriesLeft > 0) {
-      await sleep(rateLimit.retryDelayMs);
+    if (transient && retriesLeft > 0) {
+      await sleep(transient.retryDelayMs);
       return callGemini(client, params, retriesLeft - 1);
     }
 
-    if (rateLimit) {
-      const rateLimitError = new Error("Gemini rate limit exceeded for this scan. Try again in a minute, or scan fewer products at a time.");
-      rateLimitError.statusCode = 429;
-      throw rateLimitError;
+    if (transient) {
+      const transientError = new Error(transient.message);
+      transientError.statusCode = transient.code;
+      throw transientError;
     }
 
     throw error;
@@ -98,7 +115,7 @@ async function generateTitleSuggestion(product, { avoidTitles = [] } = {}) {
         responseSchema: OUTPUT_SCHEMA,
       },
     },
-    RATE_LIMIT_RETRIES
+    TRANSIENT_RETRIES
   );
 
   const text = response.text;
