@@ -1,6 +1,6 @@
 const { getGeminiClient } = require("../../ai/gemini_client");
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 const TRANSIENT_RETRIES = 2;
 const DEFAULT_RATE_LIMIT_DELAY_MS = 20000;
 const OVERLOAD_RETRY_DELAY_MS = 8000;
