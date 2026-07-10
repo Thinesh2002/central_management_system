@@ -17,7 +17,8 @@
     "patch-product-trends-page": "node scripts/run-sql-file.js 13_product_trends_page_patch.sql",
     "patch-order-management-orders-page": "node scripts/run-sql-file.js 14_order_management_orders_page_patch.sql",
     "patch-message-templates": "node scripts/run-sql-file.js 15_message_templates_patch.sql",
-    "patch-daraz-finance": "node scripts/run-sql-file.js 16_daraz_finance_patch.sql"
+    "patch-daraz-finance": "node scripts/run-sql-file.js 16_daraz_finance_patch.sql",
+    "patch-inventory-order-deduction": "node scripts/run-sql-file.js 17_inventory_order_deduction_patch.sql"
   },
   "author": "",
   "license": "ISC",

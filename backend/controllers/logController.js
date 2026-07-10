@@ -1,4 +1,5 @@
 const logModel = require("../models/logModel");
+const inventoryLogModel = require("../models/order_management/inventory_log_model");
 
 async function getLogs(req, res) {
   const logs = await logModel.listLogs({ limit: req.query.limit || 100 });
@@ -15,4 +16,13 @@ async function getSystemLogs(req, res) {
   return res.json({ success: true, logs });
 }
 
-module.exports = { getLogs, getLoginLogs, getSystemLogs };
+async function getInventoryLogs(req, res) {
+  const logs = await inventoryLogModel.listRecent({
+    status: req.query.status,
+    sku: req.query.sku,
+    limit: req.query.limit || 200,
+  });
+  return res.json({ success: true, logs });
+}
+
+module.exports = { getLogs, getLoginLogs, getSystemLogs, getInventoryLogs };

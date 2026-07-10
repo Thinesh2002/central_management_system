@@ -2,6 +2,7 @@ const tokenService = require("../../marketplace/token_service");
 const orderSyncSettingsModel = require("../../../models/order_management/order_sync_settings_model");
 const darazOrderApiService = require("./daraz_order_api_service");
 const darazOrderSyncModel = require("../../../models/order_management/daraz_order_sync_model");
+const orderInventoryDeductionService = require("../../order_management/order_inventory_deduction_service");
 
 const PAGE_SIZE = 100;
 
@@ -35,8 +36,28 @@ async function fetchDarazOrders({ account, credentials, sinceDate }) {
         });
 
         const items = itemsResponse?.data?.data || [];
-        await darazOrderSyncModel.upsertItems(items, localOrder.id);
+        const newlyCreatedItems = await darazOrderSyncModel.upsertItems(items, localOrder.id);
         itemsFetched += items.length;
+
+        // Deduct local stock exactly once per order item — only for items
+        // that were newly synced this call, never on re-sync/status-change
+        // updates to an item we've already seen.
+        for (const newItem of newlyCreatedItems) {
+          try {
+            await orderInventoryDeductionService.deductStockForNewItem({
+              source: "daraz",
+              sourceOrderId: order.order_number || order.order_id,
+              orderItemId: newItem.order_item_id,
+              sku: newItem.sku,
+              qty: newItem.qty,
+            });
+          } catch (deductionError) {
+            console.error(
+              `[DARAZ_ORDER_SYNC] Inventory deduction failed for order ${order.order_id} item ${newItem.order_item_id}:`,
+              deductionError.message
+            );
+          }
+        }
       } catch (itemError) {
         console.error(`[DARAZ_ORDER_SYNC] Failed to fetch items for order ${order.order_id}:`, itemError.message);
       }

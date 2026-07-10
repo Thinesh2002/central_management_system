@@ -217,6 +217,65 @@ function SyncLogsTable({ rows, loading }) {
   );
 }
 
+function OrderInventoryLogsTable({ rows, loading }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="bg-slate-950">
+          <tr>
+            {["Date", "Source", "Order", "SKU", "Qty", "Stock Change", "Status", "Message"].map((header) => (
+              <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-slate-800 bg-slate-900">
+          {rows.map((row) => (
+            <tr key={row.id} className="hover:bg-slate-800/70">
+              <td className="whitespace-nowrap px-3 py-2.5 text-[12px] text-slate-300">
+                {formatDate(row.created_at)}
+              </td>
+              <td className="px-3 py-2.5 text-[12px] capitalize text-slate-300">{row.source}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.source_order_id || "-"}</td>
+              <td className="px-3 py-2.5 font-mono text-[12px] text-slate-200">{row.sku || "-"}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.qty ?? "-"}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">
+                {row.old_stock_qty ?? row.new_stock_qty ? `${row.old_stock_qty ?? "-"} → ${row.new_stock_qty ?? "-"}` : "-"}
+              </td>
+              <td className="px-3 py-2.5">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                    row.status === "success"
+                      ? "border-emerald-900 bg-emerald-950 text-emerald-300"
+                      : row.status === "sku_missing"
+                      ? "border-amber-900 bg-amber-950 text-amber-300"
+                      : "border-red-900 bg-red-950 text-red-300"
+                  }`}
+                >
+                  {row.status === "sku_missing" ? "SKU missing" : row.status}
+                </span>
+              </td>
+              <td className="max-w-[320px] px-3 py-2.5">
+                <span className="line-clamp-1 text-[11px] text-slate-400">{row.message || "-"}</span>
+              </td>
+            </tr>
+          ))}
+
+          {!rows.length && (
+            <tr>
+              <td colSpan="8" className="px-3 py-10 text-center text-[12px] text-slate-400">
+                {loading ? "Loading stock deduction logs..." : "No order stock deduction logs yet."}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function AllLogsTable({ rows, loading }) {
   return (
     <div className="overflow-x-auto">
@@ -277,6 +336,22 @@ export default function LogsPage() {
   const [syncRuns, setSyncRuns] = useState([]);
   const [syncLoading, setSyncLoading] = useState(false);
 
+  const [orderInventoryLogs, setOrderInventoryLogs] = useState([]);
+  const [orderInventoryLoading, setOrderInventoryLoading] = useState(false);
+
+  async function loadOrderInventoryLogs() {
+    setOrderInventoryLoading(true);
+
+    try {
+      const { data } = await api.get("/logs/inventory?limit=200");
+      setOrderInventoryLogs(toArray(data));
+    } catch {
+      setOrderInventoryLogs([]);
+    } finally {
+      setOrderInventoryLoading(false);
+    }
+  }
+
   async function loadLogs() {
     setLogsLoading(true);
     setLogsError("");
@@ -311,6 +386,10 @@ export default function LogsPage() {
       return;
     }
 
+    if (activeTab === "inventory") {
+      loadOrderInventoryLogs();
+    }
+
     loadLogs();
     if (activeTab === "all") loadSyncRuns();
   }
@@ -318,6 +397,7 @@ export default function LogsPage() {
   useEffect(() => {
     loadLogs();
     loadSyncRuns();
+    loadOrderInventoryLogs();
   }, []);
 
   const inventoryLogs = useMemo(() => logs.filter(isInventoryRow), [logs]);
@@ -406,12 +486,26 @@ export default function LogsPage() {
         </div>
       )}
 
-      <div className="w-full p-4">
+      <div className="w-full space-y-4 p-4">
+        {activeTab === "inventory" && (
+          <div className="overflow-hidden border border-slate-800 bg-slate-900">
+            <div className="border-b border-slate-800 px-4 py-3">
+              <h3 className="text-[13px] font-bold text-white">Order Stock Deductions</h3>
+              <p className="text-[11px] text-slate-400">
+                Stock deducted automatically when a new order item is synced in, including "SKU is missing" cases.
+                Showing {orderInventoryLogs.length} records.
+              </p>
+            </div>
+
+            <OrderInventoryLogsTable rows={orderInventoryLogs} loading={orderInventoryLoading} />
+          </div>
+        )}
+
         <div className="overflow-hidden border border-slate-800 bg-slate-900">
           <div className="flex flex-col justify-between gap-2 border-b border-slate-800 px-4 py-3 sm:flex-row sm:items-center">
             <div>
               <h3 className="text-[13px] font-bold text-white">
-                {TABS.find((tab) => tab.key === activeTab)?.label}
+                {activeTab === "inventory" ? "Inventory / Price Activity" : TABS.find((tab) => tab.key === activeTab)?.label}
               </h3>
               <p className="text-[11px] text-slate-400">
                 {activeTab === "all" && `Showing ${unifiedRows.length} combined records.`}

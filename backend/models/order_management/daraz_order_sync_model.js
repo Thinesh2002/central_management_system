@@ -68,11 +68,16 @@ async function upsertOrder(order, account) {
   return orderModel.create(payload);
 }
 
+// Returns the items that were genuinely new this call (not previously
+// synced) — the caller uses this to trigger inventory deduction exactly
+// once per order item, never again on re-sync/status-change updates.
 async function upsertItems(items = [], localOrderId) {
   const [existingRows] = await db.query(
     "SELECT * FROM daraz_order_items WHERE daraz_order_id = ?",
     [localOrderId]
   );
+
+  const newlyCreated = [];
 
   for (const item of items) {
     const payload = mapItemPayload(item, localOrderId);
@@ -87,6 +92,11 @@ async function upsertItems(items = [], localOrderId) {
       await itemModel.update(matching.id, payload);
     } else {
       await itemModel.create(payload);
+      newlyCreated.push({
+        order_item_id: item.order_item_id,
+        sku: item.shop_sku || item.sku,
+        qty: 1,
+      });
     }
   }
 
@@ -98,6 +108,8 @@ async function upsertItems(items = [], localOrderId) {
       tracking_number: firstWithPackage.tracking_code,
     });
   }
+
+  return newlyCreated;
 }
 
 module.exports = { upsertOrder, upsertItems };
