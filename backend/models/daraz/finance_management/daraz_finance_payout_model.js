@@ -89,4 +89,33 @@ async function listPayouts({ account_id, limit = 100, offset = 0 } = {}) {
   return rows;
 }
 
-module.exports = { upsertPayout, listPayouts };
+async function getPayoutSummary({ account_id } = {}) {
+  const params = [];
+  let whereSql = "WHERE 1=1";
+
+  if (account_id) {
+    whereSql += " AND account_id = ?";
+    params.push(account_id);
+  }
+
+  const [rows] = await db.query(
+    `SELECT
+       COALESCE(SUM(opening_balance), 0) AS total_opening_balance,
+       COALESCE(SUM(closing_balance), 0) AS total_closing_balance,
+       COALESCE(SUM(paid), 0) AS total_paid,
+       COALESCE(SUM(item_revenue), 0) AS total_item_revenue,
+       COALESCE(SUM(other_revenue_total), 0) AS total_other_revenue,
+       COALESCE(SUM(fees_total), 0) AS total_fees,
+       COALESCE(SUM(fees_on_refunds_total), 0) AS total_fees_on_refunds,
+       COALESCE(SUM(refunds), 0) AS total_refunds,
+       COALESCE(SUM(guarantee_deposit), 0) AS total_guarantee_deposit,
+       COUNT(*) AS total_statements
+     FROM daraz_finance_payouts
+     ${whereSql}`,
+    params
+  );
+
+  return rows[0] || null;
+}
+
+module.exports = { upsertPayout, listPayouts, getPayoutSummary };

@@ -107,4 +107,29 @@ async function listTransactions({ account_id, order_no, limit = 100, offset = 0 
   return rows;
 }
 
-module.exports = { upsertTransaction, listTransactions };
+async function getTransactionSummary({ account_id } = {}) {
+  const params = [];
+  let whereSql = "WHERE 1=1";
+
+  if (account_id) {
+    whereSql += " AND account_id = ?";
+    params.push(account_id);
+  }
+
+  const [rows] = await db.query(
+    `SELECT
+       COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0) AS total_income,
+       COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS total_expense,
+       COALESCE(SUM(amount), 0) AS net_sales,
+       COALESCE(SUM(CASE WHEN transaction_type LIKE '%penalt%' OR fee_name LIKE '%penalt%' THEN ABS(amount) ELSE 0 END), 0) AS total_penalties,
+       COUNT(*) AS total_transactions,
+       COUNT(DISTINCT order_no) AS total_orders
+     FROM daraz_finance_transactions
+     ${whereSql}`,
+    params
+  );
+
+  return rows[0] || null;
+}
+
+module.exports = { upsertTransaction, listTransactions, getTransactionSummary };
