@@ -1,7 +1,7 @@
 -- =====================================================================
 -- 19_daraz_title_optimizer_patch.sql
 -- AI-assisted Daraz product title optimization: bulk-scan existing
--- Daraz listings, generate a suggested title via Claude, hold it in a
+-- Daraz listings, generate a suggested title via Gemini, hold it in a
 -- review queue until a human approves/rejects — never auto-published.
 --
 -- Lives in cm_product_management, next to daraz_products.

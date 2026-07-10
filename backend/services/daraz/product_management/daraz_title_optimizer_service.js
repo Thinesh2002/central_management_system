@@ -1,6 +1,6 @@
-const { getAnthropicClient } = require("../../ai/anthropic_client");
+const { getGeminiClient } = require("../../ai/gemini_client");
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You optimize product titles for Daraz (a Southeast/South Asian e-commerce marketplace) listings.
 
@@ -21,7 +21,6 @@ const OUTPUT_SCHEMA = {
     reasoning: { type: "string", description: "One or two sentences on what changed and why." },
   },
   required: ["title", "reasoning"],
-  additionalProperties: false,
 };
 
 function buildUserMessage(product, avoidTitles = []) {
@@ -43,37 +42,32 @@ function buildUserMessage(product, avoidTitles = []) {
 }
 
 async function generateTitleSuggestion(product, { avoidTitles = [] } = {}) {
-  const client = getAnthropicClient();
+  const client = getGeminiClient();
 
-  const response = await client.messages.create({
+  const response = await client.models.generateContent({
     model: MODEL,
-    max_tokens: 1024,
-    output_config: {
-      effort: "low",
-      format: {
-        type: "json_schema",
-        schema: OUTPUT_SCHEMA,
-      },
+    contents: buildUserMessage(product, avoidTitles),
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      responseMimeType: "application/json",
+      responseSchema: OUTPUT_SCHEMA,
     },
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildUserMessage(product, avoidTitles) }],
   });
 
-  if (response.stop_reason === "refusal") {
-    const error = new Error("Claude declined to generate a title suggestion for this product.");
-    error.statusCode = 422;
+  const text = response.text;
+
+  if (!text) {
+    const finishReason = response.candidates?.[0]?.finishReason;
+    const error = new Error(
+      finishReason === "SAFETY"
+        ? "Gemini declined to generate a title suggestion for this product (safety filter)."
+        : "Gemini returned no content for this product."
+    );
+    error.statusCode = finishReason === "SAFETY" ? 422 : 502;
     throw error;
   }
 
-  const textBlock = response.content.find((block) => block.type === "text");
-
-  if (!textBlock) {
-    const error = new Error("Claude returned no text content.");
-    error.statusCode = 502;
-    throw error;
-  }
-
-  const parsed = JSON.parse(textBlock.text);
+  const parsed = JSON.parse(text);
 
   return { title: parsed.title, reasoning: parsed.reasoning };
 }
