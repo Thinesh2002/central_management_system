@@ -7,20 +7,20 @@ const syncLogModel = require("../../../models/daraz/finance_management/daraz_fin
 const orderLookupModel = require("../../../models/daraz/finance_management/daraz_order_lookup_model");
 const darazFinanceSyncService = require("../../../services/daraz/finance_management/daraz_finance_sync_service");
 
-async function enrichWithOrderThumbnails(rows) {
+async function enrichGroupsWithOrderThumbnails(groups) {
   try {
     const thumbnails = await orderLookupModel.getOrderThumbnailsByOrderNos(
-      rows.map((row) => row.order_no)
+      groups.map((group) => group.order_no)
     );
 
-    return rows.map((row) => ({
-      ...row,
-      thumbnail_url: thumbnails[row.order_no]?.thumbnail_url || null,
-      product_title: thumbnails[row.order_no]?.product_title || null,
+    return groups.map((group) => ({
+      ...group,
+      thumbnail_url: thumbnails[group.order_no]?.thumbnail_url || null,
+      product_title: thumbnails[group.order_no]?.product_title || null,
     }));
   } catch (error) {
     console.error("[DARAZ_FINANCE_THUMBNAIL_LOOKUP_FAILED]", error.message);
-    return rows;
+    return groups;
   }
 }
 
@@ -43,16 +43,39 @@ async function loadAccountWithCredentials(accountId) {
 }
 
 const listPayouts = asyncHandler(async (req, res) => {
-  const { account_id: accountId, limit, offset } = req.query || {};
-  const data = await payoutModel.listPayouts({ account_id: accountId, limit, offset });
+  const { account_id: accountId, date_from: dateFrom, date_to: dateTo, limit, offset } = req.query || {};
+  const data = await payoutModel.listPayouts({ account_id: accountId, date_from: dateFrom, date_to: dateTo, limit, offset });
   return res.json({ success: true, data });
 });
 
 const listTransactions = asyncHandler(async (req, res) => {
-  const { account_id: accountId, order_no: orderNo, limit, offset } = req.query || {};
-  const rows = await transactionModel.listTransactions({ account_id: accountId, order_no: orderNo, limit, offset });
-  const data = await enrichWithOrderThumbnails(rows);
+  const { account_id: accountId, order_no: orderNo, date_from: dateFrom, date_to: dateTo, limit, offset } = req.query || {};
+  const data = await transactionModel.listTransactions({
+    account_id: accountId,
+    order_no: orderNo,
+    date_from: dateFrom,
+    date_to: dateTo,
+    limit,
+    offset,
+  });
   return res.json({ success: true, data });
+});
+
+// One row per order (SQL-level SUM/COUNT), so totals stay accurate no
+// matter how many raw transaction lines exist for a given order/date range.
+const listTransactionOrderGroups = asyncHandler(async (req, res) => {
+  const { account_id: accountId, date_from: dateFrom, date_to: dateTo, limit, offset } = req.query || {};
+
+  const { rows, total } = await transactionModel.listOrderGroups({
+    account_id: accountId,
+    date_from: dateFrom,
+    date_to: dateTo,
+    limit,
+    offset,
+  });
+
+  const data = await enrichGroupsWithOrderThumbnails(rows);
+  return res.json({ success: true, data, total });
 });
 
 const listSyncLogs = asyncHandler(async (req, res) => {
@@ -62,22 +85,28 @@ const listSyncLogs = asyncHandler(async (req, res) => {
 });
 
 const getPayoutSummary = asyncHandler(async (req, res) => {
-  const { account_id: accountId } = req.query || {};
-  const data = await payoutModel.getPayoutSummary({ account_id: accountId });
+  const { account_id: accountId, date_from: dateFrom, date_to: dateTo } = req.query || {};
+  const data = await payoutModel.getPayoutSummary({ account_id: accountId, date_from: dateFrom, date_to: dateTo });
   return res.json({ success: true, data });
 });
 
 const getTransactionSummary = asyncHandler(async (req, res) => {
-  const { account_id: accountId } = req.query || {};
-  const data = await transactionModel.getTransactionSummary({ account_id: accountId });
+  const { account_id: accountId, date_from: dateFrom, date_to: dateTo } = req.query || {};
+  const data = await transactionModel.getTransactionSummary({ account_id: accountId, date_from: dateFrom, date_to: dateTo });
   return res.json({ success: true, data });
 });
 
 const runPayoutSyncNow = asyncHandler(async (req, res) => {
   const { accountId } = req.params;
+  const { created_after: createdAfter } = req.body || {};
   const { account, credentials } = await loadAccountWithCredentials(accountId);
 
-  const result = await darazFinanceSyncService.syncPayouts({ account, credentials, sync_type: "manual" });
+  const result = await darazFinanceSyncService.syncPayouts({
+    account,
+    credentials,
+    sync_type: "manual",
+    createdAfter,
+  });
 
   return res.json({ success: true, message: "Payout sync completed.", data: result });
 });
@@ -101,6 +130,7 @@ const runTransactionSyncNow = asyncHandler(async (req, res) => {
 module.exports = {
   listPayouts,
   listTransactions,
+  listTransactionOrderGroups,
   listSyncLogs,
   getPayoutSummary,
   getTransactionSummary,

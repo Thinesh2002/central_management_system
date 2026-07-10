@@ -72,7 +72,7 @@ async function upsertPayout(accountId, row = {}) {
   return rows[0] || null;
 }
 
-async function listPayouts({ account_id, limit = 100, offset = 0 } = {}) {
+function buildFilters({ account_id, date_from, date_to } = {}) {
   const params = [];
   let whereSql = "WHERE 1=1";
 
@@ -80,6 +80,22 @@ async function listPayouts({ account_id, limit = 100, offset = 0 } = {}) {
     whereSql += " AND account_id = ?";
     params.push(account_id);
   }
+
+  if (date_from) {
+    whereSql += " AND DATE(daraz_created_at) >= ?";
+    params.push(date_from);
+  }
+
+  if (date_to) {
+    whereSql += " AND DATE(daraz_created_at) <= ?";
+    params.push(date_to);
+  }
+
+  return { whereSql, params };
+}
+
+async function listPayouts({ account_id, date_from, date_to, limit = 100, offset = 0 } = {}) {
+  const { whereSql, params } = buildFilters({ account_id, date_from, date_to });
 
   const [rows] = await db.query(
     `SELECT * FROM daraz_finance_payouts ${whereSql} ORDER BY daraz_created_at DESC, id DESC LIMIT ? OFFSET ?`,
@@ -89,19 +105,25 @@ async function listPayouts({ account_id, limit = 100, offset = 0 } = {}) {
   return rows;
 }
 
-async function getPayoutSummary({ account_id } = {}) {
-  const params = [];
-  let whereSql = "WHERE 1=1";
+async function getPayoutSummary({ account_id, date_from, date_to } = {}) {
+  const { whereSql, params } = buildFilters({ account_id, date_from, date_to });
 
-  if (account_id) {
-    whereSql += " AND account_id = ?";
-    params.push(account_id);
-  }
+  // opening_balance/closing_balance are point-in-time account balances, not
+  // additive amounts — summing them across multiple statements produces a
+  // meaningless number. Take the latest statement's balances instead; only
+  // the genuinely additive period fields (fees, refunds, revenue...) get
+  // summed across the filtered statements.
+  const [latestRows] = await db.query(
+    `SELECT opening_balance, closing_balance
+     FROM daraz_finance_payouts
+     ${whereSql}
+     ORDER BY daraz_created_at DESC, id DESC
+     LIMIT 1`,
+    params
+  );
 
-  const [rows] = await db.query(
+  const [sumRows] = await db.query(
     `SELECT
-       COALESCE(SUM(opening_balance), 0) AS total_opening_balance,
-       COALESCE(SUM(closing_balance), 0) AS total_closing_balance,
        COALESCE(SUM(paid), 0) AS total_paid,
        COALESCE(SUM(item_revenue), 0) AS total_item_revenue,
        COALESCE(SUM(other_revenue_total), 0) AS total_other_revenue,
@@ -115,7 +137,11 @@ async function getPayoutSummary({ account_id } = {}) {
     params
   );
 
-  return rows[0] || null;
+  return {
+    ...(sumRows[0] || {}),
+    latest_opening_balance: latestRows[0]?.opening_balance ?? null,
+    latest_closing_balance: latestRows[0]?.closing_balance ?? null,
+  };
 }
 
 module.exports = { upsertPayout, listPayouts, getPayoutSummary };
