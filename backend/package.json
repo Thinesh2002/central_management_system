@@ -19,11 +19,13 @@
     "patch-message-templates": "node scripts/run-sql-file.js 15_message_templates_patch.sql",
     "patch-daraz-finance": "node scripts/run-sql-file.js 16_daraz_finance_patch.sql",
     "patch-inventory-order-deduction": "node scripts/run-sql-file.js 17_inventory_order_deduction_patch.sql",
-    "patch-daraz-finance-reporting": "node scripts/run-sql-file.js 18_daraz_finance_reporting_patch.sql"
+    "patch-daraz-finance-reporting": "node scripts/run-sql-file.js 18_daraz_finance_reporting_patch.sql",
+    "patch-daraz-title-optimizer": "node scripts/run-sql-file.js 19_daraz_title_optimizer_patch.sql"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "axios": "^1.18.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",

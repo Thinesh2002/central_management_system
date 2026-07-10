@@ -10,6 +10,7 @@ import DarazEditProductPage from "../../../pages/daraz/product_management/daraz_
 import DarazCreateProductPage from "../../../pages/daraz/product_management/daraz_create_product_page/index";
 import DarazTransferProductPage from "../../../pages/daraz/product_management/daraz_transfer_product_page/index";
 import DarazTransferPreviewPage from "../../../pages/daraz/product_management/daraz_transfer_preview_page/index";
+import DarazTitleOptimizerPage from "../../../pages/daraz/product_management/daraz_title_optimizer_page/index";
 import DarazProductLogsPage from "../../../pages/daraz/daraz_logs/daraz_sync_logs_page";
 
 function ProtectedProductPage({ children }) {
@@ -78,6 +79,15 @@ export default function DarazProductRoutes() {
         element={
           <ProtectedProductPage>
             <DarazTransferPreviewPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/daraz-products/title-optimizer"
+        element={
+          <ProtectedProductPage>
+            <DarazTitleOptimizerPage />
           </ProtectedProductPage>
         }
       />

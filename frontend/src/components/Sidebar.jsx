@@ -34,6 +34,7 @@ import {
   Clock,
   UserCog,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
 
 const iconMap = {
@@ -62,6 +63,7 @@ const iconMap = {
   Clock,
   UserCog,
   MessageSquare,
+  Sparkles,
 };
 
 const staticMenu = [
@@ -114,6 +116,14 @@ const staticMenu = [
     page_name: "Daraz Products",
     path: "/product/daraz-products",
     icon: "ShoppingBag",
+    exact: true,
+  },
+  {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "daraz_title_optimizer",
+    page_name: "Title Optimizer",
+    path: "/product/daraz-products/title-optimizer",
+    icon: "Sparkles",
     exact: true,
   },
   {

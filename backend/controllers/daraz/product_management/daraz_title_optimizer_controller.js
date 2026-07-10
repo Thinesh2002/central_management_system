@@ -1,0 +1,124 @@
+const accountModel = require("../../../models/marketplace/account_model");
+const credentialModel = require("../../../models/marketplace/credential_model");
+const titleSuggestionModel = require("../../../models/daraz/product_management/daraz_title_suggestion_model");
+const titleScanService = require("../../../services/daraz/product_management/daraz_title_scan_service");
+const darazProductApiService = require("../../../services/marketplace/daraz_product_api_service");
+
+async function scan(req, res) {
+  try {
+    const { accountId, limit } = req.body || {};
+
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "accountId is required." });
+    }
+
+    const result = await titleScanService.scanAccountForTitleSuggestions({
+      accountId,
+      limit: limit || 50,
+      userId: req.user?.id || null,
+    });
+
+    return res.json({ success: true, message: "Scan completed.", data: result });
+  } catch (error) {
+    console.error("[DARAZ_TITLE_SCAN_ERROR]", { message: error?.message });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to scan products for title suggestions.",
+    });
+  }
+}
+
+async function listSuggestions(req, res) {
+  try {
+    const { account_id: accountId, status, scan_batch_id: scanBatchId, limit } = req.query || {};
+
+    const data = await titleSuggestionModel.list({
+      account_id: accountId,
+      status,
+      scan_batch_id: scanBatchId,
+      limit,
+    });
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[DARAZ_TITLE_LIST_ERROR]", { message: error?.message });
+
+    return res.status(500).json({ success: false, message: "Failed to load title suggestions." });
+  }
+}
+
+async function approveSuggestion(req, res) {
+  try {
+    const { id } = req.params;
+    const suggestion = await titleSuggestionModel.findById(id);
+
+    if (!suggestion) {
+      return res.status(404).json({ success: false, message: "Suggestion not found." });
+    }
+
+    if (suggestion.status !== "pending") {
+      return res.status(400).json({ success: false, message: `Suggestion is already ${suggestion.status}.` });
+    }
+
+    const account = await accountModel.findById(suggestion.account_id);
+    const credentials = await credentialModel.findByAccountId(suggestion.account_id);
+
+    if (!account || !credentials?.access_token) {
+      return res.status(400).json({ success: false, message: "Daraz account credentials missing." });
+    }
+
+    await darazProductApiService.updateDarazProductDetails({
+      account,
+      credentials,
+      itemId: suggestion.daraz_item_id,
+      sellerSku: suggestion.seller_sku,
+      name: suggestion.suggested_title,
+    });
+
+    const updated = await titleSuggestionModel.updateStatus(id, {
+      status: "applied",
+      reviewed_by: req.user?.id || null,
+      applied_at: new Date(),
+    });
+
+    return res.json({ success: true, message: "Title applied to Daraz.", data: updated });
+  } catch (error) {
+    console.error("[DARAZ_TITLE_APPROVE_ERROR]", { message: error?.message });
+
+    await titleSuggestionModel.updateStatus(req.params.id, {
+      status: "failed",
+      reviewed_by: req.user?.id || null,
+      error_message: error.message,
+    });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to apply title to Daraz.",
+    });
+  }
+}
+
+async function rejectSuggestion(req, res) {
+  try {
+    const { id } = req.params;
+    const suggestion = await titleSuggestionModel.findById(id);
+
+    if (!suggestion) {
+      return res.status(404).json({ success: false, message: "Suggestion not found." });
+    }
+
+    const updated = await titleSuggestionModel.updateStatus(id, {
+      status: "rejected",
+      reviewed_by: req.user?.id || null,
+    });
+
+    return res.json({ success: true, message: "Suggestion rejected.", data: updated });
+  } catch (error) {
+    console.error("[DARAZ_TITLE_REJECT_ERROR]", { message: error?.message });
+
+    return res.status(500).json({ success: false, message: "Failed to reject suggestion." });
+  }
+}
+
+module.exports = { scan, listSuggestions, approveSuggestion, rejectSuggestion };
