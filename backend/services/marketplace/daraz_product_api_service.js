@@ -72,6 +72,7 @@ async function updateDarazProductDetails({
   itemId,
   primaryCategory = null,
   sellerSku,
+  skuId = null,
   name,
   shortDescription,
   brand = null,
@@ -95,6 +96,7 @@ async function updateDarazProductDetails({
     .join("\n      ");
 
   const skuFields = [
+    skuId !== null && skuId !== undefined && skuId !== "" ? `<SkuId>${escapeXml(skuId)}</SkuId>` : "",
     `<SellerSku>${escapeXml(sellerSku || "")}</SellerSku>`,
     quantity !== null && quantity !== undefined ? `<quantity>${Number(quantity)}</quantity>` : "",
     price !== null && price !== undefined && price !== "" ? `<price>${Number(price)}</price>` : "",

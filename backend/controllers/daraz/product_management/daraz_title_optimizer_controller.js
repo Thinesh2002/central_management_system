@@ -75,6 +75,8 @@ async function approveSuggestion(req, res) {
     }
 
     const product = await darazProductSyncModel.getPreviewById(suggestion.daraz_product_id);
+    const skus = Array.isArray(product?.skus_json) ? product.skus_json : [];
+    const matchedSku = skus.find((sku) => sku?.SellerSku === suggestion.seller_sku) || skus[0] || null;
 
     await darazProductApiService.updateDarazProductDetails({
       account,
@@ -82,6 +84,7 @@ async function approveSuggestion(req, res) {
       itemId: suggestion.daraz_item_id,
       primaryCategory: product?.primary_category || null,
       sellerSku: suggestion.seller_sku,
+      skuId: matchedSku?.SkuId || null,
       name: suggestion.suggested_title,
       brand: product?.brand || null,
       quantity: product?.quantity ?? null,
