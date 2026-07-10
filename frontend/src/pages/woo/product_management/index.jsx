@@ -8,6 +8,7 @@ import {
   PlayCircle,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { wooProductApi } from "../../../config/sub_api/woo_api/woo_product_api";
 import Loader from "../../../components/common/Loader";
@@ -239,6 +240,7 @@ export default function WooProductDashboardPage() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
 
   const totalPages = useMemo(() => {
     return Math.max(Math.ceil(total / limit), 1);
@@ -504,9 +506,12 @@ export default function WooProductDashboardPage() {
                         <div className="flex min-w-[390px] items-center gap-3">
                           <button
                             type="button"
-                            onClick={() => openOverlay(detailLink)}
+                            onClick={() =>
+                              imageUrl &&
+                              setImagePreview({ image: imageUrl, title: product.name || "Product" })
+                            }
                             className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white"
-                            title="Open product detail"
+                            title="View product image"
                           >
                             {imageUrl ? (
                               <img
@@ -638,6 +643,49 @@ export default function WooProductDashboardPage() {
           </button>
         </div>
       </div>
+
+      {imagePreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setImagePreview(null)}
+        >
+          <div
+            className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+              <h3 className="truncate text-[15px] font-semibold text-white">Product Image</h3>
+
+              <button
+                type="button"
+                onClick={() => setImagePreview(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                <X size={17} />
+              </button>
+            </div>
+
+            <div className="flex justify-center bg-[#0b1220] px-4 py-4">
+              <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-purple-500/40 bg-white p-3">
+                <img
+                  src={imagePreview.image}
+                  alt={imagePreview.title}
+                  className="max-h-[60vh] max-w-full object-contain"
+                />
+              </div>
+            </div>
+
+            <div className="px-4 pb-4">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Image URL
+              </p>
+              <p title={imagePreview.image} className="break-all text-xs font-medium leading-5 text-slate-400">
+                {imagePreview.image}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

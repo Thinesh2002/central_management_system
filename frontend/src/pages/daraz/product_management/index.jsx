@@ -1902,31 +1902,42 @@ export default function DarazDashboardPage() {
       ) : null}
 
       {imagePreview ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4">
-          <div className="w-full max-w-[620px] overflow-hidden rounded-md border border-zinc-700 bg-[#172235] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-cyan-700 px-4 py-3">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setImagePreview(null)}
+        >
+          <div
+            className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
               <h3 className="truncate text-[15px] font-semibold text-white">Product Image</h3>
 
               <button
                 type="button"
                 onClick={() => setImagePreview(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
               >
                 <X size={17} />
               </button>
             </div>
 
-            <div className="p-4">
-              <div className="flex max-h-[70vh] items-center justify-center overflow-hidden rounded-md bg-white/5 p-3">
+            <div className="flex justify-center bg-[#0b1220] px-4 py-4">
+              <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-purple-500/40 bg-white p-3">
                 <img
                   src={imagePreview.image}
                   alt={imagePreview.title}
-                  className="max-h-[66vh] max-w-full rounded-sm object-contain"
+                  className="max-h-[60vh] max-w-full object-contain"
                 />
               </div>
+            </div>
 
-              <p className="mt-3 max-h-[60px] overflow-hidden text-center text-[13px] leading-[1.35] text-zinc-300">
-                {imagePreview.title}
+            <div className="px-4 pb-4">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                Image URL
+              </p>
+              <p title={imagePreview.image} className="break-all text-xs font-medium leading-5 text-slate-400">
+                {imagePreview.image}
               </p>
             </div>
           </div>
