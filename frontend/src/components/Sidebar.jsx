@@ -199,6 +199,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "CONFIGURATION",
+    page_key: "daraz_metrics",
+    page_name: "Daraz Metrics",
+    path: "/marketplace/daraz-metrics",
+    icon: "BarChart3",
+    exact: true,
+  },
+  {
     section: "SETTINGS",
     page_key: "user_settings",
     pageKeys: ["users", "user_settings"],

@@ -10,7 +10,6 @@ import {
   Eye,
   Pencil,
   Trash2,
-  Activity,
   Database,
   CheckCircle2,
   XCircle,
@@ -43,6 +42,18 @@ function normalizeStatus(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+const GOOD_STATUSES = new Set(["active", "connected", "valid"]);
+const BAD_STATUSES = new Set([
+  "token_expired",
+  "reauthorization_required",
+  "connection_failed",
+  "refresh_failed",
+  "expired",
+  "invalid",
+  "error",
+  "failed",
+]);
+
 function accountNeedsDarazReauth(account) {
   if (String(account?.platform_code || "").toUpperCase() !== "DARAZ") {
     return false;
@@ -54,19 +65,7 @@ function accountNeedsDarazReauth(account) {
     normalizeStatus(account.token_status),
   ];
 
-  return values.some((value) =>
-    [
-      "reauthorization_required",
-      "token_expired",
-      "refresh_failed",
-      "expired",
-      "connection_failed",
-      "invalid",
-      "not_created",
-      "not_connected",
-      "error",
-    ].includes(value)
-  );
+  return values.some((value) => BAD_STATUSES.has(value) || value === "not_created" || value === "not_connected");
 }
 
 function extractDarazAuthUrl(res) {
@@ -108,35 +107,20 @@ function extractDarazAuthUrl(res) {
 }
 
 function StatusBadge({ value }) {
-  const status = value || "unknown";
+  const status = normalizeStatus(value) || "unknown";
 
-  const styles = {
-    active: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-    inactive: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-    token_expired: "border-red-400/30 bg-red-400/10 text-red-300",
-    reauthorization_required:
-      "border-orange-400/30 bg-orange-400/10 text-orange-300",
-    connection_failed: "border-red-400/30 bg-red-400/10 text-red-300",
-    sync_paused: "border-yellow-400/30 bg-yellow-400/10 text-yellow-300",
-    connected: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-    failed: "border-red-400/30 bg-red-400/10 text-red-300",
-    expired: "border-orange-400/30 bg-orange-400/10 text-orange-300",
-    paused: "border-yellow-400/30 bg-yellow-400/10 text-yellow-300",
-    valid: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
-    invalid: "border-red-400/30 bg-red-400/10 text-red-300",
-    refresh_failed: "border-red-400/30 bg-red-400/10 text-red-300",
-    not_created: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-    not_connected: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-    error: "border-red-400/30 bg-red-400/10 text-red-300",
-    unknown: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-  };
+  let className = "border-slate-700 bg-slate-800/60 text-slate-300";
+
+  if (GOOD_STATUSES.has(status)) {
+    className = "border-emerald-900 bg-emerald-950 text-emerald-300";
+  } else if (BAD_STATUSES.has(status)) {
+    className = "border-red-900 bg-red-950 text-red-300";
+  } else if (status === "sync_paused" || status === "paused") {
+    className = "border-amber-900 bg-amber-950 text-amber-300";
+  }
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${
-        styles[status] || styles.unknown
-      }`}
-    >
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${className}`}>
       {cleanStatus(status)}
     </span>
   );
@@ -144,28 +128,22 @@ function StatusBadge({ value }) {
 
 function StatCard({ title, value, icon: Icon, tone = "slate" }) {
   const tones = {
-    slate: "border-white/10 bg-[#0D1322] text-slate-200",
+    slate: "border-slate-800 bg-[#0b1220] text-slate-200",
     green: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
     red: "border-red-400/20 bg-red-400/10 text-red-300",
-    yellow: "border-yellow-400/20 bg-yellow-400/10 text-yellow-300",
+    orange: "border-orange-400/20 bg-orange-400/10 text-orange-300",
   };
 
   return (
-    <div
-      className={`rounded-2xl border p-4 shadow-xl shadow-black/20 ${
-        tones[tone] || tones.slate
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
+    <div className={`rounded-lg border p-3 ${tones[tone] || tones.slate}`}>
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            {title}
-          </p>
-          <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{title}</p>
+          <p className="mt-1 text-[18px] font-bold text-white">{value}</p>
         </div>
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
-          <Icon size={19} />
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+          <Icon size={15} />
         </div>
       </div>
     </div>
@@ -352,17 +330,7 @@ export default function MarketplaceAccountsPage() {
         normalizeStatus(item.connection_status),
       ];
 
-      return values.some((value) =>
-        [
-          "token_expired",
-          "reauthorization_required",
-          "connection_failed",
-          "refresh_failed",
-          "expired",
-          "invalid",
-          "error",
-        ].includes(value)
-      );
+      return values.some((value) => BAD_STATUSES.has(value));
     }).length;
 
     return {
@@ -381,21 +349,15 @@ export default function MarketplaceAccountsPage() {
   }, [accounts]);
 
   return (
-    <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-medium text-yellow-200">
-            <Activity size={13} />
-            Daraz + WooCommerce Central API
-          </div>
-
-          <h1 className="text-xl font-semibold text-white">
+          <h1 className="flex items-center gap-2 text-xl font-medium text-slate-100">
+            <Store size={20} />
             Marketplace Accounts
           </h1>
-
-          <p className="mt-1 text-sm text-slate-400">
-            Manage Daraz accounts, WooCommerce stores, tokens, manual sync and
-            API health.
+          <p className="text-[13px] text-slate-500">
+            Manage Daraz accounts, WooCommerce stores, tokens, manual sync and API health.
           </p>
         </div>
 
@@ -404,13 +366,9 @@ export default function MarketplaceAccountsPage() {
             type="button"
             onClick={handleCheckAllTokens}
             disabled={checkingAll}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-[#0D1322] px-3 text-[12px] font-medium text-slate-200 shadow-xl shadow-black/10 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {checkingAll ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <ShieldCheck size={13} />
-            )}
+            {checkingAll ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
             Check Daraz Tokens
           </button>
 
@@ -418,75 +376,57 @@ export default function MarketplaceAccountsPage() {
             type="button"
             onClick={loadAccounts}
             disabled={loading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-[#0D1322] px-3 text-[12px] font-medium text-slate-200 shadow-xl shadow-black/10 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
 
           <button
             type="button"
             onClick={() => openOverlay("/marketplace/accounts/add")}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md bg-orange-500 px-2.5 text-[11px] font-semibold text-white hover:bg-orange-400"
           >
-            <Plus size={13} />
+            <Plus size={12} />
             Add Account
           </button>
         </div>
       </div>
 
       {message && (
-        <div className="mb-5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+        <div className="rounded-md border border-emerald-900 bg-emerald-950 px-3 py-2 text-[13px] text-emerald-300">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="mb-5 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div className="rounded-md border border-red-900 bg-red-950 px-3 py-2 text-[13px] text-red-300">
           {error}
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
         <StatCard title="Total Accounts" value={stats.total} icon={Database} />
-
-        <StatCard
-          title="Active"
-          value={stats.active}
-          icon={CheckCircle2}
-          tone="green"
-        />
-
-        <StatCard
-          title="Token Issues"
-          value={stats.tokenIssues}
-          icon={XCircle}
-          tone="red"
-        />
-
-        <StatCard title="Daraz" value={stats.daraz} icon={Store} tone="yellow" />
-
+        <StatCard title="Active" value={stats.active} icon={CheckCircle2} tone="green" />
+        <StatCard title="Token Issues" value={stats.tokenIssues} icon={XCircle} tone="red" />
+        <StatCard title="Daraz" value={stats.daraz} icon={Store} tone="orange" />
         <StatCard title="Woo" value={stats.woo} icon={Store} />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-[#0D1322] shadow-xl shadow-black/20">
-        <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full md:max-w-md">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-            />
-
+      <div className="rounded-lg border border-slate-800 bg-slate-950">
+        <div className="flex flex-col gap-2 border-b border-slate-800 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder="Search account, platform, country..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-md border border-white/10 bg-[#070B14] pl-9 pr-3 text-[12px] text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/70 focus:ring-2 focus:ring-yellow-400/10"
+              className="h-8 w-full rounded-md border border-slate-700 bg-slate-900 pl-7 pr-3 text-[12px] text-slate-100 outline-none placeholder:text-slate-600 focus:border-orange-400/60"
             />
           </div>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-[12px] text-slate-500">
             Showing {filteredAccounts.length} of {accounts.length}
           </p>
         </div>
@@ -495,125 +435,96 @@ export default function MarketplaceAccountsPage() {
           <Loader label="Loading marketplace accounts..." minHeight="0" className="py-16" />
         ) : filteredAccounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-[#070B14] text-slate-500">
-              <Store size={30} />
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg border border-slate-800 bg-[#0b1220] text-slate-500">
+              <Store size={24} />
             </div>
 
-            <p className="text-sm font-semibold text-slate-200">
-              No marketplace accounts found.
-            </p>
+            <p className="text-[13px] font-semibold text-slate-200">No marketplace accounts found.</p>
 
-            <p className="mt-1 max-w-md text-sm text-slate-500">
-              If you already added accounts, check whether backend returns data
-              from{" "}
-              <span className="font-mono text-yellow-200">
-                /api/marketplace/accounts
-              </span>{" "}
-              and confirm the response key is data/accounts/rows.
+            <p className="mt-1 max-w-md text-[12px] text-slate-500">
+              If you already added accounts, check whether backend returns data from{" "}
+              <span className="font-mono text-orange-300">/api/marketplace/accounts</span> and confirm the response
+              key is data/accounts/rows.
             </p>
 
             <button
               type="button"
               onClick={() => openOverlay("/marketplace/accounts/add")}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-yellow-300"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-orange-500 px-3 py-2 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
-              <Plus size={16} />
+              <Plus size={14} />
               Add Account
             </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-[#070B14] text-xs uppercase tracking-wide text-slate-500">
+            <table className="min-w-full text-left text-[12px]">
+              <thead className="bg-slate-900">
                 <tr>
-                  <th className="px-4 py-3">Account</th>
-                  <th className="px-4 py-3">Platform</th>
-                  <th className="px-4 py-3">Country</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Connection</th>
-                  <th className="px-4 py-3">Token</th>
-                  <th className="px-4 py-3">Last Sync</th>
-                  <th className="px-4 py-3 text-right">Action</th>
+                  {["Account", "Platform", "Country", "Status", "Connection", "Token", "Last Sync"].map((header) => (
+                    <th key={header} className="px-3 py-2 font-normal uppercase tracking-wide text-slate-500">
+                      {header}
+                    </th>
+                  ))}
+                  <th className="px-3 py-2 text-right font-normal uppercase tracking-wide text-slate-500">Action</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-slate-800">
                 {filteredAccounts.map((account) => {
                   const accountId = account.id || account.account_id;
 
                   return (
-                    <tr
-                      key={accountId || account.account_uid}
-                      className="transition hover:bg-white/[0.03]"
-                    >
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-white">
-                          {account.account_name || "Unnamed Account"}
-                        </div>
-
-                        <div className="mt-0.5 font-mono text-xs text-yellow-200/80">
+                    <tr key={accountId || account.account_uid} className="hover:bg-slate-900">
+                      <td className="px-3 py-2.5">
+                        <div className="font-semibold text-white">{account.account_name || "Unnamed Account"}</div>
+                        <div className="mt-0.5 font-mono text-[11px] text-orange-300/80">
                           {account.account_uid || account.account_code || "-"}
                         </div>
-
                         {account.seller_email && (
-                          <div className="mt-0.5 text-xs text-slate-500">
-                            {account.seller_email}
-                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-500">{account.seller_email}</div>
                         )}
                       </td>
 
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-slate-200">
-                          {account.platform_name || account.platform_code || "-"}
-                        </div>
-
-                        <div className="text-xs text-slate-500">
-                          {account.platform_code || "-"}
-                        </div>
+                      <td className="px-3 py-2.5">
+                        <div className="text-slate-200">{account.platform_name || account.platform_code || "-"}</div>
+                        <div className="text-[11px] text-slate-500">{account.platform_code || "-"}</div>
                       </td>
 
-                      <td className="px-4 py-4 text-slate-300">
-                        {account.country_code || "-"}
-                      </td>
+                      <td className="px-3 py-2.5 text-slate-300">{account.country_code || "-"}</td>
 
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-2.5">
                         <StatusBadge value={account.status} />
                       </td>
 
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-2.5">
                         <StatusBadge value={account.connection_status} />
                       </td>
 
-                      <td className="px-4 py-4">
-                        <StatusBadge
-                          value={account.token_status || "not_created"}
-                        />
+                      <td className="px-3 py-2.5">
+                        <StatusBadge value={account.token_status || "not_created"} />
                       </td>
 
-                      <td className="px-4 py-4 text-slate-400">
-                        {account.last_sync_at
-                          ? new Date(account.last_sync_at).toLocaleString()
-                          : "-"}
+                      <td className="px-3 py-2.5 text-slate-400">
+                        {account.last_sync_at ? new Date(account.last_sync_at).toLocaleString() : "-"}
                       </td>
 
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          {String(account.platform_code || "").toUpperCase() ===
-                            "DARAZ" && (
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {String(account.platform_code || "").toUpperCase() === "DARAZ" && (
                             <button
                               type="button"
                               onClick={() => handleDarazReconnect(accountId)}
                               disabled={reauthAccountId === accountId}
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-yellow-400 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
+                              title={accountNeedsDarazReauth(account) ? "Reconnect" : "Connect"}
+                              className="inline-flex h-7 items-center gap-1 rounded-md bg-orange-500 px-2 text-[11px] font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {reauthAccountId === accountId ? (
-                                <Loader2 size={14} className="animate-spin" />
+                                <Loader2 size={12} className="animate-spin" />
                               ) : (
-                                <ShieldCheck size={14} />
+                                <ShieldCheck size={12} />
                               )}
-                              {accountNeedsDarazReauth(account)
-                                ? "Reconnect"
-                                : "Connect"}
+                              {accountNeedsDarazReauth(account) ? "Reconnect" : "Connect"}
                             </button>
                           )}
 
@@ -621,18 +532,18 @@ export default function MarketplaceAccountsPage() {
                             type="button"
                             onClick={() => openOverlay(`/marketplace/accounts/${accountId}`)}
                             title="View"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
                           >
-                            <Eye size={14} />
+                            <Eye size={13} />
                           </button>
 
                           <button
                             type="button"
                             onClick={() => openOverlay(`/marketplace/accounts/${accountId}/edit`)}
                             title="Edit"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
                           >
-                            <Pencil size={14} />
+                            <Pencil size={13} />
                           </button>
 
                           <button
@@ -640,12 +551,12 @@ export default function MarketplaceAccountsPage() {
                             onClick={() => handleDeleteAccount(account)}
                             disabled={deletingAccountId === accountId}
                             title="Delete"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-red-400/30 bg-red-400/10 text-red-300 transition hover:border-red-400/60 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-red-900 bg-red-950 text-red-300 hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             {deletingAccountId === accountId ? (
-                              <Loader2 size={14} className="animate-spin" />
+                              <Loader2 size={13} className="animate-spin" />
                             ) : (
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             )}
                           </button>
                         </div>
@@ -659,16 +570,12 @@ export default function MarketplaceAccountsPage() {
         )}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-yellow-400/20 bg-yellow-400/10 p-4 text-sm text-yellow-100/80">
-        <div className="flex gap-3">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-yellow-300" />
-
-          <p>
-            Backend token checker runs every 15 minutes. If Daraz token becomes
-            expired or reauthorization required, use the Connect/Reconnect
-            button to complete seller authorization again.
-          </p>
-        </div>
+      <div className="flex items-start gap-2 rounded-lg border border-slate-800 bg-[#0b1220] p-3 text-[12px] text-slate-400">
+        <AlertTriangle size={15} className="mt-0.5 shrink-0 text-orange-400" />
+        <p>
+          Backend token checker runs every 15 minutes. If a Daraz token becomes expired or reauthorization required,
+          use the Connect/Reconnect button to complete seller authorization again.
+        </p>
       </div>
     </div>
   );

@@ -32,6 +32,7 @@ const darazProductSyncRoutes = require("./routes/daraz/product_management/daraz_
 const darazTransferRoutes = require("./routes/daraz/product_management/daraz_transfer_route");
 const darazInventorySyncRoutes = require("./routes/daraz/inventory/daraz_inventory_sync_route");
 const darazCatalogRoutes = require("./routes/marketplace/daraz_catalog_route");
+const darazSellerMetricsRoutes = require("./routes/daraz/marketplace_management/daraz_seller_metrics_routes");
 const wooRoutes = require("./routes/woo/woo_route");
 
 const skuReportRoutes = require("./routes/order_management/sku_report_routes");
@@ -188,6 +189,7 @@ app.use("/api/daraz-products", darazProductSyncRoutes);
 app.use("/api/daraz/transfer", darazTransferRoutes);
 app.use("/api/daraz-inventory", darazInventorySyncRoutes);
 app.use("/api/daraz-catalog", darazCatalogRoutes);
+app.use("/api/daraz/seller-metrics", darazSellerMetricsRoutes);
 app.use("/api/marketplace/woo", wooRoutes);
 
 app.use("/api/order-management/sku-report", skuReportRoutes);

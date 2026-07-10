@@ -8,6 +8,7 @@ import MarketplaceAccountsPage from "../../pages/marketplace_management/marketpl
 import AddMarketplaceAccountPage from "../../pages/marketplace_management/add_marketplace_account_page";
 import MarketplaceAccountDetailsPage from "../../pages/marketplace_management/marketplace_account_details_page";
 import EditMarketplaceAccountPage from "../../pages/marketplace_management/edit_marketplace_account_page";
+import DarazMetricsPage from "../../pages/marketplace_management/daraz_metrics_page";
 
 function ProtectedMarketplacePage({ children }) {
   return (
@@ -52,6 +53,15 @@ export default function MarketplaceManagementRoutes() {
         element={
           <ProtectedMarketplacePage>
             <EditMarketplaceAccountPage />
+          </ProtectedMarketplacePage>
+        }
+      />
+
+      <Route
+        path="/marketplace/daraz-metrics"
+        element={
+          <ProtectedMarketplacePage>
+            <DarazMetricsPage />
           </ProtectedMarketplacePage>
         }
       />
