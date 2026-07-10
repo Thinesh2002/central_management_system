@@ -18,7 +18,7 @@ async function scan(req, res) {
       limit: limit || 50,
       userId: req.user?.id || null,
       mode: mode === "stale" ? "stale" : "manual",
-      staleDays: staleDays || 14,
+      staleDays: staleDays || 30,
     });
 
     return res.json({ success: true, message: "Scan completed.", data: result });

@@ -46,7 +46,7 @@ async function scanAccountForTitleSuggestions({
   limit = 50,
   userId = null,
   mode = "manual",
-  staleDays = 14,
+  staleDays = 30,
 }) {
   const isStaleMode = mode === "stale";
   const scanBatchId = `${isStaleMode ? "stale_scan" : "title_scan"}_${Date.now()}_${crypto

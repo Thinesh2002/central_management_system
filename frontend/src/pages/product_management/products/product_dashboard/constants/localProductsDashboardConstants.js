@@ -1,5 +1,5 @@
 const RAW_API_BASE_URL = String(
-  import.meta.env.VITE_API_BASE_URL
+  import.meta.env.VITE_API_BASE_URL || "https://backend.teckvora.com/api"
 ).replace(/\/$/, "");
 
 export const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api$/, "");

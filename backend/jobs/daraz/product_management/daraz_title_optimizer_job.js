@@ -3,7 +3,7 @@ const cron = require("node-cron");
 const accountModel = require("../../../models/marketplace/account_model");
 const titleScanService = require("../../../services/daraz/product_management/daraz_title_scan_service");
 
-const STALE_DAYS = 14;
+const STALE_DAYS = 30;
 const SCAN_LIMIT = 200;
 
 let running = false;
@@ -45,7 +45,7 @@ async function regenerateStaleTitlesForAllAccounts() {
 
 function startDarazTitleOptimizerJob() {
   cron.schedule("0 5 * * *", regenerateStaleTitlesForAllAccounts, { timezone: "Asia/Colombo" });
-  console.log("[DARAZ_TITLE_OPTIMIZER_JOB] Scheduler started. Stale-listing (no sales in 14 days) title regeneration daily at 05:00 Colombo.");
+  console.log("[DARAZ_TITLE_OPTIMIZER_JOB] Scheduler started. Stale-listing (no sales in 30 days) title regeneration daily at 05:00 Colombo.");
 }
 
 module.exports = { startDarazTitleOptimizerJob, regenerateStaleTitlesForAllAccounts };

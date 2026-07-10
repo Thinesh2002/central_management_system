@@ -162,7 +162,7 @@ function ScanModal({ accounts, onClose, onDone }) {
                 onChange={(e) => setStaleOnly(e.target.checked)}
                 className="accent-orange-500"
               />
-              Only stale listings (no sales in last 14 days)
+              Only stale listings (no sales in last 30 days)
             </label>
           </div>
 
