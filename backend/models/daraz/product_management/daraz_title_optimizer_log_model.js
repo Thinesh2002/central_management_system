@@ -20,6 +20,7 @@ async function logScanBatch({
 async function logTitleApplied({
   account_id: accountId,
   suggestion_id: suggestionId,
+  reviewed_by: reviewedBy = null,
   seller_sku: sellerSku = null,
   old_title: oldTitle = null,
   new_title: newTitle = null,
@@ -28,9 +29,9 @@ async function logTitleApplied({
 }) {
   await db.query(
     `INSERT INTO daraz_title_optimizer_logs
-       (event_type, account_id, suggestion_id, seller_sku, old_title, new_title, status, message)
-     VALUES ('title_applied', ?, ?, ?, ?, ?, ?, ?)`,
-    [accountId, suggestionId, sellerSku, oldTitle, newTitle, status, message]
+       (event_type, account_id, reviewed_by, suggestion_id, seller_sku, old_title, new_title, status, message)
+     VALUES ('title_applied', ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [accountId, reviewedBy, suggestionId, sellerSku, oldTitle, newTitle, status, message]
   );
 }
 

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Check, Loader2, RefreshCw, Sparkles, X } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Check, Loader2, RefreshCw, Search, Sparkles, X, ZoomIn } from "lucide-react";
 
 import darazTitleOptimizerApi from "../../../../config/sub_api/daraz_api/daraz_title_optimizer_api";
 import { marketplaceApi } from "../../../../config/sub_api/marketplace_management_api/marketplace_api";
@@ -13,6 +13,8 @@ const STATUS_TABS = [
   { value: "failed", label: "Failed" },
   { value: "", label: "All" },
 ];
+
+const PAGE_SIZE = 50;
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -47,6 +49,29 @@ function StatusBadge({ status }) {
     >
       {status || "unknown"}
     </span>
+  );
+}
+
+function ImageZoomModal({ src, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+      >
+        <X size={18} />
+      </button>
+      <img
+        src={src}
+        alt=""
+        className="max-h-[85vh] max-w-[85vw] rounded-lg border border-slate-700 object-contain"
+        onClick={(event) => event.stopPropagation()}
+      />
+    </div>
   );
 }
 
@@ -245,14 +270,23 @@ export default function DarazTitleOptimizerPage() {
   const [accountId, setAccountId] = useState("");
 
   const [status, setStatus] = useState("pending");
+  const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
 
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [actingId, setActingId] = useState(null);
   const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [zoomImage, setZoomImage] = useState(null);
 
   const [error, setError] = useState("");
+
+  const accountNameById = useMemo(() => {
+    const map = new Map();
+    accounts.forEach((account) => map.set(String(getAccountId(account)), getAccountName(account)));
+    return map;
+  }, [accounts]);
 
   useEffect(() => {
     async function loadAccounts() {
@@ -270,7 +304,7 @@ export default function DarazTitleOptimizerPage() {
     loadAccounts();
   }, []);
 
-  async function loadSuggestions() {
+  async function loadSuggestions(limitOverride) {
     setLoadingSuggestions(true);
     setError("");
 
@@ -278,6 +312,7 @@ export default function DarazTitleOptimizerPage() {
       const res = await darazTitleOptimizerApi.listSuggestions({
         account_id: accountId || undefined,
         status: status || undefined,
+        limit: limitOverride || pageLimit,
       });
       setSuggestions(res?.data?.data || []);
     } catch (err) {
@@ -289,9 +324,37 @@ export default function DarazTitleOptimizerPage() {
   }
 
   useEffect(() => {
-    loadSuggestions();
+    setPageLimit(PAGE_SIZE);
+    loadSuggestions(PAGE_SIZE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId, status]);
+
+  function loadMore() {
+    const nextLimit = pageLimit + PAGE_SIZE;
+    setPageLimit(nextLimit);
+    loadSuggestions(nextLimit);
+  }
+
+  const filteredSuggestions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return suggestions;
+
+    return suggestions.filter((row) => {
+      const haystack = [
+        row.seller_sku,
+        row.correct_sku,
+        row.original_title,
+        row.suggested_title,
+        row.daraz_item_id,
+        row.daraz_product_id,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [suggestions, search]);
 
   async function handleApprove(id) {
     setActingId(id);
@@ -361,6 +424,24 @@ export default function DarazTitleOptimizerPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-55 max-w-sm">
+          <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search SKU, title..."
+            className="h-8 w-full rounded-md border border-slate-700 bg-slate-900 pl-7 pr-2 text-[12px] text-slate-200 outline-none placeholder:text-slate-600"
+          />
+        </div>
+        {search && (
+          <span className="text-[11px] text-slate-500">
+            {filteredSuggestions.length} of {suggestions.length} shown
+          </span>
+        )}
+      </div>
+
       {error && (
         <div className="rounded-md border border-red-900 bg-red-950 px-3 py-2 text-[13px] text-red-300">{error}</div>
       )}
@@ -384,17 +465,20 @@ export default function DarazTitleOptimizerPage() {
 
       {loadingSuggestions ? (
         <Loader label="Loading suggestions..." minHeight="200px" />
-      ) : !suggestions.length ? (
+      ) : !filteredSuggestions.length ? (
         <div className="rounded-lg border border-slate-800 bg-slate-950 px-4 py-10 text-center text-[13px] text-slate-500">
-          No suggestions in this view. Click Scan for Optimization to generate some.
+          {search ? "No suggestions match your search." : "No suggestions in this view. Click Scan for Optimization to generate some."}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-800">
+        <div className="overflow-x-auto rounded-lg border border-slate-800">
           <table className="w-full text-left text-[12px]">
             <thead className="bg-slate-900/60 text-[10px] uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-3 py-2 font-medium">Image</th>
-                <th className="px-3 py-2 font-medium">Seller SKU</th>
+                <th className="px-3 py-2 font-medium">Account</th>
+                <th className="px-3 py-2 font-medium">Product ID</th>
+                <th className="px-3 py-2 font-medium">Daraz SKU</th>
+                <th className="px-3 py-2 font-medium">Correct SKU</th>
                 <th className="px-3 py-2 font-medium">Original Title</th>
                 <th className="px-3 py-2 font-medium">Suggested Title</th>
                 <th className="px-3 py-2 font-medium">Reasoning</th>
@@ -403,20 +487,36 @@ export default function DarazTitleOptimizerPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {suggestions.map((row) => (
+              {filteredSuggestions.map((row) => (
                 <tr key={row.id} className="bg-[#0b1220] align-top">
                   <td className="px-3 py-2">
                     {row.product_image ? (
-                      <img
-                        src={row.product_image}
-                        alt=""
-                        className="h-10 w-10 rounded-md border border-slate-800 object-cover"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setZoomImage(row.product_image)}
+                        className="group relative h-10 w-10 shrink-0"
+                        title="Click to zoom"
+                      >
+                        <img
+                          src={row.product_image}
+                          alt=""
+                          loading="lazy"
+                          className="h-10 w-10 rounded-md border border-slate-800 object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-md bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+                          <ZoomIn size={14} className="text-white" />
+                        </span>
+                      </button>
                     ) : (
                       <div className="h-10 w-10 rounded-md border border-slate-800 bg-slate-900" />
                     )}
                   </td>
+                  <td className="max-w-32 px-3 py-2 text-[11px] text-slate-300">
+                    {accountNameById.get(String(row.account_id)) || `#${row.account_id}`}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-[10px] text-slate-500">{row.daraz_product_id || row.daraz_item_id || "-"}</td>
                   <td className="px-3 py-2 font-mono text-[10px] text-slate-400">{row.seller_sku || "-"}</td>
+                  <td className="px-3 py-2 font-mono text-[10px] text-orange-300">{row.correct_sku || "-"}</td>
                   <td className="max-w-60 px-3 py-2 text-slate-400">{row.original_title || "-"}</td>
                   <td className="max-w-60 px-3 py-2 text-slate-100">{row.suggested_title || "-"}</td>
                   <td className="max-w-72 px-3 py-2 text-slate-500">
@@ -458,6 +558,18 @@ export default function DarazTitleOptimizerPage() {
         </div>
       )}
 
+      {!search && !loadingSuggestions && suggestions.length > 0 && suggestions.length >= pageLimit && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={loadMore}
+            className="h-8 rounded-md border border-slate-700 bg-slate-900 px-4 text-[12px] font-semibold text-slate-300 hover:bg-slate-800"
+          >
+            Load More
+          </button>
+        </div>
+      )}
+
       {scanModalOpen && (
         <ScanModal
           accounts={accounts}
@@ -468,6 +580,8 @@ export default function DarazTitleOptimizerPage() {
           }}
         />
       )}
+
+      {zoomImage && <ImageZoomModal src={zoomImage} onClose={() => setZoomImage(null)} />}
     </div>
   );
 }

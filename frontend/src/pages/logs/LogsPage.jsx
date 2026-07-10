@@ -284,7 +284,7 @@ function TitleOptimizerLogsTable({ rows, loading }) {
       <table className="min-w-full text-sm">
         <thead className="bg-slate-950">
           <tr>
-            {["Date", "Event", "Account", "SKU", "Title Change", "Status", "Message"].map((header) => (
+            {["Date", "Event", "Account", "SKU", "Title Change", "Status", "Approved By", "Message"].map((header) => (
               <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
                 {header}
               </th>
@@ -299,11 +299,15 @@ function TitleOptimizerLogsTable({ rows, loading }) {
                 {formatDate(row.created_at)}
               </td>
               <td className="px-3 py-2.5 text-[12px] capitalize text-slate-300">
-                {row.event_type === "scan_batch" ? "Scan Batch" : "Title Applied"}
+                {row.event_type === "scan_batch"
+                  ? "Scan Batch"
+                  : row.status === "rejected"
+                  ? "Title Rejected"
+                  : "Title Applied"}
               </td>
-              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.account_id ?? "-"}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.account_name || row.account_id || "-"}</td>
               <td className="px-3 py-2.5 font-mono text-[12px] text-slate-200">{row.seller_sku || "-"}</td>
-              <td className="max-w-[380px] px-3 py-2.5 text-[12px] text-slate-400">
+              <td className="max-w-95 px-3 py-2.5 text-[12px] text-slate-400">
                 {row.event_type === "scan_batch" ? (
                   <span>
                     {row.succeeded ?? 0} of {row.total ?? 0} generated{row.failed ? `, ${row.failed} failed` : ""}
@@ -319,12 +323,15 @@ function TitleOptimizerLogsTable({ rows, loading }) {
                   className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
                     row.status === "success"
                       ? "border-emerald-900 bg-emerald-950 text-emerald-300"
+                      : row.status === "rejected"
+                      ? "border-amber-900 bg-amber-950 text-amber-300"
                       : "border-red-900 bg-red-950 text-red-300"
                   }`}
                 >
                   {row.status}
                 </span>
               </td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.reviewed_by_name || "-"}</td>
               <td className="max-w-70 px-3 py-2.5">
                 <span className="line-clamp-1 text-[11px] text-slate-400">{row.message || "-"}</span>
               </td>
@@ -333,7 +340,7 @@ function TitleOptimizerLogsTable({ rows, loading }) {
 
           {!rows.length && (
             <tr>
-              <td colSpan="7" className="px-3 py-10 text-center text-[12px] text-slate-400">
+              <td colSpan="8" className="px-3 py-10 text-center text-[12px] text-slate-400">
                 {loading ? "Loading title optimizer logs..." : "No title optimizer activity yet."}
               </td>
             </tr>

@@ -66,9 +66,11 @@ async function list({ account_id: accountId, status, scan_batch_id: scanBatchId,
   }
 
   const [rows] = await db.query(
-    `SELECT dts.*, dp.main_image AS product_image
+    `SELECT dts.*, dp.main_image AS product_image,
+            COALESCE(sm.correct_sku, dts.seller_sku) AS correct_sku
      FROM daraz_title_suggestions dts
      LEFT JOIN daraz_products dp ON dp.id = dts.daraz_product_id
+     LEFT JOIN sku_mappings sm ON sm.wrong_sku = dts.seller_sku
      ${whereSql}
      ORDER BY dts.id DESC LIMIT ? OFFSET ?`,
     [...params, Number(limit), Number(offset)]

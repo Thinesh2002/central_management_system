@@ -99,6 +99,7 @@ async function approveSuggestion(req, res) {
 
     await titleOptimizerLogModel.logTitleApplied({
       account_id: suggestion.account_id,
+      reviewed_by: req.user?.id || null,
       suggestion_id: suggestion.id,
       seller_sku: suggestion.seller_sku,
       old_title: suggestion.original_title,
@@ -130,6 +131,7 @@ async function approveSuggestion(req, res) {
 
     await titleOptimizerLogModel.logTitleApplied({
       account_id: failedSuggestion?.account_id,
+      reviewed_by: req.user?.id || null,
       suggestion_id: failedSuggestion?.id,
       seller_sku: failedSuggestion?.seller_sku,
       old_title: failedSuggestion?.original_title,
@@ -157,6 +159,17 @@ async function rejectSuggestion(req, res) {
     const updated = await titleSuggestionModel.updateStatus(id, {
       status: "rejected",
       reviewed_by: req.user?.id || null,
+    });
+
+    await titleOptimizerLogModel.logTitleApplied({
+      account_id: suggestion.account_id,
+      reviewed_by: req.user?.id || null,
+      suggestion_id: suggestion.id,
+      seller_sku: suggestion.seller_sku,
+      old_title: suggestion.original_title,
+      new_title: suggestion.suggested_title,
+      status: "rejected",
+      message: "Suggestion rejected by reviewer.",
     });
 
     return res.json({ success: true, message: "Suggestion rejected.", data: updated });
