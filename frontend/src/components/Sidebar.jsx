@@ -5,6 +5,7 @@ import { getStoredUser, logout } from "../config/auth";
 import { useAccessMenu } from "../hooks/useAccessMenu";
 import { canAccessPage } from "../utils/accessMenu";
 import GlobalProductSearch from "./GlobalProductSearch";
+import { usePageOverlay } from "./common/page_overlay/PageOverlayProvider";
 import {
   LayoutDashboard,
   Users,
@@ -234,6 +235,7 @@ function groupMenu(menuItems) {
 export default function Sidebar({ open, onClose }) {
   const user = getStoredUser();
   const accessMenu = useAccessMenu();
+  const { closeOverlay } = usePageOverlay();
   const [menu] = useState(staticMenu);
 
   const visibleMenu = useMemo(
@@ -271,7 +273,14 @@ export default function Sidebar({ open, onClose }) {
       >
         {/* Logo + mobile close button */}
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-[#1d2940] px-3">
-          <NavLink to="/dashboard" onClick={onClose} className="truncate text-sm font-bold text-white">
+          <NavLink
+            to="/dashboard"
+            onClick={() => {
+              closeOverlay();
+              onClose();
+            }}
+            className="truncate text-sm font-bold text-white"
+          >
             Central Management
           </NavLink>
 
@@ -306,7 +315,10 @@ export default function Sidebar({ open, onClose }) {
                       key={item.page_key}
                       to={item.path}
                       end={item.exact}
-                      onClick={onClose}
+                      onClick={() => {
+                        closeOverlay();
+                        onClose();
+                      }}
                       className={({ isActive }) =>
                         `relative flex cursor-pointer items-center gap-2.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
                           isActive

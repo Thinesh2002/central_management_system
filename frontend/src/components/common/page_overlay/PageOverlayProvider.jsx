@@ -27,8 +27,14 @@ export function PageOverlayProvider({ children }) {
       {children}
 
       {url && (
-        <div className="page-overlay-backdrop fixed inset-y-0 right-0 left-0 z-60 flex items-center justify-center bg-slate-950/75 p-2 backdrop-blur-sm sm:p-4 lg:left-58">
-          <div className="page-overlay-card flex h-full w-full max-w-475 flex-col overflow-hidden rounded-2xl border border-purple-500/40 bg-slate-950">
+        <div
+          className="page-overlay-backdrop fixed inset-y-0 right-0 left-0 z-60 flex items-center justify-center bg-slate-950/75 p-2 backdrop-blur-sm sm:p-4 lg:left-58"
+          onClick={closeOverlay}
+        >
+          <div
+            className="page-overlay-card flex h-full w-full max-w-475 flex-col overflow-hidden rounded-2xl border border-purple-500/40 bg-slate-950"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex h-12 shrink-0 items-center justify-between gap-3 rounded-t-2xl border-b border-purple-500/30 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-purple-300">
                 Central Management
