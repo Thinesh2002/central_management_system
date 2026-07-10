@@ -393,6 +393,7 @@ export default function DarazTitleOptimizerPage() {
           <table className="w-full text-left text-[12px]">
             <thead className="bg-slate-900/60 text-[10px] uppercase tracking-wide text-slate-500">
               <tr>
+                <th className="px-3 py-2 font-medium">Image</th>
                 <th className="px-3 py-2 font-medium">Seller SKU</th>
                 <th className="px-3 py-2 font-medium">Original Title</th>
                 <th className="px-3 py-2 font-medium">Suggested Title</th>
@@ -404,10 +405,23 @@ export default function DarazTitleOptimizerPage() {
             <tbody className="divide-y divide-slate-800">
               {suggestions.map((row) => (
                 <tr key={row.id} className="bg-[#0b1220] align-top">
+                  <td className="px-3 py-2">
+                    {row.product_image ? (
+                      <img
+                        src={row.product_image}
+                        alt=""
+                        className="h-10 w-10 rounded-md border border-slate-800 object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-md border border-slate-800 bg-slate-900" />
+                    )}
+                  </td>
                   <td className="px-3 py-2 font-mono text-[10px] text-slate-400">{row.seller_sku || "-"}</td>
                   <td className="max-w-60 px-3 py-2 text-slate-400">{row.original_title || "-"}</td>
                   <td className="max-w-60 px-3 py-2 text-slate-100">{row.suggested_title || "-"}</td>
-                  <td className="max-w-72 px-3 py-2 text-slate-500">{row.reasoning || row.error_message || "-"}</td>
+                  <td className="max-w-72 px-3 py-2 text-slate-500">
+                    {row.status === "failed" ? row.error_message || row.reasoning || "-" : row.reasoning || "-"}
+                  </td>
                   <td className="px-3 py-2">
                     <StatusBadge status={row.status} />
                   </td>

@@ -1,5 +1,6 @@
 const logModel = require("../models/logModel");
 const inventoryLogModel = require("../models/order_management/inventory_log_model");
+const titleOptimizerLogModel = require("../models/daraz/product_management/daraz_title_optimizer_log_model");
 
 async function getLogs(req, res) {
   const logs = await logModel.listLogs({ limit: req.query.limit || 100 });
@@ -25,4 +26,14 @@ async function getInventoryLogs(req, res) {
   return res.json({ success: true, logs });
 }
 
-module.exports = { getLogs, getLoginLogs, getSystemLogs, getInventoryLogs };
+async function getTitleOptimizerLogs(req, res) {
+  const logs = await titleOptimizerLogModel.listRecent({
+    event_type: req.query.event_type,
+    account_id: req.query.account_id,
+    status: req.query.status,
+    limit: req.query.limit || 200,
+  });
+  return res.json({ success: true, logs });
+}
+
+module.exports = { getLogs, getLoginLogs, getSystemLogs, getInventoryLogs, getTitleOptimizerLogs };

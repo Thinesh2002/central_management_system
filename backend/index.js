@@ -71,6 +71,10 @@ const {
   startDarazTitleOptimizerJob,
 } = require("./jobs/daraz/product_management/daraz_title_optimizer_job");
 
+const {
+  startDarazTitleFullScanJob,
+} = require("./jobs/daraz/product_management/daraz_title_full_scan_job");
+
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
@@ -255,6 +259,7 @@ async function startServer() {
     startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
     startJob("DARAZ_FINANCE_SYNC_JOB", startDarazFinanceSyncJob);
     startJob("DARAZ_TITLE_OPTIMIZER_JOB", startDarazTitleOptimizerJob);
+    startJob("DARAZ_TITLE_FULL_SCAN_JOB", startDarazTitleFullScanJob);
   });
 }
 

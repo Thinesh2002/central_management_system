@@ -20,7 +20,8 @@
     "patch-daraz-finance": "node scripts/run-sql-file.js 16_daraz_finance_patch.sql",
     "patch-inventory-order-deduction": "node scripts/run-sql-file.js 17_inventory_order_deduction_patch.sql",
     "patch-daraz-finance-reporting": "node scripts/run-sql-file.js 18_daraz_finance_reporting_patch.sql",
-    "patch-daraz-title-optimizer": "node scripts/run-sql-file.js 19_daraz_title_optimizer_patch.sql"
+    "patch-daraz-title-optimizer": "node scripts/run-sql-file.js 19_daraz_title_optimizer_patch.sql",
+    "patch-daraz-title-optimizer-logs": "node scripts/run-sql-file.js 20_daraz_title_optimizer_logs_patch.sql"
   },
   "author": "",
   "license": "ISC",

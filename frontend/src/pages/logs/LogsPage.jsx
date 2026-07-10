@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   Boxes,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import api, { getApiError } from "../../config/api";
 import { darazProductsApi } from "../../config/sub_api/daraz_api/daraz_products_api";
@@ -15,6 +16,7 @@ import { darazProductsApi } from "../../config/sub_api/daraz_api/daraz_products_
 const TABS = [
   { key: "all", label: "All Logs", icon: ClipboardList },
   { key: "inventory", label: "Inventory Logs", icon: Boxes },
+  { key: "title_optimizer", label: "Title Optimizer Logs", icon: Sparkles },
   { key: "system", label: "System Logs", icon: Monitor },
   { key: "sync", label: "Sync Logs", icon: RotateCcw },
 ];
@@ -276,6 +278,72 @@ function OrderInventoryLogsTable({ rows, loading }) {
   );
 }
 
+function TitleOptimizerLogsTable({ rows, loading }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="bg-slate-950">
+          <tr>
+            {["Date", "Event", "Account", "SKU", "Title Change", "Status", "Message"].map((header) => (
+              <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-slate-800 bg-slate-900">
+          {rows.map((row) => (
+            <tr key={row.id} className="hover:bg-slate-800/70">
+              <td className="whitespace-nowrap px-3 py-2.5 text-[12px] text-slate-300">
+                {formatDate(row.created_at)}
+              </td>
+              <td className="px-3 py-2.5 text-[12px] capitalize text-slate-300">
+                {row.event_type === "scan_batch" ? "Scan Batch" : "Title Applied"}
+              </td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.account_id ?? "-"}</td>
+              <td className="px-3 py-2.5 font-mono text-[12px] text-slate-200">{row.seller_sku || "-"}</td>
+              <td className="max-w-[380px] px-3 py-2.5 text-[12px] text-slate-400">
+                {row.event_type === "scan_batch" ? (
+                  <span>
+                    {row.succeeded ?? 0} of {row.total ?? 0} generated{row.failed ? `, ${row.failed} failed` : ""}
+                  </span>
+                ) : (
+                  <span className="line-clamp-1">
+                    {row.old_title || "-"} → {row.new_title || "-"}
+                  </span>
+                )}
+              </td>
+              <td className="px-3 py-2.5">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                    row.status === "success"
+                      ? "border-emerald-900 bg-emerald-950 text-emerald-300"
+                      : "border-red-900 bg-red-950 text-red-300"
+                  }`}
+                >
+                  {row.status}
+                </span>
+              </td>
+              <td className="max-w-70 px-3 py-2.5">
+                <span className="line-clamp-1 text-[11px] text-slate-400">{row.message || "-"}</span>
+              </td>
+            </tr>
+          ))}
+
+          {!rows.length && (
+            <tr>
+              <td colSpan="7" className="px-3 py-10 text-center text-[12px] text-slate-400">
+                {loading ? "Loading title optimizer logs..." : "No title optimizer activity yet."}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function AllLogsTable({ rows, loading }) {
   return (
     <div className="overflow-x-auto">
@@ -339,6 +407,9 @@ export default function LogsPage() {
   const [orderInventoryLogs, setOrderInventoryLogs] = useState([]);
   const [orderInventoryLoading, setOrderInventoryLoading] = useState(false);
 
+  const [titleOptimizerLogs, setTitleOptimizerLogs] = useState([]);
+  const [titleOptimizerLoading, setTitleOptimizerLoading] = useState(false);
+
   async function loadOrderInventoryLogs() {
     setOrderInventoryLoading(true);
 
@@ -349,6 +420,19 @@ export default function LogsPage() {
       setOrderInventoryLogs([]);
     } finally {
       setOrderInventoryLoading(false);
+    }
+  }
+
+  async function loadTitleOptimizerLogs() {
+    setTitleOptimizerLoading(true);
+
+    try {
+      const { data } = await api.get("/logs/title-optimizer?limit=200");
+      setTitleOptimizerLogs(toArray(data));
+    } catch {
+      setTitleOptimizerLogs([]);
+    } finally {
+      setTitleOptimizerLoading(false);
     }
   }
 
@@ -386,6 +470,11 @@ export default function LogsPage() {
       return;
     }
 
+    if (activeTab === "title_optimizer") {
+      loadTitleOptimizerLogs();
+      return;
+    }
+
     if (activeTab === "inventory") {
       loadOrderInventoryLogs();
     }
@@ -398,6 +487,7 @@ export default function LogsPage() {
     loadLogs();
     loadSyncRuns();
     loadOrderInventoryLogs();
+    loadTitleOptimizerLogs();
   }, []);
 
   const inventoryLogs = useMemo(() => logs.filter(isInventoryRow), [logs]);
@@ -510,6 +600,7 @@ export default function LogsPage() {
               <p className="text-[11px] text-slate-400">
                 {activeTab === "all" && `Showing ${unifiedRows.length} combined records.`}
                 {activeTab === "inventory" && `Showing ${inventoryLogs.length} inventory/price records.`}
+                {activeTab === "title_optimizer" && `Showing ${titleOptimizerLogs.length} scan and title-change records.`}
                 {activeTab === "system" && `Showing latest ${logs.length} log records.`}
                 {activeTab === "sync" && `Showing latest ${syncRuns.length} Daraz sync runs.`}
               </p>
@@ -518,6 +609,9 @@ export default function LogsPage() {
 
           {activeTab === "all" && <AllLogsTable rows={unifiedRows} loading={logsLoading || syncLoading} />}
           {activeTab === "inventory" && <SystemLogsTable rows={inventoryLogs} loading={logsLoading} />}
+          {activeTab === "title_optimizer" && (
+            <TitleOptimizerLogsTable rows={titleOptimizerLogs} loading={titleOptimizerLoading} />
+          )}
           {activeTab === "system" && <SystemLogsTable rows={logs} loading={logsLoading} />}
           {activeTab === "sync" && <SyncLogsTable rows={syncRuns} loading={syncLoading} />}
         </div>

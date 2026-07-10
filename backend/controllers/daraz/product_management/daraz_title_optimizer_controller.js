@@ -1,6 +1,7 @@
 const accountModel = require("../../../models/marketplace/account_model");
 const credentialModel = require("../../../models/marketplace/credential_model");
 const titleSuggestionModel = require("../../../models/daraz/product_management/daraz_title_suggestion_model");
+const titleOptimizerLogModel = require("../../../models/daraz/product_management/daraz_title_optimizer_log_model");
 const titleScanService = require("../../../services/daraz/product_management/daraz_title_scan_service");
 const darazProductApiService = require("../../../services/marketplace/daraz_product_api_service");
 
@@ -84,14 +85,33 @@ async function approveSuggestion(req, res) {
       applied_at: new Date(),
     });
 
+    await titleOptimizerLogModel.logTitleApplied({
+      account_id: suggestion.account_id,
+      suggestion_id: suggestion.id,
+      seller_sku: suggestion.seller_sku,
+      old_title: suggestion.original_title,
+      new_title: suggestion.suggested_title,
+      status: "success",
+    });
+
     return res.json({ success: true, message: "Title applied to Daraz.", data: updated });
   } catch (error) {
     console.error("[DARAZ_TITLE_APPROVE_ERROR]", { message: error?.message });
 
-    await titleSuggestionModel.updateStatus(req.params.id, {
+    const failedSuggestion = await titleSuggestionModel.updateStatus(req.params.id, {
       status: "failed",
       reviewed_by: req.user?.id || null,
       error_message: error.message,
+    });
+
+    await titleOptimizerLogModel.logTitleApplied({
+      account_id: failedSuggestion?.account_id,
+      suggestion_id: failedSuggestion?.id,
+      seller_sku: failedSuggestion?.seller_sku,
+      old_title: failedSuggestion?.original_title,
+      new_title: failedSuggestion?.suggested_title,
+      status: "failed",
+      message: error.message,
     });
 
     return res.status(error.statusCode || 500).json({

@@ -6,6 +6,7 @@ const titleSuggestionModel = require("../../../models/daraz/product_management/d
 const titleSiblingModel = require("../../../models/daraz/product_management/daraz_title_sibling_model");
 const darazSalesLookupModel = require("../../../models/daraz/product_management/daraz_sales_lookup_model");
 const titleOptimizerService = require("./daraz_title_optimizer_service");
+const titleOptimizerLogModel = require("../../../models/daraz/product_management/daraz_title_optimizer_log_model");
 
 const SCAN_CONCURRENCY = 1;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -58,12 +59,10 @@ async function scanAccountForTitleSuggestions({
 
   const [pendingProductIds, recentSuggestionProductIds] = await Promise.all([
     titleSuggestionModel.findPendingProductIds(accountId),
-    isStaleMode
-      ? titleSuggestionModel.findRecentSuggestionProductIds({
-          account_id: accountId,
-          since_date: new Date(Date.now() - staleDays * DAY_MS),
-        })
-      : Promise.resolve(new Set()),
+    titleSuggestionModel.findRecentSuggestionProductIds({
+      account_id: accountId,
+      since_date: new Date(Date.now() - staleDays * DAY_MS),
+    }),
   ]);
 
   const products = candidateProducts.filter(
@@ -110,6 +109,16 @@ async function scanAccountForTitleSuggestions({
 
       failed += 1;
     }
+  });
+
+  await titleOptimizerLogModel.logScanBatch({
+    account_id: accountId,
+    scan_batch_id: scanBatchId,
+    total: products.length,
+    succeeded,
+    failed,
+    status: failed > 0 && succeeded === 0 && products.length > 0 ? "failed" : "success",
+    message: `${mode} scan: ${succeeded} of ${products.length} suggestions generated.`,
   });
 
   return {

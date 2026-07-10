@@ -51,22 +51,26 @@ async function list({ account_id: accountId, status, scan_batch_id: scanBatchId,
   let whereSql = "WHERE 1=1";
 
   if (accountId) {
-    whereSql += " AND account_id = ?";
+    whereSql += " AND dts.account_id = ?";
     params.push(accountId);
   }
 
   if (status) {
-    whereSql += " AND status = ?";
+    whereSql += " AND dts.status = ?";
     params.push(status);
   }
 
   if (scanBatchId) {
-    whereSql += " AND scan_batch_id = ?";
+    whereSql += " AND dts.scan_batch_id = ?";
     params.push(scanBatchId);
   }
 
   const [rows] = await db.query(
-    `SELECT * FROM daraz_title_suggestions ${whereSql} ORDER BY id DESC LIMIT ? OFFSET ?`,
+    `SELECT dts.*, dp.main_image AS product_image
+     FROM daraz_title_suggestions dts
+     LEFT JOIN daraz_products dp ON dp.id = dts.daraz_product_id
+     ${whereSql}
+     ORDER BY dts.id DESC LIMIT ? OFFSET ?`,
     [...params, Number(limit), Number(offset)]
   );
 
