@@ -75,6 +75,8 @@ async function updateDarazProductDetails({
   name,
   shortDescription,
   brand = null,
+  quantity = null,
+  price = null,
 }) {
   if (!itemId) {
     const error = new Error("Daraz Item ID is required to update the product.");
@@ -92,6 +94,14 @@ async function updateDarazProductDetails({
     .filter(Boolean)
     .join("\n      ");
 
+  const skuFields = [
+    `<SellerSku>${escapeXml(sellerSku || "")}</SellerSku>`,
+    quantity !== null && quantity !== undefined ? `<quantity>${Number(quantity)}</quantity>` : "",
+    price !== null && price !== undefined && price !== "" ? `<price>${Number(price)}</price>` : "",
+  ]
+    .filter(Boolean)
+    .join("\n        ");
+
   const payload = `<?xml version="1.0" encoding="UTF-8"?>
 <Request>
   <Product>
@@ -102,7 +112,7 @@ async function updateDarazProductDetails({
     </Attributes>
     <Skus>
       <Sku>
-        <SellerSku>${escapeXml(sellerSku || "")}</SellerSku>
+        ${skuFields}
       </Sku>
     </Skus>
   </Product>

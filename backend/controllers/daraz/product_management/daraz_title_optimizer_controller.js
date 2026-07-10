@@ -84,6 +84,8 @@ async function approveSuggestion(req, res) {
       sellerSku: suggestion.seller_sku,
       name: suggestion.suggested_title,
       brand: product?.brand || null,
+      quantity: product?.quantity ?? null,
+      price: product?.price ?? null,
     });
 
     const updated = await titleSuggestionModel.updateStatus(id, {
@@ -103,12 +105,24 @@ async function approveSuggestion(req, res) {
 
     return res.json({ success: true, message: "Title applied to Daraz.", data: updated });
   } catch (error) {
-    console.error("[DARAZ_TITLE_APPROVE_ERROR]", { message: error?.message });
+    console.error("[DARAZ_TITLE_APPROVE_ERROR]", {
+      message: error?.message,
+      request_id: error?.request_id,
+      trace_id: error?.trace_id,
+      raw: error?.raw,
+    });
+
+    const detailedMessage = [
+      error.message,
+      error.request_id ? `request_id: ${error.request_id}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
 
     const failedSuggestion = await titleSuggestionModel.updateStatus(req.params.id, {
       status: "failed",
       reviewed_by: req.user?.id || null,
-      error_message: error.message,
+      error_message: detailedMessage,
     });
 
     await titleOptimizerLogModel.logTitleApplied({
@@ -118,7 +132,7 @@ async function approveSuggestion(req, res) {
       old_title: failedSuggestion?.original_title,
       new_title: failedSuggestion?.suggested_title,
       status: "failed",
-      message: error.message,
+      message: detailedMessage,
     });
 
     return res.status(error.statusCode || 500).json({
