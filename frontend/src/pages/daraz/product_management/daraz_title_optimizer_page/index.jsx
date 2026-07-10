@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, RefreshCw, Search, Sparkles, X, ZoomIn } from "lucide-react";
+import { Check, Loader2, RefreshCw, Search, Sparkles, X } from "lucide-react";
 
 import darazTitleOptimizerApi from "../../../../config/sub_api/daraz_api/daraz_title_optimizer_api";
 import { marketplaceApi } from "../../../../config/sub_api/marketplace_management_api/marketplace_api";
@@ -52,25 +52,47 @@ function StatusBadge({ status }) {
   );
 }
 
-function ImageZoomModal({ src, onClose }) {
+function ImageZoomModal({ image, onClose }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-      >
-        <X size={18} />
-      </button>
-      <img
-        src={src}
-        alt=""
-        className="max-h-[85vh] max-w-[85vw] rounded-lg border border-slate-700 object-contain"
+      <div
+        className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
-      />
+      >
+        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+          <h3 className="truncate text-[15px] font-semibold text-white">Product Image</h3>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="flex justify-center bg-[#0b1220] px-4 py-4">
+          <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-purple-500/40 bg-white p-3">
+            <img src={image.src} alt={image.title || ""} className="max-h-[60vh] max-w-full object-contain" />
+          </div>
+        </div>
+
+        <div className="px-4 pb-4">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">Image URL</p>
+          <a
+            href={image.src}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={image.src}
+            className="break-all text-xs font-medium leading-5 text-orange-300 hover:text-orange-200 hover:underline"
+          >
+            {image.src}
+          </a>
+        </div>
+      </div>
     </div>
   );
 }
@@ -493,19 +515,11 @@ export default function DarazTitleOptimizerPage() {
                     {row.product_image ? (
                       <button
                         type="button"
-                        onClick={() => setZoomImage(row.product_image)}
-                        className="group relative h-10 w-10 shrink-0"
+                        onClick={() => setZoomImage({ src: row.product_image, title: row.suggested_title || row.original_title })}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-800 bg-slate-950 hover:border-orange-400/50"
                         title="Click to zoom"
                       >
-                        <img
-                          src={row.product_image}
-                          alt=""
-                          loading="lazy"
-                          className="h-10 w-10 rounded-md border border-slate-800 object-cover"
-                        />
-                        <span className="absolute inset-0 flex items-center justify-center rounded-md bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
-                          <ZoomIn size={14} className="text-white" />
-                        </span>
+                        <img src={row.product_image} alt="" loading="lazy" className="h-full w-full object-cover" />
                       </button>
                     ) : (
                       <div className="h-10 w-10 rounded-md border border-slate-800 bg-slate-900" />
@@ -581,7 +595,7 @@ export default function DarazTitleOptimizerPage() {
         />
       )}
 
-      {zoomImage && <ImageZoomModal src={zoomImage} onClose={() => setZoomImage(null)} />}
+      {zoomImage && <ImageZoomModal image={zoomImage} onClose={() => setZoomImage(null)} />}
     </div>
   );
 }
