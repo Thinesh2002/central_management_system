@@ -93,14 +93,14 @@ function OrderRow({
       </td>
 
       <td className="px-3 py-2 align-top">
-        <div className="min-w-0 max-w-60">
-          <div className="flex flex-wrap items-center gap-1">
+        <div className="min-w-0 max-w-52">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => onView(order)}
-              className="cursor-pointer text-[8px] font-normal text-slate-400 hover:text-sky-300 hover:underline"
+              className="cursor-pointer text-[9px] font-semibold text-slate-400 hover:text-sky-300 hover:underline"
             >
-              {order.display_order_no || order.order_no}
+              #{order.display_order_no || order.order_no}
             </button>
 
             {visibleSkus.length ? (
@@ -114,17 +114,17 @@ function OrderRow({
                     openOverlay(`/order-management/sku-report/${encodeURIComponent(item.sku)}`)
                   }
                   title={item.sku ? "Open SKU Economics Report" : ""}
-                  className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[8px] font-mono text-slate-300 hover:bg-slate-700 hover:text-orange-300 disabled:cursor-default disabled:hover:bg-slate-800 disabled:hover:text-slate-300"
+                  className="inline-flex items-center gap-0.5 text-[9px] font-mono text-slate-400 hover:text-orange-300 disabled:cursor-default disabled:hover:text-slate-400"
                 >
-                  <span className="max-w-28 truncate">{item.sku || "-"}</span>
-                  <span className="text-slate-500">&times; {item.qty || 1}</span>
+                  <span className="max-w-20 truncate underline decoration-dotted">{item.sku || "-"}</span>
+                  <span className="text-slate-600">&times;{item.qty || 1}</span>
                 </button>
               ))
             ) : (
-              <span className="text-[8px] text-slate-600">No items</span>
+              <span className="text-[9px] text-slate-600">No items</span>
             )}
             {items.length > visibleSkus.length && (
-              <span className="text-[8px] text-slate-500">+{items.length - visibleSkus.length}</span>
+              <span className="text-[9px] text-slate-500">+{items.length - visibleSkus.length}</span>
             )}
           </div>
 

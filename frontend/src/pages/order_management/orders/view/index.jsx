@@ -318,13 +318,13 @@ function OrderItemsCard({ order, items, currency }) {
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold text-orange-300">{text(getItemName(item))}</p>
+                <p className="truncate text-[11px] font-semibold text-orange-300">{text(getItemName(item))}</p>
                 {(item.variation || item.variation_name) && (
-                  <p className="mt-0.5 text-[11px] text-slate-400">
+                  <p className="mt-0.5 text-[10px] text-slate-400">
                     Variant: {text(item.variation || item.variation_name)}
                   </p>
                 )}
-                <p className="mt-0.5 text-[11px] font-mono text-slate-500">SKU: {getItemSku(item)}</p>
+                <p className="mt-0.5 text-[10px] font-mono text-slate-500">SKU: {getItemSku(item)}</p>
                 {item.status && (
                   <span className="mt-1 inline-flex rounded-md bg-rose-950 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">
                     {text(item.status)}
@@ -879,8 +879,8 @@ export default function OrderDetailPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-2 border border-slate-800 bg-[#0b1220] px-4 py-3">
         <div>
-          <h1 className="flex items-center gap-1.5 text-[14px] font-semibold text-white">
-            <Package size={14} className="text-orange-400" />
+          <h1 className="flex items-center gap-1.5 text-[12px] font-semibold text-white">
+            <Package size={12} className="text-orange-400" />
             Order #{text(orderNo)}
           </h1>
           <p className="mt-0.5 text-[11px] text-slate-500">
