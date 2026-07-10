@@ -5,6 +5,7 @@ import darazTitleOptimizerApi from "../../../../config/sub_api/daraz_api/daraz_t
 import { marketplaceApi } from "../../../../config/sub_api/marketplace_management_api/marketplace_api";
 import { getApiError } from "../../../../config/api";
 import Loader from "../../../../components/common/Loader";
+import { useToast } from "../../../../components/common/toast/ToastProvider";
 
 const STATUS_TABS = [
   { value: "pending", label: "Pending Review" },
@@ -97,7 +98,7 @@ function ImageZoomModal({ image, onClose }) {
   );
 }
 
-function ScanModal({ accounts, onClose, onDone }) {
+function ScanModal({ accounts, onClose, onDone, showToast }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [limit, setLimit] = useState(50);
   const [staleOnly, setStaleOnly] = useState(false);
@@ -154,6 +155,15 @@ function ScanModal({ accounts, onClose, onDone }) {
 
     setResults(outcomes);
     setRunning(false);
+
+    const failedCount = outcomes.filter((row) => !row.success).length;
+    showToast(
+      failedCount
+        ? `Scan finished with ${failedCount} account failure(s). See results below.`
+        : "Scan completed successfully.",
+      { type: failedCount ? "error" : "success" }
+    );
+
     onDone();
   }
 
@@ -288,6 +298,8 @@ function ScanModal({ accounts, onClose, onDone }) {
 }
 
 export default function DarazTitleOptimizerPage() {
+  const showToast = useToast();
+
   const [accounts, setAccounts] = useState([]);
   const [accountId, setAccountId] = useState("");
 
@@ -384,9 +396,12 @@ export default function DarazTitleOptimizerPage() {
 
     try {
       await darazTitleOptimizerApi.approve(id);
+      showToast("Title applied to Daraz.", { type: "success" });
       await loadSuggestions();
     } catch (err) {
-      setError(getApiError(err, "Failed to apply title to Daraz"));
+      const message = getApiError(err, "Failed to apply title to Daraz");
+      setError(message);
+      showToast(message, { type: "error" });
     } finally {
       setActingId(null);
     }
@@ -398,9 +413,12 @@ export default function DarazTitleOptimizerPage() {
 
     try {
       await darazTitleOptimizerApi.reject(id);
+      showToast("Suggestion rejected.", { type: "success" });
       await loadSuggestions();
     } catch (err) {
-      setError(getApiError(err, "Failed to reject suggestion"));
+      const message = getApiError(err, "Failed to reject suggestion");
+      setError(message);
+      showToast(message, { type: "error" });
     } finally {
       setActingId(null);
     }
@@ -587,6 +605,7 @@ export default function DarazTitleOptimizerPage() {
       {scanModalOpen && (
         <ScanModal
           accounts={accounts}
+          showToast={showToast}
           onClose={() => setScanModalOpen(false)}
           onDone={() => {
             setStatus("pending");
