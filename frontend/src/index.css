@@ -36,24 +36,28 @@ button:disabled,
   cursor: not-allowed;
 }
 
-.card {
-  @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+/* ================================
+   Global button feel — snappy, industrial
+   press/hover feedback with no per-page work.
+   Buttons that already set their own transform
+   (e.g. hover:scale-*) simply override this.
+================================ */
+button:not(:disabled) {
+  transition: transform 0.1s ease-out, filter 0.15s ease-out, opacity 0.15s ease-out;
 }
 
-.input {
-  @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100;
+button:not(:disabled):active {
+  transform: scale(0.96);
 }
 
-.btn-primary {
-  @apply inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60;
+:focus-visible {
+  outline: 2px solid rgb(251 146 60 / 0.6);
+  outline-offset: 1px;
 }
 
-.btn-secondary {
-  @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60;
-}
-
-.badge {
-  @apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold;
+::selection {
+  background: rgb(251 146 60 / 0.35);
+  color: #fff;
 }
 
 
@@ -75,8 +79,8 @@ html {
 
 /* Chrome, Edge, Safari - all elements */
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 *::-webkit-scrollbar-track {
@@ -85,11 +89,11 @@ html {
 
 *::-webkit-scrollbar-thumb {
   background: #334155;
-  border-radius: 999px;
+  border-radius: 2px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #4b6388;
+  background: #f97316;
 }
 
 /* Remove scrollbar top/bottom arrow buttons */
@@ -106,7 +110,7 @@ html {
 
 /* ================================
    Global Loader (12-step fading spinner)
-   Off-white / grey — used app-wide for
+   Slate + orange accent — used app-wide for
    page and section loading states.
 ================================ */
 .loader {
@@ -115,10 +119,10 @@ html {
   display: grid;
   border-radius: 50%;
   background:
-    linear-gradient(0deg ,rgb(148 163 184/50%) 30%,#0000 0 70%,rgb(226 232 240/100%) 0) 50%/8% 100%,
-    linear-gradient(90deg,rgb(148 163 184/25%) 30%,#0000 0 70%,rgb(226 232 240/75%) 0) 50%/100% 8%;
+    linear-gradient(0deg ,rgb(148 163 184/45%) 30%,#0000 0 70%,rgb(251 146 60/100%) 0) 50%/8% 100%,
+    linear-gradient(90deg,rgb(148 163 184/22%) 30%,#0000 0 70%,rgb(251 146 60/70%) 0) 50%/100% 8%;
   background-repeat: no-repeat;
-  animation: l23 1s infinite steps(12);
+  animation: l23 0.9s infinite steps(12);
 }
 .loader::before,
 .loader::after {
