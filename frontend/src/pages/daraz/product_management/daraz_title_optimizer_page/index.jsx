@@ -426,11 +426,11 @@ export default function DarazTitleOptimizerPage() {
                     <StatusBadge status={row.status} />
                   </td>
                   <td className="px-3 py-2">
-                    {row.status === "pending" ? (
+                    {row.status === "pending" || (row.status === "failed" && row.suggested_title) ? (
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          title="Approve and publish to Daraz"
+                          title={row.status === "failed" ? "Retry: approve and publish to Daraz" : "Approve and publish to Daraz"}
                           disabled={actingId === row.id}
                           onClick={() => handleApprove(row.id)}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-emerald-900 bg-emerald-950 text-emerald-300 hover:bg-emerald-900 disabled:opacity-50"

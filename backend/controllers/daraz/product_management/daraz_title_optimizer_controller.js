@@ -4,6 +4,7 @@ const titleSuggestionModel = require("../../../models/daraz/product_management/d
 const titleOptimizerLogModel = require("../../../models/daraz/product_management/daraz_title_optimizer_log_model");
 const titleScanService = require("../../../services/daraz/product_management/daraz_title_scan_service");
 const darazProductApiService = require("../../../services/marketplace/daraz_product_api_service");
+const darazProductSyncModel = require("../../../models/daraz/product_management/daraz_product_sync_model");
 
 async function scan(req, res) {
   try {
@@ -60,7 +61,9 @@ async function approveSuggestion(req, res) {
       return res.status(404).json({ success: false, message: "Suggestion not found." });
     }
 
-    if (suggestion.status !== "pending") {
+    const canRetry = suggestion.status === "failed" && suggestion.suggested_title;
+
+    if (suggestion.status !== "pending" && !canRetry) {
       return res.status(400).json({ success: false, message: `Suggestion is already ${suggestion.status}.` });
     }
 
@@ -71,12 +74,16 @@ async function approveSuggestion(req, res) {
       return res.status(400).json({ success: false, message: "Daraz account credentials missing." });
     }
 
+    const product = await darazProductSyncModel.getPreviewById(suggestion.daraz_product_id);
+
     await darazProductApiService.updateDarazProductDetails({
       account,
       credentials,
       itemId: suggestion.daraz_item_id,
+      primaryCategory: product?.primary_category || null,
       sellerSku: suggestion.seller_sku,
       name: suggestion.suggested_title,
+      brand: product?.brand || null,
     });
 
     const updated = await titleSuggestionModel.updateStatus(id, {
