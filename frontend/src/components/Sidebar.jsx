@@ -119,7 +119,7 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "MARKETPLACE MANAGEMENT",
+    section: "OPTIMIZATION",
     page_key: "daraz_title_optimizer",
     page_name: "Title Optimizer",
     path: "/product/daraz-products/title-optimizer",
