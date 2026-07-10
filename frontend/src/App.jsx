@@ -4,6 +4,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
 import UsersPage from "./pages/users/UsersPage";
+import CreateUserPage from "./pages/users/create_user_page";
+import EditUserPage from "./pages/users/edit_user_page";
 import AccessControlPage from "./pages/access/AccessControlPage";
 import LogsPage from "./pages/logs/LogsPage";
 import ProductManagementRoutes from "./routes/product_management/index";
@@ -56,6 +58,24 @@ export default function App() {
         element={
           <ProtectedLayout>
             <UsersPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/users/create"
+        element={
+          <ProtectedLayout>
+            <CreateUserPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/users/edit/:id"
+        element={
+          <ProtectedLayout>
+            <EditUserPage />
           </ProtectedLayout>
         }
       />

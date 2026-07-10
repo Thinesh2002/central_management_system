@@ -1,18 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { KeyRound, Plus, RefreshCcw, Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { KeyRound, Plus, RefreshCcw, Trash2, Edit } from "lucide-react";
 import api, { getApiError } from "../../config/api";
 import { getStoredUser } from "../../config/auth";
 import { usePagePermission } from "../../components/common/permissions/PermissionsProvider";
+import { usePageOverlay } from "../../components/common/page_overlay/PageOverlayProvider";
 import { Link } from "react-router-dom";
-
-const emptyForm = {
-  user_uid: "",
-  name: "",
-  email: "",
-  password: "",
-  role: "user",
-  status: "active",
-};
 
 function isLocked(user) {
   if (!user.locked_until) return false;
@@ -22,20 +14,11 @@ function isLocked(user) {
 export default function UsersPage() {
   const currentUser = getStoredUser();
   const { canEdit, canDelete } = usePagePermission("users");
+  const { openOverlay } = usePageOverlay();
 
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
-
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const roleOptions = useMemo(() => {
-    return currentUser?.role === "master_admin"
-      ? ["master_admin", "admin", "user"]
-      : ["user"];
-  }, [currentUser?.role]);
 
   async function loadUsers() {
     setError("");
@@ -51,62 +34,6 @@ export default function UsersPage() {
   useEffect(() => {
     loadUsers();
   }, []);
-
-  function handleChange(event) {
-    setForm((prev) => ({
-      ...prev,
-      [event.target.name]: event.target.value,
-    }));
-  }
-
-  function startEdit(user) {
-    setEditingId(user.id);
-
-    setForm({
-      user_uid: user.user_uid,
-      name: user.name,
-      email: user.email,
-      password: "",
-      role: user.role,
-      status: user.status,
-    });
-
-    setMessage("");
-    setError("");
-  }
-
-  function resetForm() {
-    setEditingId(null);
-    setForm(emptyForm);
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    setLoading(true);
-    setMessage("");
-    setError("");
-
-    try {
-      const payload = { ...form };
-
-      if (editingId && !payload.password) {
-        delete payload.password;
-      }
-
-      const { data } = editingId
-        ? await api.put(`/users/${editingId}`, payload)
-        : await api.post("/users", payload);
-
-      setMessage(data.message || "User saved successfully.");
-      resetForm();
-      await loadUsers();
-    } catch (err) {
-      setError(getApiError(err));
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function removeUser(user) {
     const confirmed = window.confirm(`Delete ${user.email}?`);
@@ -136,6 +63,17 @@ export default function UsersPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => openOverlay("/users/create")}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-blue-700 px-3 text-[12px] font-semibold text-white hover:bg-blue-600"
+              >
+                <Plus size={14} />
+                Add User
+              </button>
+            )}
+
             <Link
               to="/access-control"
               className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
@@ -168,138 +106,7 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="grid w-full gap-5 p-5 xl:grid-cols-[420px_1fr]">
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-xl border border-slate-800 bg-slate-900 p-5"
-        >
-          <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-white">
-            <Plus size={18} className="text-blue-400" />
-            {editingId ? "Edit User" : "Create User"}
-          </h3>
-
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                User ID
-              </label>
-              <input
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-600"
-                name="user_uid"
-                value={form.user_uid}
-                onChange={handleChange}
-                placeholder="Example: Thinesh"
-                required
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Login can use this User ID or email.
-              </p>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                Name
-              </label>
-              <input
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-600"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                Email
-              </label>
-              <input
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-600"
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                Password
-              </label>
-              <input
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-600"
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                required={!editingId}
-                minLength={8}
-                placeholder={
-                  editingId
-                    ? "Leave empty to keep old password"
-                    : "Minimum 8 characters"
-                }
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-300">
-                  Role
-                </label>
-                <select
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none focus:border-blue-600"
-                  name="role"
-                  value={form.role}
-                  onChange={handleChange}
-                >
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-300">
-                  Status
-                </label>
-                <select
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm text-white outline-none focus:border-blue-600"
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-9 flex-1 rounded-md bg-blue-700 text-[12px] font-semibold text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? "Saving..." : editingId ? "Update" : "Create"}
-            </button>
-
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="h-9 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
-
+      <div className="w-full p-5">
         <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
           <div className="border-b border-slate-800 px-5 py-4">
             <h3 className="text-lg font-bold text-white">Users List</h3>
@@ -387,31 +194,34 @@ export default function UsersPage() {
                     </td>
 
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => startEdit(user)}
-                          className="mr-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
-                        >
-                          Edit
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-1.5">
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => openOverlay(`/users/edit/${user.id}`)}
+                            title="Edit user"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                          >
+                            <Edit size={13} />
+                          </button>
+                        )}
 
-                      {canDelete && (
-                        <button
-                          type="button"
-                          onClick={() => removeUser(user)}
-                          disabled={
-                            user.is_master_locked === 1 ||
-                            user.role === "master_admin" ||
-                            user.id === currentUser?.id
-                          }
-                          className="inline-flex items-center gap-2 rounded-lg border border-red-900 bg-red-950 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          <Trash2 size={15} />
-                          Delete
-                        </button>
-                      )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => removeUser(user)}
+                            disabled={
+                              user.is_master_locked === 1 ||
+                              user.role === "master_admin" ||
+                              user.id === currentUser?.id
+                            }
+                            title="Delete user"
+                            className="flex h-7 w-7 items-center justify-center rounded-md border border-red-900 bg-red-950 text-red-300 hover:bg-red-900 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
