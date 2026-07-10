@@ -27,6 +27,13 @@ async function mapWithConcurrency(items, limit, worker) {
   return results;
 }
 
+function isEligibleForTitleGeneration(product) {
+  const status = String(product.status || "").toLowerCase();
+  const quantity = Number(product.quantity);
+
+  return status === "active" && Number.isFinite(quantity) && quantity > 1;
+}
+
 async function findStaleProducts({ accountId, limit, staleDays }) {
   const account = await accountModel.getAccountById(accountId);
   if (!account) return [];
@@ -53,9 +60,11 @@ async function scanAccountForTitleSuggestions({
     .randomBytes(3)
     .toString("hex")}`;
 
-  const candidateProducts = isStaleMode
+  const rawCandidates = isStaleMode
     ? await findStaleProducts({ accountId, limit, staleDays })
     : await darazProductSyncModel.listPreview({ account_id: accountId, limit, offset: 0 });
+
+  const candidateProducts = rawCandidates.filter(isEligibleForTitleGeneration);
 
   const [pendingProductIds, recentSuggestionProductIds] = await Promise.all([
     titleSuggestionModel.findPendingProductIds(accountId),
