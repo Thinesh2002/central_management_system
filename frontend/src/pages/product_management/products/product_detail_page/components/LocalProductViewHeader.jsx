@@ -1,4 +1,4 @@
-import { ArrowLeft, Edit3, RefreshCcw } from "lucide-react";
+import { Edit3, RefreshCcw } from "lucide-react";
 import { getProductId } from "../utils/localProductViewHelpers";
 
 function getProductTitle(product = {}) {
@@ -39,7 +39,6 @@ function ActionButton({
 export default function LocalProductViewHeader({
   product,
   loading,
-  onBack,
   onEdit,
   onRefresh,
 }) {
@@ -75,11 +74,6 @@ export default function LocalProductViewHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <ActionButton onClick={onBack}>
-            <ArrowLeft size={14} />
-            Back
-          </ActionButton>
-
           <ActionButton onClick={onRefresh} disabled={loading}>
             <RefreshCcw size={14} className={loading ? "animate-spin" : ""} />
             Refresh

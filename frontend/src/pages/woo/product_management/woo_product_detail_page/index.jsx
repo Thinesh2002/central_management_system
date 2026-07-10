@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   ExternalLink,
   Image as ImageIcon,
   Package,
@@ -8,7 +7,7 @@ import {
   Box,
   Database,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { wooProductApi } from "../../../../config/sub_api/woo_api/woo_product_api";
 import { sanitizeHtml } from "../../../../utils/sanitizeHtml";
 import Loader from "../../../../components/common/Loader";
@@ -170,14 +169,6 @@ export default function WooProductDetailPage() {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
-        <Link
-          to="/product/woo-products"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-yellow-300"
-        >
-          <ArrowLeft size={16} />
-          Back to Woo products
-        </Link>
-
         <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error || "WooCommerce product not found."}
         </div>
@@ -188,14 +179,6 @@ export default function WooProductDetailPage() {
   return (
     <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
       <div className="mb-5">
-        <Link
-          to="/product/woo-products"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-yellow-300"
-        >
-          <ArrowLeft size={16} />
-          Back to Woo products
-        </Link>
-
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-medium text-yellow-200">

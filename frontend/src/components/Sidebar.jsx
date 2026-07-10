@@ -174,7 +174,7 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "ORDER MANAGEMENT",
+    section: "MESSAGES",
     page_key: "message_templates",
     page_name: "Message Templates",
     path: "/order-management/message-templates",
@@ -291,9 +291,11 @@ export default function Sidebar({ open, onClose }) {
         <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden">
           {Object.entries(groupedMenu).map(([sectionName, items]) => (
             <div key={sectionName} className="border-b border-[#1d2940] py-3">
-              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFD400]">
-                {sectionName}
-              </p>
+              {sectionName !== "MESSAGES" && (
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFD400]">
+                  {sectionName}
+                </p>
+              )}
 
               <div className="space-y-0.5 px-2">
                 {items.map((item) => {

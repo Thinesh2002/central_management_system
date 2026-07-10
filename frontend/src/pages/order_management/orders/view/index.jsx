@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   AlertCircle,
-  ArrowLeft,
   Banknote,
   ClipboardList,
   Eye,
@@ -670,7 +669,6 @@ function DarazFinanceTable({ transactions, currency }) {
 
 export default function OrderDetailPage() {
   const { source, id } = useParams();
-  const navigate = useNavigate();
   const showToast = useToast();
 
   const [order, setOrder] = useState(null);
@@ -774,14 +772,6 @@ export default function OrderDetailPage() {
   if (error || !order) {
     return (
       <div className="space-y-3">
-        <button
-          type="button"
-          onClick={() => navigate("/order-management/orders")}
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-orange-300 hover:text-orange-200"
-        >
-          <ArrowLeft size={14} /> Back to Orders
-        </button>
-
         <div className="flex items-center gap-1.5 rounded-md border border-red-900 bg-red-950 px-3 py-2 text-[12px] text-red-300">
           <AlertCircle size={13} />
           {error || "Order not found."}
@@ -795,15 +785,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => navigate("/order-management/orders")}
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-orange-300 hover:text-orange-200"
-        >
-          <ArrowLeft size={14} /> Back to Orders
-        </button>
-
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"

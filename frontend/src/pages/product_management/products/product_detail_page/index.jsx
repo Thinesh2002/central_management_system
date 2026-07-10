@@ -28,10 +28,6 @@ export default function LocalProductViewPage() {
   const showVariations = shouldShowProductVariations(product || {});
   const showProductStock = shouldShowProductStockCard(product || {});
 
-  function handleBack() {
-    navigate("/product/local-products");
-  }
-
   function handleEdit() {
     if (!currentProductId) return;
     navigate(`/product/local-products/edit/${currentProductId}/basic`);
@@ -44,7 +40,6 @@ export default function LocalProductViewPage() {
           product={product}
           productId={currentProductId}
           loading={loading}
-          onBack={handleBack}
           onEdit={handleEdit}
           onReload={reload}
         />
@@ -78,14 +73,6 @@ export default function LocalProductViewPage() {
               >
                 Try Again
               </button>
-
-              <button
-                type="button"
-                onClick={handleBack}
-                className="cursor-pointer rounded-lg border border-slate-700 bg-[#111827] px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033]"
-              >
-                Back to Products
-              </button>
             </div>
           </section>
         )}
@@ -104,14 +91,6 @@ export default function LocalProductViewPage() {
                 This product may have been deleted or the product ID is invalid.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={handleBack}
-              className="cursor-pointer rounded-lg border border-slate-700 bg-[#111827] px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-[#172033]"
-            >
-              Back to Products
-            </button>
           </section>
         )}
 

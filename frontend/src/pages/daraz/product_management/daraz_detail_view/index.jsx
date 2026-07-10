@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
-  ArrowLeft,
   Box,
   CalendarClock,
   Copy,
@@ -11,7 +10,7 @@ import {
   RefreshCw,
   Tag,
 } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { darazProductsApi } from "../../../../config/sub_api/daraz_api/daraz_products_api";
 import Loader from "../../../../components/common/Loader";
 
@@ -261,7 +260,6 @@ function AttributeValue({ value }) {
 
 export default function DarazProductViewPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const darazProductId = id;
 
@@ -408,13 +406,6 @@ export default function DarazProductViewPage() {
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
-              <Link
-                to="/product/daraz-products"
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-700 bg-slate-950 text-slate-300 hover:border-yellow-500 hover:text-yellow-300"
-              >
-                <ArrowLeft size={15} />
-              </Link>
-
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-500 text-slate-950">
                 <Package size={17} />
               </div>
@@ -458,19 +449,7 @@ export default function DarazProductViewPage() {
 
           {message && (
             <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <span>{message}</span>
-
-                {isInvalidId(darazProductId) && (
-                  <button
-                    type="button"
-                    onClick={() => navigate("/product/daraz-products")}
-                    className="inline-flex h-8 items-center justify-center rounded-md bg-yellow-500 px-3 text-xs font-semibold text-slate-950 hover:bg-yellow-400"
-                  >
-                    Back to Products
-                  </button>
-                )}
-              </div>
+              {message}
             </div>
           )}
         </div>

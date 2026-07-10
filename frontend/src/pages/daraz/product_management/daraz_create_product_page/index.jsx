@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle2,
   Loader2,
   Plus,
@@ -277,11 +276,6 @@ export default function DarazCreateProductPage() {
   return (
     <div className="min-h-full bg-slate-950 p-4 text-slate-200 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <Link to="/product/daraz-products" className="mb-4 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-yellow-300">
-          <ArrowLeft size={16} />
-          Back to Daraz Products
-        </Link>
-
         <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>

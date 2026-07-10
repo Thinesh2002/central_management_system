@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   ChevronRight,
   Copy,
@@ -223,13 +222,6 @@ export default function VariantViewPage() {
           </div>
 
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => navigate(`/product/local-products/edit/${productId}/variants`)}
-              className="inline-flex h-9 cursor-pointer items-center gap-2 border border-slate-700 px-3 text-xs font-bold text-slate-300 hover:border-orange-400 hover:text-orange-300"
-            >
-              <ArrowLeft size={14} /> Back
-            </button>
             <button
               type="button"
               onClick={() =>

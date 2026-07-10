@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle2,
   ImageOff,
   Loader2,
@@ -149,14 +148,6 @@ export default function DarazEditProductPage() {
   return (
     <div className="min-h-full bg-slate-950 p-4 text-slate-200 md:p-6">
       <div className="mx-auto max-w-2xl">
-        <Link
-          to="/product/daraz-products"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-yellow-300"
-        >
-          <ArrowLeft size={16} />
-          Back to Daraz Products
-        </Link>
-
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
           <h1 className="text-lg font-semibold text-white">Edit Daraz Product</h1>
           <p className="mt-1 text-xs text-slate-400">

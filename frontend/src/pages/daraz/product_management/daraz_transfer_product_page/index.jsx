@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2, Search, Send } from "lucide-react";
-import { Link } from "react-router-dom";
+import { AlertCircle, CheckCircle2, Loader2, Search, Send } from "lucide-react";
 import { localProductsApi } from "../../../../config/sub_api/product_management_api/local_products_api";
 import { marketplaceApi } from "../../../../config/sub_api/marketplace_management_api/marketplace_api";
 import { darazCatalogApi } from "../../../../config/sub_api/daraz_api/daraz_catalog_api";
@@ -150,14 +149,6 @@ export default function DarazTransferProductPage() {
   return (
     <div className="min-h-full bg-slate-950 p-4 text-slate-200 md:p-6">
       <div className="mx-auto max-w-5xl space-y-4">
-        <Link
-          to="/product/daraz-products"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-yellow-300"
-        >
-          <ArrowLeft size={16} />
-          Back to Daraz Products
-        </Link>
-
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-xl">
           <h1 className="text-lg font-semibold text-white">Transfer Local Product → Daraz</h1>
           <p className="mt-1 text-xs text-slate-400">

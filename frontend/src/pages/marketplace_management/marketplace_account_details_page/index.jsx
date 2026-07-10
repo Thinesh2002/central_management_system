@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   Activity,
   RefreshCw,
   ShieldCheck,
@@ -9,7 +8,7 @@ import {
   Store,
   AlertTriangle,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
 
@@ -123,14 +122,6 @@ export default function MarketplaceAccountDetailsPage() {
   if (!account) {
     return (
       <div className="min-h-screen bg-transparent p-6">
-        <Link
-          to="/marketplace/accounts"
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-        >
-          <ArrowLeft size={16} />
-          Back to accounts
-        </Link>
-
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">
           Account not found.
         </div>
@@ -141,14 +132,6 @@ export default function MarketplaceAccountDetailsPage() {
   return (
     <div className="min-h-screen bg-transparent p-4 md:p-6">
       <div className="mb-6">
-        <Link
-          to="/marketplace/accounts"
-          className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-        >
-          <ArrowLeft size={16} />
-          Back to accounts
-        </Link>
-
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">

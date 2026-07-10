@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle2,
   Image as ImageIcon,
   ImagePlus,
@@ -250,7 +249,6 @@ function AttributeField({ attr, value, onChange, uploading, onUploadFile, onUplo
 export default function DarazTransferPreviewPage() {
   const { productId } = useParams();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const accountIds = useMemo(
     () => (searchParams.get("accounts") || "").split(",").filter(Boolean),
@@ -647,15 +645,6 @@ export default function DarazTransferPreviewPage() {
   return (
     <div className="min-h-full bg-slate-950 text-slate-200">
       <div className="w-full space-y-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-orange-300"
-        >
-          <ArrowLeft size={14} />
-          Back
-        </button>
-
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3 shadow-xl">
           <h1 className="text-lg font-semibold text-white">Transfer Preview — Daraz</h1>
           <p className="mt-1 text-xs text-slate-400">

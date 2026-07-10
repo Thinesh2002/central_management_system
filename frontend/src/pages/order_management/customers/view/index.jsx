@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Mail, MapPin, Phone, User } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Mail, MapPin, Phone, User } from "lucide-react";
 
 import customersApi from "../../../../config/sub_api/order_management_api/customers_api";
 import Loader from "../../../../components/common/Loader";
@@ -54,7 +54,6 @@ function AddressBlock({ title, fullName, phone, line1, line2, city, district, pr
 
 export default function CustomerViewPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,15 +86,6 @@ export default function CustomerViewPage() {
 
   return (
     <div className="space-y-3">
-      <button
-        type="button"
-        onClick={() => navigate("/order-management/customers")}
-        className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-400 hover:text-orange-300"
-      >
-        <ArrowLeft size={14} />
-        Back to Customers
-      </button>
-
       {loading ? (
         <Loader label="Loading customer..." minHeight="240px" />
       ) : error ? (

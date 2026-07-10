@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import { getStoredUser } from "../../../../config/auth";
@@ -332,21 +332,11 @@ export default function LocalProductAddPage() {
   return (
     <div className="min-h-screen bg-[#070b16] p-3 text-slate-100 lg:p-5">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-300">
-              Local Product
-            </p>
-            <h1 className="mt-1 text-lg font-black text-white">Create Product</h1>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => navigate("/product/local-products")}
-            className="inline-flex h-8 cursor-pointer items-center gap-1.5 border border-slate-700 bg-[#0b1220] px-3 text-[12px] font-bold text-slate-200 transition hover:border-orange-400 hover:text-orange-300"
-          >
-            <ArrowLeft size={14} /> Back
-          </button>
+        <div className="mb-3 border-b border-slate-800 pb-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-orange-300">
+            Local Product
+          </p>
+          <h1 className="mt-1 text-lg font-black text-white">Create Product</h1>
         </div>
 
         <form

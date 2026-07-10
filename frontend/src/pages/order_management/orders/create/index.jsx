@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ImageOff, Plus, Save, Search, Trash2 } from "lucide-react";
+import { ImageOff, Plus, Save, Search, Trash2 } from "lucide-react";
 
 import ordersApi from "../../../../config/sub_api/order_management_api/orders_api";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
@@ -293,14 +293,6 @@ export default function CreateManualOrderPage() {
     <form onSubmit={submit} className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate("/order-management/orders")}
-            className="inline-flex h-8 w-8 items-center justify-center border border-slate-700 text-slate-300 hover:border-orange-400 hover:text-orange-300"
-          >
-            <ArrowLeft size={15} />
-          </button>
-
           <div>
             <h1 className="text-[14px] font-semibold text-white">Create Manual Order</h1>
             <p className="text-[11px] text-slate-500">

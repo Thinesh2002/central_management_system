@@ -27,10 +27,10 @@ export function PageOverlayProvider({ children }) {
       {children}
 
       {url && (
-        <div className="fixed inset-y-0 right-0 left-0 z-60 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm sm:p-8 lg:left-58">
-          <div className="flex h-full w-full max-w-350 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl shadow-black/60">
-            <div className="flex h-11 shrink-0 items-center justify-between rounded-t-xl border-b border-slate-800 bg-[#0b1220] px-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <div className="page-overlay-backdrop fixed inset-y-0 right-0 left-0 z-60 flex items-center justify-center bg-slate-950/75 p-2 backdrop-blur-sm sm:p-4 lg:left-58">
+          <div className="page-overlay-card flex h-full w-full max-w-475 flex-col overflow-hidden rounded-2xl border border-purple-500/40 bg-slate-950">
+            <div className="flex h-12 shrink-0 items-center justify-between gap-3 rounded-t-2xl border-b border-purple-500/30 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-purple-300">
                 Central Management
               </span>
 
@@ -38,7 +38,7 @@ export function PageOverlayProvider({ children }) {
                 type="button"
                 onClick={closeOverlay}
                 title="Close"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-200 transition hover:bg-purple-500/25 hover:text-white"
               >
                 <X size={14} />
               </button>

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   Save,
   Store,
   KeyRound,
@@ -352,14 +351,6 @@ export default function EditMarketplaceAccountPage() {
     <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
       <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <Link
-            to="/marketplace/accounts"
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-yellow-300"
-          >
-            <ArrowLeft size={16} />
-            Back to marketplace accounts
-          </Link>
-
           <h1 className="text-xl font-semibold text-white">{pageTitle}</h1>
 
           <p className="mt-1 text-sm text-slate-400">

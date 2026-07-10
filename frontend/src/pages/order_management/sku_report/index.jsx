@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Package, Store, Boxes, ImageOff, Tag } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Package, Store, Boxes, ImageOff, Tag } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -107,7 +107,6 @@ function SalesLineChart({ title, data }) {
 
 export default function SkuReportPage() {
   const { sku } = useParams();
-  const navigate = useNavigate();
   const canViewCostPrice = useCanViewCostPrice();
 
   const [report, setReport] = useState(null);
@@ -159,14 +158,6 @@ export default function SkuReportPage() {
               </p>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="inline-flex h-9 cursor-pointer items-center gap-2 border border-slate-700 px-3 text-xs font-bold text-slate-300 hover:border-orange-400 hover:text-orange-300"
-          >
-            <ArrowLeft size={14} /> Back
-          </button>
         </div>
 
         {error ? (
