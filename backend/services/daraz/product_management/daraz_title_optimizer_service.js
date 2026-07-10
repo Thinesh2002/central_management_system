@@ -1,6 +1,8 @@
 const { getGeminiClient } = require("../../ai/gemini_client");
 
-const MODEL = "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+const RATE_LIMIT_RETRIES = 2;
+const DEFAULT_RETRY_DELAY_MS = 20000;
 
 const SYSTEM_PROMPT = `You optimize product titles for Daraz (a Southeast/South Asian e-commerce marketplace) listings.
 
@@ -41,18 +43,63 @@ function buildUserMessage(product, avoidTitles = []) {
   return lines.join("\n");
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseGeminiRateLimit(error) {
+  try {
+    const parsed = typeof error.message === "string" ? JSON.parse(error.message) : null;
+    if (parsed?.error?.code !== 429) return null;
+
+    const retryDetail = (parsed.error.details || []).find((detail) =>
+      String(detail["@type"] || "").includes("RetryInfo")
+    );
+    const seconds = retryDetail?.retryDelay ? parseFloat(retryDetail.retryDelay) : null;
+
+    return { retryDelayMs: Number.isFinite(seconds) ? seconds * 1000 + 1000 : DEFAULT_RETRY_DELAY_MS };
+  } catch {
+    return null;
+  }
+}
+
+async function callGemini(client, params, retriesLeft) {
+  try {
+    return await client.models.generateContent(params);
+  } catch (error) {
+    const rateLimit = parseGeminiRateLimit(error);
+
+    if (rateLimit && retriesLeft > 0) {
+      await sleep(rateLimit.retryDelayMs);
+      return callGemini(client, params, retriesLeft - 1);
+    }
+
+    if (rateLimit) {
+      const rateLimitError = new Error("Gemini rate limit exceeded for this scan. Try again in a minute, or scan fewer products at a time.");
+      rateLimitError.statusCode = 429;
+      throw rateLimitError;
+    }
+
+    throw error;
+  }
+}
+
 async function generateTitleSuggestion(product, { avoidTitles = [] } = {}) {
   const client = getGeminiClient();
 
-  const response = await client.models.generateContent({
-    model: MODEL,
-    contents: buildUserMessage(product, avoidTitles),
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      responseMimeType: "application/json",
-      responseSchema: OUTPUT_SCHEMA,
+  const response = await callGemini(
+    client,
+    {
+      model: MODEL,
+      contents: buildUserMessage(product, avoidTitles),
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        responseMimeType: "application/json",
+        responseSchema: OUTPUT_SCHEMA,
+      },
     },
-  });
+    RATE_LIMIT_RETRIES
+  );
 
   const text = response.text;
 

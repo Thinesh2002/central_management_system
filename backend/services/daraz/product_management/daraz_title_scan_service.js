@@ -7,7 +7,7 @@ const titleSiblingModel = require("../../../models/daraz/product_management/dara
 const darazSalesLookupModel = require("../../../models/daraz/product_management/daraz_sales_lookup_model");
 const titleOptimizerService = require("./daraz_title_optimizer_service");
 
-const SCAN_CONCURRENCY = 3;
+const SCAN_CONCURRENCY = 1;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function mapWithConcurrency(items, limit, worker) {
