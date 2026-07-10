@@ -1,10 +1,14 @@
 const crypto = require("crypto");
 
+const accountModel = require("../../../models/marketplace/account_model");
 const darazProductSyncModel = require("../../../models/daraz/product_management/daraz_product_sync_model");
 const titleSuggestionModel = require("../../../models/daraz/product_management/daraz_title_suggestion_model");
+const titleSiblingModel = require("../../../models/daraz/product_management/daraz_title_sibling_model");
+const darazSalesLookupModel = require("../../../models/daraz/product_management/daraz_sales_lookup_model");
 const titleOptimizerService = require("./daraz_title_optimizer_service");
 
 const SCAN_CONCURRENCY = 3;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function mapWithConcurrency(items, limit, worker) {
   const results = new Array(items.length);
@@ -22,21 +26,62 @@ async function mapWithConcurrency(items, limit, worker) {
   return results;
 }
 
-async function scanAccountForTitleSuggestions({ accountId, limit = 50, userId = null }) {
-  const scanBatchId = `title_scan_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`;
+async function findStaleProducts({ accountId, limit, staleDays }) {
+  const account = await accountModel.getAccountById(accountId);
+  if (!account) return [];
 
-  const products = await darazProductSyncModel.listPreview({
-    account_id: accountId,
-    limit,
-    offset: 0,
-  });
+  const sinceDate = new Date(Date.now() - staleDays * DAY_MS);
+
+  const [recentlySoldSkus, allProducts] = await Promise.all([
+    darazSalesLookupModel.getRecentlySoldSkus({ accountName: account.account_name, sinceDate }),
+    darazProductSyncModel.listPreview({ account_id: accountId, limit, offset: 0 }),
+  ]);
+
+  return allProducts.filter((product) => product.seller_sku && !recentlySoldSkus.has(product.seller_sku));
+}
+
+async function scanAccountForTitleSuggestions({
+  accountId,
+  limit = 50,
+  userId = null,
+  mode = "manual",
+  staleDays = 14,
+}) {
+  const isStaleMode = mode === "stale";
+  const scanBatchId = `${isStaleMode ? "stale_scan" : "title_scan"}_${Date.now()}_${crypto
+    .randomBytes(3)
+    .toString("hex")}`;
+
+  const candidateProducts = isStaleMode
+    ? await findStaleProducts({ accountId, limit, staleDays })
+    : await darazProductSyncModel.listPreview({ account_id: accountId, limit, offset: 0 });
+
+  const [pendingProductIds, recentSuggestionProductIds] = await Promise.all([
+    titleSuggestionModel.findPendingProductIds(accountId),
+    isStaleMode
+      ? titleSuggestionModel.findRecentSuggestionProductIds({
+          account_id: accountId,
+          since_date: new Date(Date.now() - staleDays * DAY_MS),
+        })
+      : Promise.resolve(new Set()),
+  ]);
+
+  const products = candidateProducts.filter(
+    (product) => !pendingProductIds.has(product.id) && !recentSuggestionProductIds.has(product.id)
+  );
 
   let succeeded = 0;
   let failed = 0;
 
   await mapWithConcurrency(products, SCAN_CONCURRENCY, async (product) => {
     try {
-      const suggestion = await titleOptimizerService.generateTitleSuggestion(product);
+      const siblings = await titleSiblingModel.findSiblingListings({
+        sellerSku: product.seller_sku,
+        excludeAccountId: accountId,
+      });
+      const avoidTitles = siblings.map((sibling) => sibling.current_title).filter(Boolean);
+
+      const suggestion = await titleOptimizerService.generateTitleSuggestion(product, { avoidTitles });
 
       await titleSuggestionModel.create({
         account_id: accountId,

@@ -6,7 +6,7 @@ const darazProductApiService = require("../../../services/marketplace/daraz_prod
 
 async function scan(req, res) {
   try {
-    const { accountId, limit } = req.body || {};
+    const { accountId, limit, mode, staleDays } = req.body || {};
 
     if (!accountId) {
       return res.status(400).json({ success: false, message: "accountId is required." });
@@ -16,6 +16,8 @@ async function scan(req, res) {
       accountId,
       limit: limit || 50,
       userId: req.user?.id || null,
+      mode: mode === "stale" ? "stale" : "manual",
+      staleDays: staleDays || 14,
     });
 
     return res.json({ success: true, message: "Scan completed.", data: result });

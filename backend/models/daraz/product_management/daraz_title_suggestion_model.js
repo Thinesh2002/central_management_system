@@ -84,4 +84,30 @@ async function updateStatus(id, { status, reviewed_by: reviewedBy = null, applie
   return findById(id);
 }
 
-module.exports = { create, createError, findById, list, updateStatus };
+async function findPendingProductIds(accountId) {
+  const [rows] = await db.query(
+    `SELECT DISTINCT daraz_product_id FROM daraz_title_suggestions WHERE account_id = ? AND status = 'pending'`,
+    [accountId]
+  );
+
+  return new Set(rows.map((row) => row.daraz_product_id));
+}
+
+async function findRecentSuggestionProductIds({ account_id: accountId, since_date: sinceDate }) {
+  const [rows] = await db.query(
+    `SELECT DISTINCT daraz_product_id FROM daraz_title_suggestions WHERE account_id = ? AND created_at >= ?`,
+    [accountId, sinceDate]
+  );
+
+  return new Set(rows.map((row) => row.daraz_product_id));
+}
+
+module.exports = {
+  create,
+  createError,
+  findById,
+  list,
+  updateStatus,
+  findPendingProductIds,
+  findRecentSuggestionProductIds,
+};

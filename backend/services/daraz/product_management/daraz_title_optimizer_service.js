@@ -11,7 +11,8 @@ Daraz title guidelines:
 - No ALL CAPS, no excessive punctuation (!!!, ***), no promotional spam ("BEST PRICE", "SALE").
 - Do not invent specifications, brand names, or claims not present in the original title/attributes.
 - Keep the language the original title is in (do not translate).
-- If the original title is already good, it is fine to suggest only a small refinement — don't force a rewrite for its own sake.`;
+- If the original title is already good, it is fine to suggest only a small refinement — don't force a rewrite for its own sake.
+- If this exact product is also listed on other Daraz storefronts under different titles, your suggested title must be meaningfully different from those (not a near-duplicate) so each storefront reads as distinct, while still accurately describing the same product.`;
 
 const OUTPUT_SCHEMA = {
   type: "object",
@@ -23,7 +24,7 @@ const OUTPUT_SCHEMA = {
   additionalProperties: false,
 };
 
-function buildUserMessage(product) {
+function buildUserMessage(product, avoidTitles = []) {
   const lines = [
     `Current title: ${product.name || "(none)"}`,
     product.brand ? `Brand: ${product.brand}` : null,
@@ -31,10 +32,17 @@ function buildUserMessage(product) {
     product.seller_sku ? `Seller SKU: ${product.seller_sku}` : null,
   ].filter(Boolean);
 
+  if (avoidTitles.length) {
+    lines.push(
+      "This product is also listed on other Daraz storefronts under these titles — your suggestion must be meaningfully different from all of them:"
+    );
+    avoidTitles.forEach((title) => lines.push(`- ${title}`));
+  }
+
   return lines.join("\n");
 }
 
-async function generateTitleSuggestion(product) {
+async function generateTitleSuggestion(product, { avoidTitles = [] } = {}) {
   const client = getAnthropicClient();
 
   const response = await client.messages.create({
@@ -48,7 +56,7 @@ async function generateTitleSuggestion(product) {
       },
     },
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildUserMessage(product) }],
+    messages: [{ role: "user", content: buildUserMessage(product, avoidTitles) }],
   });
 
   if (response.stop_reason === "refusal") {
