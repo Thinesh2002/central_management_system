@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ImagePlus,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
@@ -358,18 +359,19 @@ function ExtraImagesPopup({
         className="w-full max-w-5xl border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
           <div>
             <p className="text-sm font-black text-white">{title}</p>
-            <p className="text-xs font-semibold text-slate-500">Sub images</p>
+            <p className="text-xs font-semibold text-purple-200/80">Sub images</p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer border border-slate-700 px-2.5 py-1 text-[11px] font-semibold text-slate-300 hover:text-white"
+            title="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
           >
-            Close
+            <X size={16} />
           </button>
         </div>
 

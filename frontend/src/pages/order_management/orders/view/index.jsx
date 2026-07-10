@@ -528,16 +528,16 @@ function TrackOrderModal({ open, onClose, order }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-slate-800 bg-[#07101f] px-4 py-3">
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Track My Order</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-200/80">Track My Order</p>
             <h3 className="mt-1 text-[14px] font-bold text-white">{order.order_status || "-"}</h3>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
           >
             <X size={16} />
           </button>

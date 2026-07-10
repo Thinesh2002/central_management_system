@@ -62,7 +62,7 @@ export default function ImagePickerModal({ open, onClose, onSelect }) {
         className="flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden border border-slate-700 bg-[#243b57] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between bg-violet-700 px-5 py-4 text-white">
+        <div className="flex items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-4 text-white">
           <div className="flex items-center gap-3">
             <Search size={20} />
             <p className="text-base font-black">Select Image</p>
@@ -71,7 +71,7 @@ export default function ImagePickerModal({ open, onClose, onSelect }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
           >
             <X size={18} />
           </button>

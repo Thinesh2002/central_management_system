@@ -1790,10 +1790,10 @@ export default function DarazDashboardPage() {
       {accountFilterOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-[860px] overflow-hidden rounded-md border border-zinc-700 bg-[#172235] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-cyan-700 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
               <div>
                 <h3 className="text-[15px] font-semibold text-white">Daraz Account Filter</h3>
-                <p className="mt-0.5 text-[12px] text-cyan-100/80">Select Daraz accounts.</p>
+                <p className="mt-0.5 text-[12px] text-purple-200/80">Select Daraz accounts.</p>
               </div>
 
               <button
@@ -1947,17 +1947,17 @@ export default function DarazDashboardPage() {
       {syncOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="w-full max-w-[560px] rounded-sm border border-zinc-800/70 bg-[#050817] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800/70 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
               <div>
-                <h3 className="text-[15px] font-semibold text-zinc-100">Select Daraz Accounts to Sync</h3>
-                <p className="mt-0.5 text-[12px] text-zinc-500">Selected accounts will sync.</p>
+                <h3 className="text-[15px] font-semibold text-white">Select Daraz Accounts to Sync</h3>
+                <p className="mt-0.5 text-[12px] text-purple-200/80">Selected accounts will sync.</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => !syncing && setSyncOpen(false)}
                 disabled={syncing}
-                className="flex h-8 w-8 items-center justify-center rounded-sm text-zinc-500 hover:bg-white/5 hover:text-zinc-200"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 disabled:opacity-50"
               >
                 <X size={16} />
               </button>

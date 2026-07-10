@@ -92,12 +92,12 @@ export default function ExportCsvModal({
         className="w-full max-w-lg border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 bg-[#07101f] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
           <h2 className="text-[12px] font-black text-white">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
           >
             <X size={16} />
           </button>

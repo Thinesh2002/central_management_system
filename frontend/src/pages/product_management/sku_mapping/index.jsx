@@ -70,10 +70,10 @@ function TextInput({ label, value, onChange, disabled, placeholder, required }) 
 
 function ModalHeader({ title, onClose }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+    <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
       <div>
-        <h3 className="text-[15px] font-normal text-slate-100">{title}</h3>
-        <p className="text-[12px] text-slate-500">
+        <h3 className="text-[15px] font-normal text-white">{title}</h3>
+        <p className="text-[12px] text-purple-200/80">
           Map a wrong marketplace SKU to the correct local SKU.
         </p>
       </div>
@@ -81,7 +81,7 @@ function ModalHeader({ title, onClose }) {
       <button
         type="button"
         onClick={onClose}
-        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-slate-400 hover:bg-slate-900"
+        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
       >
         <X size={16} />
       </button>

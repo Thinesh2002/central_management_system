@@ -15,12 +15,12 @@ export default function ImagePreviewModal({ imagePreview, onClose }) {
         className="flex w-full max-w-[720px] flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between bg-violet-600 px-5 py-4 text-white">
+        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-4 text-white">
           <div className="flex items-center gap-3">
             <ImageIcon size={20} />
             <div>
               <h3 className="text-base font-black">Product Image</h3>
-              <p className="text-xs font-semibold text-violet-50/80">
+              <p className="text-xs font-semibold text-purple-200/80">
                 Fixed size main image preview
               </p>
             </div>
@@ -29,7 +29,7 @@ export default function ImagePreviewModal({ imagePreview, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
           >
             <X size={18} />
           </button>

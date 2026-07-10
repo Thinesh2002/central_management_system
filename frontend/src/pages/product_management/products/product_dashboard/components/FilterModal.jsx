@@ -26,12 +26,12 @@ export default function FilterModal({
         className="w-full max-w-4xl overflow-hidden border border-slate-700 bg-[#1b2b42] shadow-2xl shadow-black/40"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between bg-orange-500 px-5 py-4 text-white">
+        <div className="flex items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-4 text-white">
           <div className="flex items-center gap-3">
             <SlidersHorizontal size={20} />
             <div>
               <h3 className="text-base font-black">Product Filters</h3>
-              <p className="text-xs font-semibold text-orange-50/80">
+              <p className="text-xs font-semibold text-purple-200/80">
                 Category, product type, model, image and status filters
               </p>
             </div>
@@ -40,7 +40,7 @@ export default function FilterModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/20 text-white transition hover:bg-white/30"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
           >
             <X size={18} />
           </button>
