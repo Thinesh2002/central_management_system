@@ -552,6 +552,12 @@ function getSku(product) {
   );
 }
 
+function getSkuCount(product) {
+  const raw = readRawObject(product);
+  const skus = raw?.skus || product?.skus;
+  return Array.isArray(skus) ? skus.length : 1;
+}
+
 function getQty(product) {
   const raw = readRawObject(product);
   return firstDefined(
@@ -611,6 +617,7 @@ function normalizeProduct(product, accountMap) {
   const statusLabel = formatStatus(statusRaw);
   const title = getTitle(product);
   const sku = getSku(product);
+  const skuCount = getSkuCount(product);
 
   const row = {
     raw: product,
@@ -629,6 +636,7 @@ function normalizeProduct(product, accountMap) {
       getAccountName(account),
     title,
     sku,
+    skuCount,
     image: getImage(product),
     statusRaw,
     statusLabel,
@@ -1574,7 +1582,7 @@ export default function DarazDashboardPage() {
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
-                        {row.sku ? (
+                        {row.sku && row.skuCount <= 1 ? (
                           <button
                             type="button"
                             onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)}
@@ -1584,7 +1592,9 @@ export default function DarazDashboardPage() {
                             {row.sku}
                           </button>
                         ) : (
-                          <span className="block truncate">-</span>
+                          <span className="block truncate" title={row.skuCount > 1 ? "Parent product — see child SKUs for analysis" : ""}>
+                            {row.sku || "-"}
+                          </span>
                         )}
 
                         {row.sku && skuMappingByWrong[row.sku] ? (

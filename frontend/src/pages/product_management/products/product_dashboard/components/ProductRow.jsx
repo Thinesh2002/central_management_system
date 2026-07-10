@@ -191,7 +191,7 @@ export default function ProductRow({
         {/* SKU */}
         <td className="px-3 py-3 align-middle">
           <div className="flex min-w-0 items-center gap-2">
-            {sku && sku !== "-" ? (
+            {sku && sku !== "-" && !hasVariants ? (
               <button
                 type="button"
                 onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(sku)}`)}
@@ -201,7 +201,12 @@ export default function ProductRow({
                 {sku}
               </button>
             ) : (
-              <span className="truncate text-[11px] font-normal text-slate-200">{sku}</span>
+              <span
+                className="truncate text-[11px] font-normal text-slate-200"
+                title={hasVariants ? "Parent product — see child SKUs for analysis" : ""}
+              >
+                {sku}
+              </span>
             )}
 
             <button

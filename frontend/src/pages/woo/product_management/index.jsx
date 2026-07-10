@@ -545,16 +545,22 @@ export default function WooProductDashboardPage() {
                             <div className="mt-0.5 font-mono text-[11px] text-yellow-200/80">
                               SKU:{" "}
                               {product.sku ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    openOverlay(`/order-management/sku-report/${encodeURIComponent(product.sku)}`)
-                                  }
-                                  className="cursor-pointer underline decoration-dotted hover:text-yellow-100"
-                                  title={`View SKU report for ${product.sku}`}
-                                >
-                                  {product.sku}
-                                </button>
+                                String(product.product_type || "").toLowerCase() === "variable" ? (
+                                  <span title="Parent product — see child SKUs for analysis">
+                                    {product.sku}
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openOverlay(`/order-management/sku-report/${encodeURIComponent(product.sku)}`)
+                                    }
+                                    className="cursor-pointer underline decoration-dotted hover:text-yellow-100"
+                                    title={`View SKU report for ${product.sku}`}
+                                  >
+                                    {product.sku}
+                                  </button>
+                                )
                               ) : (
                                 "-"
                               )}
