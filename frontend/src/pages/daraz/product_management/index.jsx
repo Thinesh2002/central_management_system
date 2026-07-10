@@ -9,9 +9,7 @@ import {
   Eye,
   Package,
   Pencil,
-  Plus,
   Search,
-  Send,
   Trash2,
   X,
 } from "lucide-react";
@@ -1241,24 +1239,6 @@ export default function DarazDashboardPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => openOverlay("/product/daraz-products/create")}
-                className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
-              >
-                <Plus size={13} />
-                CREATE PRODUCT
-              </button>
-
-              <button
-                type="button"
-                onClick={() => openOverlay("/product/daraz-products/transfer")}
-                className="flex h-7 items-center gap-1 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f]"
-              >
-                <Send size={13} />
-                TRANSFER TO DARAZ
-              </button>
-
               <button
                 type="button"
                 onClick={openSyncPopup}
