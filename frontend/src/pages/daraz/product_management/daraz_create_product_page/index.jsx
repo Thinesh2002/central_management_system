@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  ImagePlus,
   Loader2,
   Plus,
   RefreshCw,
   Save,
   Trash2,
+  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { marketplaceApi } from "../../../../config/sub_api/marketplace_management_api/marketplace_api";
@@ -47,8 +49,12 @@ function emptySku() {
     packageWeight: "0.1",
     packageWidth: "1",
     packageContent: "",
-    images: "",
+    images: [],
   };
+}
+
+function extractUploadedImageUrl(res) {
+  return res?.data?.data?.image?.url || res?.data?.image?.url || null;
 }
 
 function flattenCategories(nodes = [], parent = "") {
@@ -103,14 +109,84 @@ export default function DarazCreateProductPage() {
   const [shortDescription, setShortDescription] = useState("");
   const [brand, setBrand] = useState("No Brand");
   const [model, setModel] = useState("");
-  const [images, setImages] = useState("");
+  const [images, setImages] = useState([]);
   const [skus, setSkus] = useState([emptySku()]);
 
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
+  const [uploadingProduct, setUploadingProduct] = useState(false);
+  const [uploadingSkuIndex, setUploadingSkuIndex] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
+
+  // Daraz's own CDN must host every image passed to /product/create — a
+  // pasted external URL is frequently unreachable from Daraz's side, which
+  // silently breaks creation. Uploading through Daraz's /image/upload API
+  // (same mechanism the Transfer-to-Daraz flow already uses) guarantees a
+  // real, reachable hosted URL before the product is ever submitted.
+  async function uploadImagesToDaraz(files) {
+    if (!accountId) {
+      setError("Select a Daraz account before adding images.");
+      return [];
+    }
+
+    const uploaded = [];
+    for (const file of Array.from(files || [])) {
+      try {
+        const res = await darazCatalogApi.uploadImage(accountId, file);
+        const url = extractUploadedImageUrl(res);
+        if (url) uploaded.push(url);
+      } catch (err) {
+        setError(err?.response?.data?.message || err?.message || `Failed to upload ${file.name} to Daraz.`);
+      }
+    }
+    return uploaded;
+  }
+
+  async function handleProductImageUpload(e) {
+    const files = e.target.files;
+    e.target.value = "";
+    if (!files || !files.length) return;
+
+    setUploadingProduct(true);
+    try {
+      const uploaded = await uploadImagesToDaraz(files);
+      if (uploaded.length) setImages((prev) => [...prev, ...uploaded].slice(0, 8));
+    } finally {
+      setUploadingProduct(false);
+    }
+  }
+
+  function removeProductImage(url) {
+    setImages((prev) => prev.filter((item) => item !== url));
+  }
+
+  async function handleSkuImageUpload(index, e) {
+    const files = e.target.files;
+    e.target.value = "";
+    if (!files || !files.length) return;
+
+    setUploadingSkuIndex(index);
+    try {
+      const uploaded = await uploadImagesToDaraz(files);
+      if (uploaded.length) {
+        setSkus((prev) =>
+          prev.map((sku, i) =>
+            i === index ? { ...sku, images: [...(sku.images || []), ...uploaded].slice(0, 8) } : sku
+          )
+        );
+      }
+    } finally {
+      setUploadingSkuIndex(null);
+    }
+  }
+
+  function removeSkuImage(index, url) {
+    setSkus((prev) =>
+      prev.map((sku, i) => (i === index ? { ...sku, images: (sku.images || []).filter((item) => item !== url) } : sku))
+    );
+  }
 
   useEffect(() => {
     marketplaceApi
@@ -240,7 +316,7 @@ export default function DarazCreateProductPage() {
       brand: brand || "No Brand",
       model,
       attributes: attributeValues,
-      images: images.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8),
+      images: images.slice(0, 8),
       skus: skus
         .filter((s) => s.sellerSku.trim())
         .map((s) => ({
@@ -255,7 +331,7 @@ export default function DarazCreateProductPage() {
           packageWeight: Number(s.packageWeight || 0.1),
           packageWidth: Number(s.packageWidth || 1),
           packageContent: s.packageContent || name.trim(),
-          images: s.images.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 8),
+          images: (s.images || []).slice(0, 8),
         })),
     };
 
@@ -336,15 +412,37 @@ export default function DarazCreateProductPage() {
               <label className={labelClass}>Model</label>
               <input value={model} onChange={(e) => setModel(e.target.value)} className={inputClass} />
             </div>
-            <div>
-              <label className={labelClass}>Product Images</label>
-              <input value={images} onChange={(e) => setImages(e.target.value)} className={inputClass} placeholder="Max 8 Daraz image URLs, comma separated" />
-            </div>
           </div>
 
           <div>
             <label className={labelClass}>Short Description</label>
             <textarea value={shortDescription} onChange={(e) => setShortDescription(e.target.value)} className={`${inputClass} min-h-[90px]`} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Product Images (max 8, uploaded directly to Daraz)</label>
+            <div className="flex flex-wrap items-center gap-2">
+              {images.map((url) => (
+                <div key={url} className="group relative h-16 w-16 overflow-hidden rounded-lg border border-slate-700 bg-slate-950">
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeProductImage(url)}
+                    className="absolute right-0.5 top-0.5 rounded-full bg-black/70 p-0.5 text-white opacity-0 transition group-hover:opacity-100"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              {images.length < 8 && (
+                <label className={`flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-700 text-slate-500 hover:border-yellow-500 hover:text-yellow-300 ${!accountId ? "pointer-events-none opacity-50" : ""}`}>
+                  {uploadingProduct ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                  <span className="text-[10px]">Add</span>
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleProductImageUpload} disabled={!accountId || uploadingProduct} />
+                </label>
+              )}
+            </div>
+            {!accountId && <p className="mt-1 text-[11px] text-slate-500">Select a Daraz account first — images upload straight to that account's Daraz CDN.</p>}
           </div>
 
           <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
@@ -405,8 +503,28 @@ export default function DarazCreateProductPage() {
                 <div className="mt-2 flex items-center gap-2">
                   <input value={sku.packageWeight} onChange={(e) => updateSku(index, "packageWeight", e.target.value)} placeholder="Weight" type="number" step="0.01" className={`${inputClass} max-w-[130px]`} />
                   <input value={sku.packageContent} onChange={(e) => updateSku(index, "packageContent", e.target.value)} placeholder="Package content" className={inputClass} />
-                  <input value={sku.images} onChange={(e) => updateSku(index, "images", e.target.value)} placeholder="SKU images, comma separated" className={inputClass} />
                   {skus.length > 1 && <button type="button" onClick={() => removeSku(index)} className="shrink-0 rounded-lg border border-slate-700 p-2 text-slate-400 hover:border-red-500 hover:text-red-300"><Trash2 size={14} /></button>}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {(sku.images || []).map((url) => (
+                    <div key={url} className="group relative h-12 w-12 overflow-hidden rounded-lg border border-slate-700 bg-slate-950">
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeSkuImage(index, url)}
+                        className="absolute right-0.5 top-0.5 rounded-full bg-black/70 p-0.5 text-white opacity-0 transition group-hover:opacity-100"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                  {(sku.images || []).length < 8 && (
+                    <label className={`flex h-12 w-12 shrink-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-slate-700 text-slate-500 hover:border-yellow-500 hover:text-yellow-300 ${!accountId ? "pointer-events-none opacity-50" : ""}`}>
+                      {uploadingSkuIndex === index ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                      <span className="text-[9px]">SKU img</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleSkuImageUpload(index, e)} disabled={!accountId || uploadingSkuIndex === index} />
+                    </label>
+                  )}
                 </div>
               </div>
             ))}

@@ -4,6 +4,7 @@ const db = require("../../../config/product_management_db/product_management_db"
 const productModel = require("../../../models/product_management/product/product_model");
 const productPriceModel = require("../../../models/product_management/product/product_price_model.js");
 const productInventoryModel = require("../../../models/product_management/product/product_inventory_model.js");
+const skuMappingModel = require("../../../models/product_management/sku_mapping/sku_mapping_model");
 const tokenService = require("../../marketplace/token_service");
 const darazProductApiService = require("../../marketplace/daraz_product_api_service");
 const darazCatalogApiService = require("../../marketplace/daraz_catalog_api_service");
@@ -209,6 +210,31 @@ function splitSaleAttributes(saleAttributes = {}) {
   return { colorFamily, size, mapped, attributes };
 }
 
+// A SKU only gets auto-suffixed (SKU_AA, SKU_AB, ...) because it collided
+// with one already used on that account — orders synced back from Daraz will
+// carry the suffixed seller_sku, which no longer matches local inventory, so
+// the mapping needs to exist immediately rather than waiting on the fuzzy
+// suggestion tool to notice it later.
+async function recordAutoSkuMapping({ wrongSku, correctSku, updatedBy }) {
+  if (wrongSku === correctSku) return;
+
+  try {
+    await skuMappingModel.create(
+      {
+        wrong_sku: wrongSku,
+        correct_sku: correctSku,
+        platform: "DARAZ",
+        notes: "Auto-created from Daraz transfer SKU collision",
+      },
+      { userId: updatedBy }
+    );
+  } catch (error) {
+    // Most common case: this wrong_sku was already mapped by an earlier
+    // transfer/suggestion — not a failure worth surfacing to the transfer.
+    console.error("[DARAZ_TRANSFER_AUTO_SKU_MAPPING_ERROR]", { wrongSku, correctSku, message: error?.message });
+  }
+}
+
 async function transferToOneAccount({
   accountId,
   product,
@@ -222,6 +248,7 @@ async function transferToOneAccount({
   attributes,
   skuAttributes,
   publicBaseUrl,
+  updatedBy,
 }) {
   const { account, credentials } = await tokenService.getValidCredentialsForAccount(accountId);
   const accountName = account?.account_name || account?.account_code || `#${accountId}`;
@@ -242,6 +269,10 @@ async function transferToOneAccount({
     skuRows.map(async (row) => {
       const finalSku = await generateUniqueSellerSku({ accountId, baseSku: row.baseSku });
       skuMap[row.baseSku] = finalSku;
+
+      if (finalSku !== row.baseSku) {
+        await recordAutoSkuMapping({ wrongSku: finalSku, correctSku: row.baseSku, updatedBy });
+      }
 
       const images = await hostedUrlsFor(row.imagePaths);
       const saleAttrs = (skuAttributes && skuAttributes[row.baseSku]) || {};
@@ -363,6 +394,7 @@ async function transferLocalProductToDaraz({
         attributes,
         skuAttributes,
         publicBaseUrl,
+        updatedBy,
       });
       results.push(result);
 
