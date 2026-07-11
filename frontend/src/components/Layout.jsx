@@ -24,7 +24,7 @@ export default function Layout({ children }) {
 
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-14 lg:pl-58">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pt-16 lg:pl-58">
         <main className="m-1.5 flex-1 bg-slate-950 p-1.5">{children}</main>
         <Footer />
       </div>
