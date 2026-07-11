@@ -19,6 +19,7 @@ import { darazTransferApi } from "../../../../config/sub_api/daraz_api/daraz_tra
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 import Loader from "../../../../components/common/Loader";
 import RichTextEditor, { RichTextField } from "../../../../components/common/rich_text_editor/RichTextEditor";
+import { useToast } from "../../../../components/common/toast/ToastProvider";
 
 const inputClass =
   "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-orange-500 focus:outline-none";
@@ -250,6 +251,7 @@ function AttributeField({ attr, value, onChange, uploading, onUploadFile, onUplo
 export default function DarazTransferPreviewPage() {
   const { productId } = useParams();
   const [searchParams] = useSearchParams();
+  const showToast = useToast();
 
   const accountIds = useMemo(
     () => (searchParams.get("accounts") || "").split(",").filter(Boolean),
@@ -639,15 +641,43 @@ export default function DarazTransferPreviewPage() {
         });
       }
 
+      // Gemini is asked to echo the field key back exactly, but LLMs aren't
+      // 100% reliable at verbatim reproduction (case/whitespace drift) — match
+      // loosely so a value isn't silently dropped over a trivial mismatch.
+      let appliedCount = 0;
       if (Object.keys(attrs).length) {
         setAttributeValues((prev) => {
           const next = { ...prev };
           Object.entries(attrs).forEach(([key, value]) => {
-            const isKnownField = productAttributes.some((attr) => getAttrKey(attr) === key);
-            if (isKnownField) next[key] = value;
+            const matchedAttr = productAttributes.find(
+              (attr) => getAttrKey(attr).trim().toLowerCase() === key.trim().toLowerCase()
+            );
+            if (matchedAttr) {
+              next[getAttrKey(matchedAttr)] = value;
+              appliedCount += 1;
+            }
           });
           return next;
         });
+      }
+
+      if (!attributeFields.length) {
+        showToast(
+          variants.length
+            ? "Title/description generated. Select a Daraz category first to also generate attribute values."
+            : "AI Fill completed, but nothing to generate — select a category and check the product has a name/description.",
+          { type: "error", duration: 5000 }
+        );
+      } else if (appliedCount === 0) {
+        showToast(
+          "Title/description generated. AI couldn't confidently determine any attribute values from this product's existing data — fill them in manually or add more detail to the description first.",
+          { type: "error", duration: 5000 }
+        );
+      } else {
+        showToast(
+          `AI Fill applied: ${variants.length} title/description variant(s), ${appliedCount} of ${attributeFields.length} attribute field(s).`,
+          { type: "success" }
+        );
       }
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "AI content generation failed.");
@@ -852,7 +882,11 @@ export default function DarazTransferPreviewPage() {
                       type="button"
                       onClick={handleAiFill}
                       disabled={aiFilling || !product || !accountIds.length}
-                      title="Generate title, description, and attribute values from this product's existing data"
+                      title={
+                        categoryId
+                          ? "Generate title, description, and attribute values from this product's existing data"
+                          : "Generates title/description now. Select a Daraz category first to also generate attribute values."
+                      }
                       className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-purple-500/10 px-2.5 text-[11px] font-semibold text-purple-300 ring-1 ring-purple-500/30 hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {aiFilling ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
