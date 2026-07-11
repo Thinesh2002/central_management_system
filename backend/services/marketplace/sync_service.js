@@ -105,7 +105,7 @@ async function manualSyncAccount({ accountId, syncType, userId = null }) {
     sync_type: syncType,
     direction: "pull",
     status: "running",
-    triggered_by_type: "manual",
+    triggered_by_type: "user",
     triggered_by_user_id: userId,
     message: `Manual ${syncType} sync started`,
   });

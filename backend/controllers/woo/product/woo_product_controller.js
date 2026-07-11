@@ -43,7 +43,7 @@ async function syncWooProducts(req, res) {
     const result = await wooProductSyncService.syncWooProductsForAccount(
       accountId,
       {
-        triggered_by_type: "manual",
+        triggered_by_type: "user",
       }
     );
 

@@ -274,7 +274,7 @@ async function upsertWooVariation(accountId, productId, variation) {
   );
 }
 
-async function createSyncJob(accountId, triggeredByType = "manual") {
+async function createSyncJob(accountId, triggeredByType = "user") {
   const [result] = await marketplacePool.query(
     `INSERT INTO sync_jobs
       (

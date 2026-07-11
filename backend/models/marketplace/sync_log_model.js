@@ -24,7 +24,7 @@ async function createSyncJob(data) {
       data.sync_type,
       data.direction || "pull",
       data.status || "running",
-      data.triggered_by_type || "manual",
+      data.triggered_by_type || "user",
       data.triggered_by_user_id || null,
       data.message || null,
     ]

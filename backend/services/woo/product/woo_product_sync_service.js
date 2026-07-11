@@ -3,7 +3,7 @@ const wooApi = require("../../marketplace/woo/woo_api_service");
 const wooProductModel = require("../../../models/woo/product/woo_product_model");
 
 async function syncWooProductsForAccount(accountId, options = {}) {
-  const triggeredByType = options.triggered_by_type || "manual";
+  const triggeredByType = options.triggered_by_type || "user";
   const credentials = await wooModel.getWooCredentials(accountId);
 
   const jobId = await wooProductModel.createSyncJob(accountId, triggeredByType);
@@ -187,7 +187,7 @@ async function syncDueWooProductAccounts() {
   for (const account of accounts) {
     try {
       const result = await syncWooProductsForAccount(account.account_id, {
-        triggered_by_type: "scheduler",
+        triggered_by_type: "system",
       });
 
       results.push({
