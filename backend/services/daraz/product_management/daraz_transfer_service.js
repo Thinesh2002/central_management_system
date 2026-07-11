@@ -242,6 +242,7 @@ async function transferToOneAccount({
   productImagePaths,
   categoryId,
   categoryName,
+  title,
   brand,
   model,
   shortDescription,
@@ -300,7 +301,7 @@ async function transferToOneAccount({
     account,
     credentials,
     primaryCategory: categoryId,
-    name: product.product_name || product.title || product.name,
+    name: title || product.product_name || product.title || product.name,
     shortDescription: shortDescription || product.description || "",
     brand: brand || "No Brand",
     model: model || "",
@@ -341,11 +342,13 @@ async function transferLocalProductToDaraz({
   accountIds = [],
   categoryId,
   categoryName,
+  title,
   brand,
   model,
   shortDescription,
   attributes,
   skuAttributes,
+  accountContent,
   updatedBy,
   publicBaseUrl,
 }) {
@@ -381,6 +384,8 @@ async function transferLocalProductToDaraz({
 
   for (const accountId of accountIds) {
     try {
+      const override = accountContent && accountContent[accountId];
+
       const result = await transferToOneAccount({
         accountId,
         product,
@@ -388,9 +393,10 @@ async function transferLocalProductToDaraz({
         productImagePaths,
         categoryId,
         categoryName,
+        title: override?.title || title,
         brand,
         model,
-        shortDescription,
+        shortDescription: override?.shortDescription || shortDescription,
         attributes,
         skuAttributes,
         publicBaseUrl,

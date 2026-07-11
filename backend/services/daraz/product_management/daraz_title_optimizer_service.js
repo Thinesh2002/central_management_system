@@ -1,9 +1,8 @@
 const { getGeminiClient } = require("../../ai/gemini_client");
+const { callGeminiWithRetry } = require("../../ai/gemini_retry");
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 const TRANSIENT_RETRIES = 2;
-const DEFAULT_RATE_LIMIT_DELAY_MS = 20000;
-const OVERLOAD_RETRY_DELAY_MS = 8000;
 
 const SYSTEM_PROMPT = `You optimize product titles for Daraz (a Southeast/South Asian e-commerce marketplace) listings.
 
@@ -44,67 +43,10 @@ function buildUserMessage(product, avoidTitles = []) {
   return lines.join("\n");
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function parseGeminiTransientError(error) {
-  try {
-    const parsed = typeof error.message === "string" ? JSON.parse(error.message) : null;
-    const code = parsed?.error?.code;
-
-    if (code === 429) {
-      const retryDetail = (parsed.error.details || []).find((detail) =>
-        String(detail["@type"] || "").includes("RetryInfo")
-      );
-      const seconds = retryDetail?.retryDelay ? parseFloat(retryDetail.retryDelay) : null;
-
-      return {
-        code,
-        retryDelayMs: Number.isFinite(seconds) ? seconds * 1000 + 1000 : DEFAULT_RATE_LIMIT_DELAY_MS,
-        message: "Gemini rate limit exceeded for this scan. Try again in a minute, or scan fewer products at a time.",
-      };
-    }
-
-    if (code === 503) {
-      return {
-        code,
-        retryDelayMs: OVERLOAD_RETRY_DELAY_MS,
-        message: "Gemini is temporarily overloaded. Try scanning again in a moment.",
-      };
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function callGemini(client, params, retriesLeft) {
-  try {
-    return await client.models.generateContent(params);
-  } catch (error) {
-    const transient = parseGeminiTransientError(error);
-
-    if (transient && retriesLeft > 0) {
-      await sleep(transient.retryDelayMs);
-      return callGemini(client, params, retriesLeft - 1);
-    }
-
-    if (transient) {
-      const transientError = new Error(transient.message);
-      transientError.statusCode = transient.code;
-      throw transientError;
-    }
-
-    throw error;
-  }
-}
-
 async function generateTitleSuggestion(product, { avoidTitles = [] } = {}) {
   const client = getGeminiClient();
 
-  const response = await callGemini(
+  const response = await callGeminiWithRetry(
     client,
     {
       model: MODEL,

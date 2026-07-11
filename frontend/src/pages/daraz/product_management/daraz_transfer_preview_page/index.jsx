@@ -9,6 +9,7 @@ import {
   Loader2,
   Package,
   Send,
+  Sparkles,
   XCircle,
 } from "lucide-react";
 import { localProductsApi } from "../../../../config/sub_api/product_management_api/local_products_api";
@@ -272,9 +273,12 @@ export default function DarazTransferPreviewPage() {
   const [attributeValues, setAttributeValues] = useState({});
   const [skuAttributeValues, setSkuAttributeValues] = useState({});
 
+  const [title, setTitle] = useState("");
   const [brand, setBrand] = useState("No Brand");
   const [model, setModel] = useState("");
   const [shortDescription, setShortDescription] = useState("");
+  const [accountContent, setAccountContent] = useState({});
+  const [aiFilling, setAiFilling] = useState(false);
   const [uploadingKey, setUploadingKey] = useState("");
 
   const [sending, setSending] = useState(false);
@@ -366,6 +370,7 @@ export default function DarazTransferPreviewPage() {
         setAccounts(Array.isArray(accountList) ? accountList : []);
 
         if (productData?.daraz_brand) setBrand(productData.daraz_brand);
+        setTitle(productData?.product_name || productData?.title || productData?.name || "");
         setShortDescription(productData?.description || "");
 
         const variants = productData?.variants?.length
@@ -574,6 +579,83 @@ export default function DarazTransferPreviewPage() {
     }));
   }
 
+  function handleAccountContentChange(accountId, field, value) {
+    setAccountContent((prev) => ({
+      ...prev,
+      [accountId]: { ...(prev[accountId] || {}), [field]: value },
+    }));
+  }
+
+  // Generates a title + description (unique per account when more than one
+  // account is selected, so the same product doesn't read as duplicate
+  // content across the seller's own storefronts) plus best-guess values for
+  // the loaded category attributes — all from the product's existing data.
+  async function handleAiFill() {
+    if (!product) return;
+
+    setError("");
+    setAiFilling(true);
+
+    try {
+      const accountNames = accountIds.map((id) => {
+        const account = accounts.find((a) => String(a.id || a.account_id) === String(id));
+        return account?.account_name || account?.account_code || `Account #${id}`;
+      });
+
+      const attributeFields = productAttributes
+        .filter((attr) => !isImageType(getAttrType(attr)))
+        .map((attr) => ({
+          key: getAttrKey(attr),
+          label: getAttrLabel(attr),
+          existingValue: attributeValues[getAttrKey(attr)] || "",
+        }));
+
+      const res = await darazTransferApi.aiFill({
+        productId,
+        accountNames,
+        categoryName,
+        brand,
+        attributeFields,
+        existingDescription: shortDescription || product.description || "",
+      });
+
+      const data = res?.data?.data || {};
+      const variants = data.variants || [];
+      const attrs = data.attributes || {};
+
+      if (variants[0]) {
+        setTitle(variants[0].title || title);
+        setShortDescription(variants[0].descriptionHtml || shortDescription);
+      }
+
+      if (accountIds.length > 1) {
+        setAccountContent((prev) => {
+          const next = { ...prev };
+          accountIds.forEach((id, index) => {
+            const variant = variants[index];
+            if (variant) next[id] = { title: variant.title, shortDescription: variant.descriptionHtml };
+          });
+          return next;
+        });
+      }
+
+      if (Object.keys(attrs).length) {
+        setAttributeValues((prev) => {
+          const next = { ...prev };
+          Object.entries(attrs).forEach(([key, value]) => {
+            const isKnownField = productAttributes.some((attr) => getAttrKey(attr) === key);
+            if (isKnownField) next[key] = value;
+          });
+          return next;
+        });
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "AI content generation failed.");
+    } finally {
+      setAiFilling(false);
+    }
+  }
+
   // Image-type attributes (e.g. a per-colour thumbnail) need an actual
   // Daraz-hosted URL as their value, so the file goes through Daraz's own
   // /image/upload API immediately on selection rather than being deferred
@@ -656,11 +738,13 @@ export default function DarazTransferPreviewPage() {
         accountIds,
         categoryId,
         categoryName,
+        title,
         brand,
         model,
         shortDescription,
         attributes: attributeValues,
         skuAttributes: skuAttributeValues,
+        accountContent: accountIds.length > 1 ? accountContent : undefined,
       });
       setResults(res?.data?.data || []);
     } catch (err) {
@@ -761,6 +845,66 @@ export default function DarazTransferPreviewPage() {
 
             {activeTab === "details" && (
               <div className="space-y-3">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-slate-400">Product Title</p>
+                    <button
+                      type="button"
+                      onClick={handleAiFill}
+                      disabled={aiFilling || !product || !accountIds.length}
+                      title="Generate title, description, and attribute values from this product's existing data"
+                      className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-purple-500/10 px-2.5 text-[11px] font-semibold text-purple-300 ring-1 ring-purple-500/30 hover:bg-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {aiFilling ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                      AI Fill
+                    </button>
+                  </div>
+                  <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+                  {accountIds.length > 1 && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Shared fallback title — each account below can have its own unique title/description.
+                    </p>
+                  )}
+                </div>
+
+                {accountIds.length > 1 && (
+                  <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
+                    <p className="mb-2 text-xs font-medium text-slate-400">
+                      Per-Account Title &amp; Description
+                      <span className="ml-2 text-[11px] font-normal text-slate-500">
+                        Blank fields fall back to the shared title/description.
+                      </span>
+                    </p>
+                    <div className="space-y-3">
+                      {selectedAccounts.map((account) => {
+                        const accId = String(account.id || account.account_id);
+                        const content = accountContent[accId] || {};
+
+                        return (
+                          <div key={accId} className="rounded-xl border border-slate-800 bg-slate-950/50 p-3">
+                            <p className="mb-2 text-[11px] font-semibold text-orange-300">
+                              {account.account_name || account.account_code || `#${accId}`}
+                            </p>
+                            <input
+                              value={content.title || ""}
+                              onChange={(e) => handleAccountContentChange(accId, "title", e.target.value)}
+                              placeholder={title || "Uses the shared title above"}
+                              className={`${inputClass} mb-2`}
+                            />
+                            <RichTextField
+                              label="Description"
+                              value={content.shortDescription || ""}
+                              onChange={(value) => handleAccountContentChange(accId, "shortDescription", value)}
+                              minHeight={100}
+                              onUploadImage={handleRichTextImageUpload}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
                     <p className="mb-2 text-xs font-medium text-slate-400">Daraz Category</p>
