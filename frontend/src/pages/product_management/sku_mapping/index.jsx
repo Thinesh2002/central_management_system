@@ -345,13 +345,18 @@ export default function SkuMappingPage() {
             <div className="divide-y divide-orange-900/20">
               {suggestions.map((row) => (
                 <div key={row.wrong_sku} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                  <div className="flex items-center gap-2 text-[13px]">
-                    <span className="font-mono text-red-300">{row.wrong_sku}</span>
-                    <ArrowRight size={13} className="text-slate-600" />
-                    <span className="font-mono text-emerald-300">{row.suggested_correct_sku}</span>
-                    <span className="text-[11px] text-slate-500">
-                      {Math.round(row.confidence * 100)}% match · {row.occurrences} order(s)
-                    </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                      <span className="font-mono text-red-300">{row.wrong_sku}</span>
+                      <ArrowRight size={13} className="text-slate-600" />
+                      <span className="font-mono text-emerald-300">{row.suggested_correct_sku}</span>
+                      <span className="text-[11px] text-slate-500">
+                        {Math.round(row.confidence * 100)}% match · {row.occurrences} order(s)
+                      </span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500" title={`${row.order_product_title} → ${row.matched_product_name}`}>
+                      "{row.order_product_title}" → "{row.matched_product_name}"
+                    </p>
                   </div>
 
                   {canEdit && (

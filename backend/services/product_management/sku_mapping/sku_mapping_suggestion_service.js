@@ -4,47 +4,54 @@ const productDb = require("../../../config/product_management_db/product_managem
 
 const LOOKBACK_DAYS = 180;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MIN_CONFIDENCE = 0.6;
+const MIN_CONFIDENCE = 0.3;
 const MAX_ORDER_SKUS = 1000;
 const MAX_SUGGESTIONS = 50;
+const STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "for",
+  "your",
+  "new",
+  "set",
+  "pack",
+  "pcs",
+  "piece",
+  "pieces",
+]);
 
-function levenshtein(a, b) {
-  const m = a.length;
-  const n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
+function tokenize(text) {
+  const words = String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !STOPWORDS.has(word));
 
-  const dp = new Array(n + 1);
-  for (let j = 0; j <= n; j++) dp[j] = j;
+  return new Set(words);
+}
 
-  for (let i = 1; i <= m; i++) {
-    let prev = dp[0];
-    dp[0] = i;
+function jaccardSimilarity(setA, setB) {
+  if (!setA.size || !setB.size) return 0;
 
-    for (let j = 1; j <= n; j++) {
-      const temp = dp[j];
-      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
-      prev = temp;
-    }
+  let intersection = 0;
+  for (const token of setA) {
+    if (setB.has(token)) intersection += 1;
   }
 
-  return dp[n];
+  const union = setA.size + setB.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
-function similarity(a, b) {
-  const maxLen = Math.max(a.length, b.length);
-  if (maxLen === 0) return 1;
-  return 1 - levenshtein(a, b) / maxLen;
-}
-
-function bestMatch(wrongSku, localSkus) {
+function bestTitleMatch(titleTokens, candidates) {
   let best = null;
 
-  for (const localSku of localSkus) {
-    const score = similarity(wrongSku, localSku);
+  for (const candidate of candidates) {
+    const score = jaccardSimilarity(titleTokens, candidate.tokens);
 
     if (!best || score > best.score) {
-      best = { correct_sku: localSku, score };
+      best = { sku: candidate.sku, name: candidate.name, score };
     }
   }
 
@@ -54,9 +61,9 @@ function bestMatch(wrongSku, localSkus) {
 async function findSuggestedMappings({ limit = MAX_SUGGESTIONS } = {}) {
   const sinceDate = new Date(Date.now() - LOOKBACK_DAYS * DAY_MS);
 
-  const [[orderSkuRows], [localSkuRows], [mappingRows]] = await Promise.all([
+  const [[orderItemRows], [localSkuRows], [mappingRows], [productRows], [variantRows]] = await Promise.all([
     orderDb.query(
-      `SELECT i.seller_sku, COUNT(*) AS occurrences
+      `SELECT i.seller_sku, MAX(i.product_title) AS product_title, COUNT(*) AS occurrences
        FROM daraz_order_items i
        INNER JOIN daraz_orders o ON o.id = i.daraz_order_id
        WHERE o.order_date >= ? AND i.seller_sku IS NOT NULL AND i.seller_sku != ''
@@ -67,24 +74,44 @@ async function findSuggestedMappings({ limit = MAX_SUGGESTIONS } = {}) {
     ),
     inventoryDb.query(`SELECT sku FROM product_inventory WHERE deleted_at IS NULL`),
     productDb.query(`SELECT wrong_sku FROM sku_mappings`),
+    productDb.query(`SELECT sku, product_name FROM products WHERE deleted_at IS NULL AND sku IS NOT NULL`),
+    productDb.query(
+      `SELECT v.variant_sku, COALESCE(v.variant_name, p.product_name) AS variant_name
+       FROM product_variants v
+       INNER JOIN products p ON p.id = v.product_id
+       WHERE v.deleted_at IS NULL AND v.variant_sku IS NOT NULL`
+    ),
   ]);
 
-  const localSkus = localSkuRows.map((row) => row.sku).filter(Boolean);
-  const localSkuSet = new Set(localSkus);
+  const localSkuSet = new Set(localSkuRows.map((row) => row.sku).filter(Boolean));
   const alreadyMappedSet = new Set(mappingRows.map((row) => row.wrong_sku));
 
-  const unresolved = orderSkuRows.filter(
+  const candidates = [
+    ...productRows.map((row) => ({ sku: row.sku, name: row.product_name, tokens: tokenize(row.product_name) })),
+    ...variantRows.map((row) => ({
+      sku: row.variant_sku,
+      name: row.variant_name,
+      tokens: tokenize(row.variant_name),
+    })),
+  ].filter((candidate) => candidate.sku && candidate.tokens.size > 0);
+
+  const unresolved = orderItemRows.filter(
     (row) => !localSkuSet.has(row.seller_sku) && !alreadyMappedSet.has(row.seller_sku)
   );
 
   const suggestions = unresolved
     .map((row) => {
-      const match = bestMatch(row.seller_sku, localSkus);
+      const titleTokens = tokenize(row.product_title);
+      if (!titleTokens.size) return null;
+
+      const match = bestTitleMatch(titleTokens, candidates);
       if (!match || match.score < MIN_CONFIDENCE) return null;
 
       return {
         wrong_sku: row.seller_sku,
-        suggested_correct_sku: match.correct_sku,
+        suggested_correct_sku: match.sku,
+        matched_product_name: match.name,
+        order_product_title: row.product_title,
         confidence: Math.round(match.score * 100) / 100,
         occurrences: row.occurrences,
       };
@@ -95,7 +122,7 @@ async function findSuggestedMappings({ limit = MAX_SUGGESTIONS } = {}) {
 
   return {
     suggestions,
-    scanned_order_skus: orderSkuRows.length,
+    scanned_order_skus: orderItemRows.length,
     unresolved_count: unresolved.length,
   };
 }
