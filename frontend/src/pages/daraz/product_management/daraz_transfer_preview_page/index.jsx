@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -265,6 +265,7 @@ export default function DarazTransferPreviewPage() {
   const [selectedChain, setSelectedChain] = useState([]);
   const [categorySearch, setCategorySearch] = useState("");
   const [categorySearchFocused, setCategorySearchFocused] = useState(false);
+  const categorySearchContainerRef = useRef(null);
 
   const [attributeSchema, setAttributeSchema] = useState([]);
   const [loadingAttributes, setLoadingAttributes] = useState(false);
@@ -445,6 +446,30 @@ export default function DarazTransferPreviewPage() {
       cancelled = true;
     };
   }, [primaryAccountId]);
+
+  // Closing the search dropdown on the input's blur event races against the
+  // click on a result — on touch devices the on-screen keyboard closing can
+  // shift the layout between touchstart and click, making the tap land on
+  // nothing. A document-level outside-click check (same pattern used for the
+  // action menus elsewhere in this app) closes the dropdown only when the
+  // user actually clicks away from it, so a tap on a result always lands.
+  useEffect(() => {
+    if (!categorySearchFocused) return;
+
+    function handleOutsideClick(event) {
+      if (categorySearchContainerRef.current && !categorySearchContainerRef.current.contains(event.target)) {
+        setCategorySearchFocused(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [categorySearchFocused]);
 
   // Prefill category path + attributes from a prior transfer, once the tree is loaded
   useEffect(() => {
@@ -744,7 +769,7 @@ export default function DarazTransferPreviewPage() {
                       <p className="mb-1 text-[11px] font-medium text-orange-300">Selected: {selectedBreadcrumb}</p>
                     )}
 
-                    <div className="relative mb-2">
+                    <div ref={categorySearchContainerRef} className="relative mb-2">
                       <input
                         value={categorySearchDisplayValue}
                         onChange={(e) => setCategorySearch(e.target.value)}
@@ -752,7 +777,6 @@ export default function DarazTransferPreviewPage() {
                           setCategorySearchFocused(true);
                           setCategorySearch("");
                         }}
-                        onBlur={() => setTimeout(() => setCategorySearchFocused(false), 150)}
                         placeholder="Click to browse, or type to search category by name..."
                         className={inputClass}
                       />
