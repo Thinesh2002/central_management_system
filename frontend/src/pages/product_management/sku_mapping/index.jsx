@@ -23,6 +23,37 @@ const emptyMapping = {
   notes: "",
 };
 
+const RAW_API_BASE_URL = String(
+  import.meta.env.VITE_API_BASE_URL || "https://backend.teckvora.com/api"
+).replace(/\/$/, "");
+const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api$/, "");
+
+function resolveImageUrl(value) {
+  if (!value) return "";
+  const url = String(value).trim();
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+  if (url.startsWith("/")) return `${BACKEND_BASE_URL}${url}`;
+  return `${BACKEND_BASE_URL}/${url}`;
+}
+
+function SkuThumb({ src }) {
+  if (!src) {
+    return <div className="h-9 w-9 shrink-0 rounded-md border border-slate-800 bg-slate-900" />;
+  }
+
+  return (
+    <img
+      src={resolveImageUrl(src)}
+      alt=""
+      className="h-9 w-9 shrink-0 rounded-md border border-slate-800 object-cover"
+      onError={(event) => {
+        event.currentTarget.style.visibility = "hidden";
+      }}
+    />
+  );
+}
+
 function getApiMessage(error, fallback = "Something went wrong") {
   return error?.response?.data?.message || error?.message || fallback;
 }
@@ -345,18 +376,31 @@ export default function SkuMappingPage() {
             <div className="divide-y divide-orange-900/20">
               {suggestions.map((row) => (
                 <div key={row.wrong_sku} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2 text-[13px]">
-                      <span className="font-mono text-red-300">{row.wrong_sku}</span>
-                      <ArrowRight size={13} className="text-slate-600" />
-                      <span className="font-mono text-emerald-300">{row.suggested_correct_sku}</span>
-                      <span className="text-[11px] text-slate-500">
-                        {Math.round(row.confidence * 100)}% match · {row.occurrences} order(s)
-                      </span>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <SkuThumb src={row.wrong_sku_image} />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                        <span className="font-mono text-red-300">{row.wrong_sku}</span>
+                      </div>
+                      <p className="line-clamp-1 text-[11px] text-slate-500" title={row.order_product_title}>
+                        {row.order_product_title}
+                      </p>
                     </div>
-                    <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500" title={`${row.order_product_title} → ${row.matched_product_name}`}>
-                      "{row.order_product_title}" → "{row.matched_product_name}"
-                    </p>
+
+                    <ArrowRight size={13} className="shrink-0 text-slate-600" />
+
+                    <SkuThumb src={row.correct_sku_image} />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                        <span className="font-mono text-emerald-300">{row.suggested_correct_sku}</span>
+                        <span className="text-[11px] text-slate-500">
+                          {Math.round(row.confidence * 100)}% match · {row.occurrences} order(s)
+                        </span>
+                      </div>
+                      <p className="line-clamp-1 text-[11px] text-slate-500" title={row.matched_product_name}>
+                        {row.matched_product_name}
+                      </p>
+                    </div>
                   </div>
 
                   {canEdit && (
