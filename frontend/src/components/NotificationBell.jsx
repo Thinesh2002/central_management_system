@@ -28,7 +28,7 @@ function formatRelativeTime(value) {
   return `${days}d ago`;
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ inline = false }) {
   const navigate = useNavigate();
   const containerRef = useRef(null);
 
@@ -91,7 +91,7 @@ export default function NotificationBell() {
   }
 
   return (
-    <div ref={containerRef} className="fixed right-3 top-3 z-30">
+    <div ref={containerRef} className={inline ? "relative" : "fixed right-3 top-3 z-30"}>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
