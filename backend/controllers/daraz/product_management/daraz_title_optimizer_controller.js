@@ -5,6 +5,10 @@ const titleOptimizerLogModel = require("../../../models/daraz/product_management
 const titleScanService = require("../../../services/daraz/product_management/daraz_title_scan_service");
 const darazProductApiService = require("../../../services/marketplace/daraz_product_api_service");
 const darazProductSyncModel = require("../../../models/daraz/product_management/daraz_product_sync_model");
+const darazSalesLookupModel = require("../../../models/daraz/product_management/daraz_sales_lookup_model");
+
+const IMPACT_WINDOW_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function scan(req, res) {
   try {
@@ -180,4 +184,62 @@ async function rejectSuggestion(req, res) {
   }
 }
 
-module.exports = { scan, listSuggestions, approveSuggestion, rejectSuggestion };
+async function getTitleChangeImpact(req, res) {
+  try {
+    const { id } = req.params;
+    const log = await titleOptimizerLogModel.findById(id);
+
+    if (!log || log.event_type !== "title_applied" || log.status !== "success") {
+      return res.status(404).json({ success: false, message: "No applied title change found for this log entry." });
+    }
+
+    const account = await accountModel.findById(log.account_id);
+
+    if (!account) {
+      return res.status(404).json({ success: false, message: "Account not found." });
+    }
+
+    const changedAt = new Date(log.created_at);
+    const now = new Date();
+    const windowMs = IMPACT_WINDOW_DAYS * DAY_MS;
+
+    const afterEnd = new Date(Math.min(changedAt.getTime() + windowMs, now.getTime()));
+    const daysElapsedSinceChange = Math.floor((now.getTime() - changedAt.getTime()) / DAY_MS);
+
+    const [before, after] = await Promise.all([
+      darazSalesLookupModel.getSalesWindow({
+        accountName: account.account_name,
+        sellerSku: log.seller_sku,
+        from: new Date(changedAt.getTime() - windowMs),
+        to: changedAt,
+      }),
+      darazSalesLookupModel.getSalesWindow({
+        accountName: account.account_name,
+        sellerSku: log.seller_sku,
+        from: changedAt,
+        to: afterEnd,
+      }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        seller_sku: log.seller_sku,
+        old_title: log.old_title,
+        new_title: log.new_title,
+        changed_at: log.created_at,
+        days_elapsed_since_change: daysElapsedSinceChange,
+        window_days: IMPACT_WINDOW_DAYS,
+        after_window_complete: daysElapsedSinceChange >= IMPACT_WINDOW_DAYS,
+        before,
+        after,
+      },
+    });
+  } catch (error) {
+    console.error("[DARAZ_TITLE_IMPACT_ERROR]", { message: error?.message });
+
+    return res.status(500).json({ success: false, message: "Failed to compute title change impact." });
+  }
+}
+
+module.exports = { scan, listSuggestions, approveSuggestion, rejectSuggestion, getTitleChangeImpact };

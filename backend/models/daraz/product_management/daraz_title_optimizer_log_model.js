@@ -62,4 +62,9 @@ async function listRecent({ event_type: eventType, account_id: accountId, status
   return rows;
 }
 
-module.exports = { logScanBatch, logTitleApplied, listRecent };
+async function findById(id) {
+  const [rows] = await db.query(`SELECT * FROM daraz_title_optimizer_logs WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] || null;
+}
+
+module.exports = { logScanBatch, logTitleApplied, listRecent, findById };

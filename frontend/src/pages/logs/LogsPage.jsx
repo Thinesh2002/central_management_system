@@ -9,9 +9,11 @@ import {
   Boxes,
   RotateCcw,
   Sparkles,
+  X,
 } from "lucide-react";
 import api, { getApiError } from "../../config/api";
 import { darazProductsApi } from "../../config/sub_api/daraz_api/daraz_products_api";
+import darazTitleOptimizerApi from "../../config/sub_api/daraz_api/daraz_title_optimizer_api";
 
 const TABS = [
   { key: "all", label: "All Logs", icon: ClipboardList },
@@ -278,17 +280,129 @@ function OrderInventoryLogsTable({ rows, loading }) {
   );
 }
 
-function TitleOptimizerLogsTable({ rows, loading }) {
+function formatMoney(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  return number.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function TitleImpactModal({ logId, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [impact, setImpact] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await darazTitleOptimizerApi.getImpact(logId);
+        if (!cancelled) setImpact(res?.data?.data || null);
+      } catch (err) {
+        if (!cancelled) setError(getApiError(err, "Failed to load impact data"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [logId]);
+
+  const unitsDelta = impact ? impact.after.units - impact.before.units : 0;
+  const revenueDelta = impact ? impact.after.revenue - impact.before.revenue : 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+          <h3 className="text-[15px] font-semibold text-white">Title Change Impact</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            <X size={17} />
+          </button>
+        </div>
+
+        <div className="p-4">
+          {loading && <p className="py-8 text-center text-[13px] text-slate-400">Loading sales data...</p>}
+          {error && <p className="text-[13px] text-red-300">{error}</p>}
+
+          {!loading && !error && impact && (
+            <>
+              <div className="mb-3 space-y-1">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">SKU: {impact.seller_sku}</p>
+                <p className="text-[12px] text-slate-400 line-clamp-1">
+                  {impact.old_title} → <span className="text-slate-100">{impact.new_title}</span>
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Changed {formatDate(impact.changed_at)} · {impact.days_elapsed_since_change} day(s) ago
+                  {!impact.after_window_complete && " (still within the 30-day comparison window)"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-md border border-slate-800 bg-[#0b1220] p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Before (prior {impact.window_days}d)
+                  </p>
+                  <p className="mt-1 text-[18px] font-bold text-white">{impact.before.units} units</p>
+                  <p className="text-[12px] text-slate-400">Rs. {formatMoney(impact.before.revenue)}</p>
+                </div>
+
+                <div className="rounded-md border border-slate-800 bg-[#0b1220] p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    After ({impact.after_window_complete ? impact.window_days : impact.days_elapsed_since_change}d so far)
+                  </p>
+                  <p className="mt-1 text-[18px] font-bold text-white">{impact.after.units} units</p>
+                  <p className="text-[12px] text-slate-400">Rs. {formatMoney(impact.after.revenue)}</p>
+                </div>
+              </div>
+
+              <div
+                className={`mt-3 rounded-md border px-3 py-2 text-[12px] font-semibold ${
+                  unitsDelta >= 0
+                    ? "border-emerald-900 bg-emerald-950 text-emerald-300"
+                    : "border-red-900 bg-red-950 text-red-300"
+                }`}
+              >
+                {unitsDelta >= 0 ? "+" : ""}
+                {unitsDelta} units, {revenueDelta >= 0 ? "+" : ""}Rs. {formatMoney(revenueDelta)} revenue vs. before
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TitleOptimizerLogsTable({ rows, loading, onViewImpact }) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead className="bg-slate-950">
           <tr>
-            {["Date", "Event", "Account", "SKU", "Title Change", "Status", "Approved By", "Message"].map((header) => (
-              <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
-                {header}
-              </th>
-            ))}
+            {["Date", "Event", "Account", "SKU", "Title Change", "Status", "Approved By", "Message", "Impact"].map(
+              (header) => (
+                <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
+                  {header}
+                </th>
+              )
+            )}
           </tr>
         </thead>
 
@@ -335,12 +449,25 @@ function TitleOptimizerLogsTable({ rows, loading }) {
               <td className="max-w-70 px-3 py-2.5">
                 <span className="line-clamp-1 text-[11px] text-slate-400">{row.message || "-"}</span>
               </td>
+              <td className="px-3 py-2.5">
+                {row.event_type === "title_applied" && row.status === "success" ? (
+                  <button
+                    type="button"
+                    onClick={() => onViewImpact(row.id)}
+                    className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+                  >
+                    View Impact
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-slate-600">-</span>
+                )}
+              </td>
             </tr>
           ))}
 
           {!rows.length && (
             <tr>
-              <td colSpan="8" className="px-3 py-10 text-center text-[12px] text-slate-400">
+              <td colSpan="9" className="px-3 py-10 text-center text-[12px] text-slate-400">
                 {loading ? "Loading title optimizer logs..." : "No title optimizer activity yet."}
               </td>
             </tr>
@@ -416,6 +543,7 @@ export default function LogsPage() {
 
   const [titleOptimizerLogs, setTitleOptimizerLogs] = useState([]);
   const [titleOptimizerLoading, setTitleOptimizerLoading] = useState(false);
+  const [impactLogId, setImpactLogId] = useState(null);
 
   async function loadOrderInventoryLogs() {
     setOrderInventoryLoading(true);
@@ -617,12 +745,18 @@ export default function LogsPage() {
           {activeTab === "all" && <AllLogsTable rows={unifiedRows} loading={logsLoading || syncLoading} />}
           {activeTab === "inventory" && <SystemLogsTable rows={inventoryLogs} loading={logsLoading} />}
           {activeTab === "title_optimizer" && (
-            <TitleOptimizerLogsTable rows={titleOptimizerLogs} loading={titleOptimizerLoading} />
+            <TitleOptimizerLogsTable
+              rows={titleOptimizerLogs}
+              loading={titleOptimizerLoading}
+              onViewImpact={setImpactLogId}
+            />
           )}
           {activeTab === "system" && <SystemLogsTable rows={logs} loading={logsLoading} />}
           {activeTab === "sync" && <SyncLogsTable rows={syncRuns} loading={syncLoading} />}
         </div>
       </div>
+
+      {impactLogId && <TitleImpactModal logId={impactLogId} onClose={() => setImpactLogId(null)} />}
     </div>
   );
 }

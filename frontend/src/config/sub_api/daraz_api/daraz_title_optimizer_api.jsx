@@ -7,6 +7,7 @@ export const darazTitleOptimizerApi = {
   listSuggestions: (params = {}) => api.get("/daraz/title-optimizer/suggestions", { params }),
   approve: (id) => api.post(`/daraz/title-optimizer/suggestions/${id}/approve`),
   reject: (id) => api.post(`/daraz/title-optimizer/suggestions/${id}/reject`),
+  getImpact: (logId) => api.get(`/daraz/title-optimizer/logs/${logId}/impact`),
 };
 
 export default darazTitleOptimizerApi;

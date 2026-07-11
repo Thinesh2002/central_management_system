@@ -7,5 +7,6 @@ router.post("/scan", titleOptimizerController.scan);
 router.get("/suggestions", titleOptimizerController.listSuggestions);
 router.post("/suggestions/:id/approve", titleOptimizerController.approveSuggestion);
 router.post("/suggestions/:id/reject", titleOptimizerController.rejectSuggestion);
+router.get("/logs/:id/impact", titleOptimizerController.getTitleChangeImpact);
 
 module.exports = router;
