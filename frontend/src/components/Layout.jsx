@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
+import NotificationBell from "./NotificationBell";
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,6 +34,8 @@ export default function Layout({ children }) {
       >
         <Menu size={18} />
       </button>
+
+      <NotificationBell />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:pl-58">
         <main className="m-1.5 flex-1 bg-slate-950 p-1.5">{children}</main>
