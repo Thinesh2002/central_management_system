@@ -39,6 +39,11 @@ const skuMappingApi = {
     const response = await api.delete(`${SKU_MAPPING_BASE_URL}/${id}`);
     return response.data;
   },
+
+  async getSuggestions(params = {}) {
+    const response = await api.get(`${SKU_MAPPING_BASE_URL}/suggestions`, { params: cleanParams(params) });
+    return response.data;
+  },
 };
 
 export default skuMappingApi;

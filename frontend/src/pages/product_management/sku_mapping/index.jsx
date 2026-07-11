@@ -9,6 +9,8 @@ import {
   Trash2,
   RefreshCw,
   ArrowRight,
+  Sparkles,
+  Check,
 } from "lucide-react";
 
 import { usePagePermission } from "../../../components/common/permissions/PermissionsProvider";
@@ -105,6 +107,11 @@ export default function SkuMappingPage() {
   const [modal, setModal] = useState({ open: false, mode: "add", id: null });
   const [deleteModal, setDeleteModal] = useState({ open: false, row: null });
   const [form, setForm] = useState(emptyMapping);
+
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestionsScanned, setSuggestionsScanned] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [acceptingSku, setAcceptingSku] = useState(null);
 
   async function loadMappings() {
     try {
@@ -206,6 +213,47 @@ export default function SkuMappingPage() {
     }
   }
 
+  async function loadSuggestions() {
+    try {
+      setLoadingSuggestions(true);
+      setMsg();
+
+      const res = await skuMappingApi.getSuggestions({ limit: 50 });
+      setSuggestions(extractRows(res));
+      setSuggestionsScanned(true);
+    } catch (err) {
+      setError(getApiMessage(err, "Failed to load SKU mapping suggestions"));
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }
+
+  async function acceptSuggestion(suggestion) {
+    try {
+      setAcceptingSku(suggestion.wrong_sku);
+      setMsg();
+
+      await skuMappingApi.create({
+        wrong_sku: suggestion.wrong_sku,
+        correct_sku: suggestion.suggested_correct_sku,
+        platform: "DARAZ",
+        notes: `Auto-suggested (${Math.round(suggestion.confidence * 100)}% match, ${suggestion.occurrences} order(s))`,
+      });
+
+      setSuggestions((prev) => prev.filter((row) => row.wrong_sku !== suggestion.wrong_sku));
+      setSuccess(`Mapped ${suggestion.wrong_sku} → ${suggestion.suggested_correct_sku}.`);
+      await loadMappings();
+    } catch (err) {
+      setError(getApiMessage(err, "Failed to accept suggestion"));
+    } finally {
+      setAcceptingSku(null);
+    }
+  }
+
+  function dismissSuggestion(wrongSku) {
+    setSuggestions((prev) => prev.filter((row) => row.wrong_sku !== wrongSku));
+  }
+
   async function confirmDeleteNow() {
     const row = deleteModal.row;
     if (!row) return;
@@ -251,6 +299,18 @@ export default function SkuMappingPage() {
           {canEdit && (
             <button
               type="button"
+              onClick={loadSuggestions}
+              disabled={loadingSuggestions}
+              className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-orange-700 bg-orange-500 px-2.5 text-[11px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Sparkles size={12} />
+              {loadingSuggestions ? "Scanning..." : "Scan for Suggestions"}
+            </button>
+          )}
+
+          {canEdit && (
+            <button
+              type="button"
               onClick={() => openModal("add")}
               className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-yellow-700 bg-yellow-500 px-2.5 text-[11px] font-semibold text-slate-950"
             >
@@ -260,6 +320,67 @@ export default function SkuMappingPage() {
           )}
         </div>
       </div>
+
+      {suggestionsScanned && (
+        <div className="rounded-lg border border-orange-900/40 bg-orange-950/10">
+          <div className="flex items-center justify-between border-b border-orange-900/40 px-3 py-2">
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-orange-300">
+              <Sparkles size={13} />
+              Suggested Mappings ({suggestions.length})
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuggestionsScanned(false)}
+              className="text-[11px] font-semibold text-slate-500 hover:text-slate-300"
+            >
+              Hide
+            </button>
+          </div>
+
+          {!suggestions.length ? (
+            <p className="px-3 py-4 text-center text-[13px] text-slate-500">
+              No unresolved SKUs found in the last 180 days of orders — nothing to suggest.
+            </p>
+          ) : (
+            <div className="divide-y divide-orange-900/20">
+              {suggestions.map((row) => (
+                <div key={row.wrong_sku} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                  <div className="flex items-center gap-2 text-[13px]">
+                    <span className="font-mono text-red-300">{row.wrong_sku}</span>
+                    <ArrowRight size={13} className="text-slate-600" />
+                    <span className="font-mono text-emerald-300">{row.suggested_correct_sku}</span>
+                    <span className="text-[11px] text-slate-500">
+                      {Math.round(row.confidence * 100)}% match · {row.occurrences} order(s)
+                    </span>
+                  </div>
+
+                  {canEdit && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => acceptSuggestion(row)}
+                        disabled={acceptingSku === row.wrong_sku}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-900 bg-emerald-950 px-2.5 text-[11px] font-semibold text-emerald-300 disabled:opacity-50"
+                      >
+                        <Check size={12} />
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => dismissSuggestion(row.wrong_sku)}
+                        className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2.5 text-[11px] font-semibold text-slate-300"
+                      >
+                        <X size={12} />
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="relative">

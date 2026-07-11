@@ -4,6 +4,7 @@ const router = express.Router();
 const skuMappingController = require("../../../controllers/product_management/sku_mapping/sku_mapping_controller");
 
 router.get("/", skuMappingController.listMappings);
+router.get("/suggestions", skuMappingController.getSuggestions);
 router.get("/:id", skuMappingController.getMapping);
 
 router.post("/", skuMappingController.createMapping);

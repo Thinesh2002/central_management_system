@@ -1,4 +1,5 @@
 const skuMapping = require("../../../models/product_management/sku_mapping/sku_mapping_model");
+const skuMappingSuggestionService = require("../../../services/product_management/sku_mapping/sku_mapping_suggestion_service");
 
 function getUserId(req) {
   return req?.user?.id || req?.user?.user_id || null;
@@ -111,10 +112,32 @@ async function deleteMapping(req, res) {
   }
 }
 
+async function getSuggestions(req, res) {
+  try {
+    const result = await skuMappingSuggestionService.findSuggestedMappings({
+      limit: req.query.limit,
+    });
+
+    return res.json({
+      success: true,
+      message: "SKU mapping suggestions generated successfully.",
+      data: result.suggestions,
+      meta: {
+        scanned_order_skus: result.scanned_order_skus,
+        unresolved_count: result.unresolved_count,
+      },
+    });
+  } catch (error) {
+    console.error("[SKU_MAPPING_SUGGESTIONS_ERROR]", error);
+    return sendError(res, error);
+  }
+}
+
 module.exports = {
   listMappings,
   getMapping,
   createMapping,
   updateMapping,
   deleteMapping,
+  getSuggestions,
 };
