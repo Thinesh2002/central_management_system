@@ -304,6 +304,14 @@ export default function DarazTransferPreviewPage() {
   const categoryId = leafNode ? getCategoryId(leafNode) : null;
   const categoryName = leafNode ? getCategoryName(leafNode) : "";
 
+  // The search box only holds free-typed query text while the user is
+  // actively searching — once a category is picked (via search, the
+  // cascading dropdowns, or a prior-transfer prefill) it shows the chosen
+  // breadcrumb instead, so there's always a visible confirmation of what's
+  // selected rather than the box just going blank.
+  const selectedBreadcrumb = selectedChain.length ? selectedChain.map(getCategoryName).join(" > ") : "";
+  const categorySearchDisplayValue = categorySearchFocused ? categorySearch : selectedBreadcrumb || categorySearch;
+
   const flatLeafCategories = useMemo(() => flattenLeafCategories(categoryTree), [categoryTree]);
 
   const categorySearchResults = useMemo(() => {
@@ -732,11 +740,18 @@ export default function DarazTransferPreviewPage() {
                   <div className="rounded-2xl border border-slate-800 bg-slate-900 p-3">
                     <p className="mb-2 text-xs font-medium text-slate-400">Daraz Category</p>
 
+                    {selectedBreadcrumb && (
+                      <p className="mb-1 text-[11px] font-medium text-orange-300">Selected: {selectedBreadcrumb}</p>
+                    )}
+
                     <div className="relative mb-2">
                       <input
-                        value={categorySearch}
+                        value={categorySearchDisplayValue}
                         onChange={(e) => setCategorySearch(e.target.value)}
-                        onFocus={() => setCategorySearchFocused(true)}
+                        onFocus={() => {
+                          setCategorySearchFocused(true);
+                          setCategorySearch("");
+                        }}
                         onBlur={() => setTimeout(() => setCategorySearchFocused(false), 150)}
                         placeholder="Click to browse, or type to search category by name..."
                         className={inputClass}
