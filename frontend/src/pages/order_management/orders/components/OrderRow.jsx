@@ -1,13 +1,29 @@
-import React, { memo } from "react";
+import React, { Fragment, memo } from "react";
 import { Eye, ImageOff, Pencil, Printer, Trash2 } from "lucide-react";
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass, statusLabel } from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
 import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
 
+function getItemImage(item = {}) {
+  return item.product_main_image || item.product_image_url || item.image_url || item.image || "";
+}
+
+function getItemName(item = {}) {
+  return item.product_title || item.name || item.product_name || item.title || "-";
+}
+
+function getItemSku(item = {}) {
+  return item.local_sku || item.sku || item.seller_sku || item.shop_sku || item.marketplace_sku || "-";
+}
+
+function getItemQty(item = {}) {
+  return Number(item.qty || item.quantity || 1) || 1;
+}
+
 function ProductThumb({ order, item, onPreview }) {
-  const url = resolveImageUrl(item?.image_url || order.thumbnail_url || "");
-  const title = item?.product_title || order.first_item_title || order.display_order_no;
+  const url = resolveImageUrl(getItemImage(item) || order.thumbnail_url || "");
+  const title = getItemName(item) !== "-" ? getItemName(item) : order.first_item_title || order.display_order_no;
 
   return (
     <button
@@ -68,132 +84,138 @@ function OrderRow({
   const { openOverlay } = usePageOverlay();
   const source = sourceMeta(order.source);
   const dateParts = niceDate(order.order_date);
-  const items = order.items || [];
+  // Every order gets at least one product row, even if items didn't load -
+  // the shared order columns (customer/total/status/actions) still render.
+  const items = order.items?.length ? order.items : [null];
+  const rowCount = items.length;
   const isMulti = items.length > 1;
-  const visibleSkus = items.slice(0, 3);
-  const visibleImages = items.slice(0, 3);
 
   return (
-    <tr className={`transition ${isSelected ? "bg-orange-500/5" : "hover:bg-[#111827]"}`}>
-      <td className="px-3 py-2.5 align-top">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onToggle(order)}
-          className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
-        />
-      </td>
+    <Fragment>
+      {items.map((item, index) => {
+        const isFirst = index === 0;
+        const itemSku = item ? getItemSku(item) : null;
 
-      <td className="px-3 py-2 align-top">
-        <p className={`text-[10px] font-semibold ${source.className}`}>{source.label}</p>
-        <p className="mt-0.5 text-[10px] text-slate-300">{order.account_name || "-"}</p>
-        <p className="mt-0.5 text-[9px] text-slate-500">
-          {dateParts.date} {dateParts.time}
-        </p>
-      </td>
+        return (
+          <tr
+            key={item?.id || index}
+            className={`transition ${isSelected ? "bg-orange-500/5" : "hover:bg-[#111827]"} ${
+              isFirst ? "border-t border-slate-800" : "border-t border-dashed border-slate-800/60"
+            }`}
+          >
+            {isFirst && (
+              <td rowSpan={rowCount} className="px-3 py-2.5 align-top">
+                <input
+                  type="checkbox"
+                  checked={Boolean(isSelected)}
+                  onChange={() => onToggle(order)}
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
+                />
+              </td>
+            )}
 
-      <td className="px-3 py-2 align-top">
-        <div className="min-w-0 max-w-52">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => onView(order)}
-              className="cursor-pointer text-[9px] font-semibold text-slate-400 hover:text-sky-300 hover:underline"
-            >
-              #{order.display_order_no || order.order_no}
-            </button>
-
-            {visibleSkus.length ? (
-              visibleSkus.map((item, index) => (
+            {isFirst && (
+              <td rowSpan={rowCount} className="px-3 py-2 align-top">
                 <button
-                  key={item.id || index}
                   type="button"
-                  disabled={!item.sku}
-                  onClick={() =>
-                    item.sku &&
-                    openOverlay(`/order-management/sku-report/${encodeURIComponent(item.sku)}`)
-                  }
-                  title={item.sku ? "Open SKU Economics Report" : ""}
-                  className="inline-flex items-center gap-0.5 text-[9px] font-mono text-slate-400 hover:text-orange-300 disabled:cursor-default disabled:hover:text-slate-400"
+                  onClick={() => onView(order)}
+                  className="cursor-pointer text-[10px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
                 >
-                  <span className="max-w-20 truncate underline decoration-dotted">{item.sku || "-"}</span>
-                  <span className="text-slate-600">&times;{item.qty || 1}</span>
+                  #{order.display_order_no || order.order_no}
                 </button>
-              ))
-            ) : (
-              <span className="text-[9px] text-slate-600">No items</span>
+                <p className={`mt-0.5 text-[10px] font-semibold ${source.className}`}>{source.label}</p>
+                <p className="mt-0.5 text-[10px] text-slate-300">{order.account_name || "-"}</p>
+                <p className="mt-0.5 text-[9px] text-slate-500">
+                  {dateParts.date} {dateParts.time}
+                </p>
+                {isMulti && (
+                  <p className="mt-0.5 text-[9px] font-semibold text-orange-300">{items.length} items</p>
+                )}
+              </td>
             )}
-            {items.length > visibleSkus.length && (
-              <span className="text-[9px] text-slate-500">+{items.length - visibleSkus.length}</span>
+
+            <td className="px-3 py-2 align-top">
+              <div className="flex min-w-0 items-start gap-2">
+                <ProductThumb order={order} item={item} onPreview={onPreviewImage} />
+
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-[11px] font-normal leading-4 text-slate-100">
+                    {item ? getItemName(item) : order.first_item_title || "-"}
+                  </p>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-slate-500">
+                    {itemSku && itemSku !== "-" ? (
+                      <button
+                        type="button"
+                        onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(itemSku)}`)}
+                        title="Open SKU Economics Report"
+                        className="font-mono text-slate-400 underline decoration-dotted hover:text-orange-300"
+                      >
+                        {itemSku}
+                      </button>
+                    ) : null}
+                    {item && <span>Qty: {getItemQty(item)}</span>}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            {isFirst && (
+              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+                <p className="text-[11px] font-semibold text-slate-200">
+                  {order.customer_name || order.shipping_name || "-"}
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
+                <p className="mt-0.5 max-w-55 text-[9px] leading-4 text-slate-500">
+                  {fullAddress(order) || "-"}
+                </p>
+              </td>
             )}
-          </div>
 
-          <p className="mt-1 truncate text-[10px] text-slate-400">
-            {isMulti ? `Multiple Items (${items.length})` : items[0]?.product_title || order.first_item_title || "-"}
-          </p>
-
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {visibleImages.length ? (
-              visibleImages.map((item, index) => (
-                <ProductThumb key={item.id || index} order={order} item={item} onPreview={onPreviewImage} />
-              ))
-            ) : (
-              <ProductThumb order={order} onPreview={onPreviewImage} />
+            {isFirst && (
+              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+                <p className="text-[11px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
+                <p className="mt-0.5 text-[9px] text-slate-500">
+                  Discount: {money(order.discount_total, order.currency)}
+                </p>
+                <p className="mt-0.5 text-[9px] uppercase text-slate-500">{order.payment_method || "-"}</p>
+              </td>
             )}
-            {items.length > visibleImages.length && (
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-slate-700 bg-slate-900 text-[9px] font-semibold text-slate-400">
-                +{items.length - visibleImages.length}
-              </span>
+
+            {isFirst && (
+              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+                <span className={`text-[10px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
+              </td>
             )}
-          </div>
-        </div>
-      </td>
 
-      <td className="px-3 py-2 align-top">
-        <p className="text-[11px] font-semibold text-slate-200">
-          {order.customer_name || order.shipping_name || "-"}
-        </p>
-        <p className="mt-0.5 text-[10px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
-        <p className="mt-0.5 max-w-55 text-[9px] leading-4 text-slate-500">
-          {fullAddress(order) || "-"}
-        </p>
-      </td>
+            {isFirst && (
+              <td rowSpan={rowCount} className="px-3 py-2 text-right align-top">
+                <div className="flex items-center justify-end gap-0.5">
+                  <IconButton icon={Eye} title="View" onClick={() => onView(order)} />
+                  <IconButton icon={Printer} title="Print Invoice" onClick={() => onPrintInvoice(order)} />
 
-      <td className="px-3 py-2 align-top">
-        <p className="text-[11px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
-        <p className="mt-0.5 text-[9px] text-slate-500">
-          Discount: {money(order.discount_total, order.currency)}
-        </p>
-        <p className="mt-0.5 text-[9px] uppercase text-slate-500">{order.payment_method || "-"}</p>
-      </td>
+                  {order.source === "local" && (
+                    <>
+                      <IconButton icon={Pencil} title="Edit" onClick={() => onEdit(order)} />
+                      <IconButton icon={Trash2} title="Delete" tone="danger" onClick={() => onDelete(order)} />
+                    </>
+                  )}
 
-      <td className="px-3 py-2 align-top">
-        <span className={`text-[10px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
-      </td>
-
-      <td className="px-3 py-2 text-right align-top">
-        <div className="flex items-center justify-end gap-0.5">
-          <IconButton icon={Eye} title="View" onClick={() => onView(order)} />
-          <IconButton icon={Printer} title="Print Invoice" onClick={() => onPrintInvoice(order)} />
-
-          {order.source === "local" && (
-            <>
-              <IconButton icon={Pencil} title="Edit" onClick={() => onEdit(order)} />
-              <IconButton icon={Trash2} title="Delete" tone="danger" onClick={() => onDelete(order)} />
-            </>
-          )}
-
-          <RowActionsMenu
-            order={order}
-            onView={() => onView(order)}
-            onPrintInvoice={() => onPrintInvoice(order)}
-            onTrack={() => onTrack(order)}
-            onChangeStatus={(status) => onChangeStatus(order, status)}
-            onDarazAction={(action) => onDarazAction(order, action)}
-          />
-        </div>
-      </td>
-    </tr>
+                  <RowActionsMenu
+                    order={order}
+                    onView={() => onView(order)}
+                    onPrintInvoice={() => onPrintInvoice(order)}
+                    onTrack={() => onTrack(order)}
+                    onChangeStatus={(status) => onChangeStatus(order, status)}
+                    onDarazAction={(action) => onDarazAction(order, action)}
+                  />
+                </div>
+              </td>
+            )}
+          </tr>
+        );
+      })}
+    </Fragment>
   );
 }
 

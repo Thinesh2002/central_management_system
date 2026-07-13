@@ -497,7 +497,7 @@ export default function OrdersPage() {
                       className="h-3.5 w-3.5 cursor-pointer rounded border-slate-600 bg-slate-900 accent-orange-500"
                     />
                   </th>
-                  {["Marketplace", "Order / Product / SKU", "Customer", "Total", "Status", "Actions"].map(
+                  {["Order Details", "Product Details", "Customer", "Total", "Status", "Actions"].map(
                     (header) => (
                       <th
                         key={header}
@@ -510,7 +510,7 @@ export default function OrdersPage() {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-800">
+              <tbody>
                 {!pagedOrders.length && (
                   <tr>
                     <td colSpan="7" className="px-3 py-8 text-center text-[12px] text-slate-500">
