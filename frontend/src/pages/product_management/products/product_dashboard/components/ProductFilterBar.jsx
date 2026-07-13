@@ -1,4 +1,4 @@
-import { Download, Filter, Plus, Search } from "lucide-react";
+import { Download, Filter, Layers, Plus, Search } from "lucide-react";
 
 const DATE_OPTIONS = [
   { value: "all", label: "All Dates" },
@@ -35,6 +35,7 @@ export default function ProductFilterBar({
   onOpenFilter,
   onOpenExport,
   onAddProduct,
+  onAddVariation,
 }) {
   function updateFilter(key, value) {
     setFilters((prev) => ({
@@ -66,6 +67,15 @@ export default function ProductFilterBar({
           >
             <Plus size={11} />
             ADD PRODUCT
+          </button>
+
+          <button
+            type="button"
+            onClick={onAddVariation}
+            className="flex h-6 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2.5 text-[10px] font-semibold text-white hover:bg-[#52657f]"
+          >
+            <Layers size={11} />
+            ADD VARIATION
           </button>
 
           <button

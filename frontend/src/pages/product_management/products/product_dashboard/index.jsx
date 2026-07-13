@@ -4,6 +4,7 @@ import { usePageOverlay } from "../../../../components/common/page_overlay/PageO
 import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
 import FilterModal from "./components/FilterModal";
 import ImagePreviewModal from "./components/ImagePreviewModal";
+import AddVariationModal from "./components/AddVariationModal";
 import ProductFilterBar from "./components/ProductFilterBar";
 import ProductsTable from "./components/ProductsTable";
 import { EMPTY_FILTERS, VIEW_TABS } from "./constants/localProductsDashboardConstants";
@@ -520,6 +521,7 @@ export default function LocalProductsDashboard() {
   const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
   const [draftView, setDraftView] = useState("all");
   const [exportOpen, setExportOpen] = useState(false);
+  const [addVariationOpen, setAddVariationOpen] = useState(false);
 
   function handleExportCsv(config) {
     const rows = filteredProducts.filter((product) => {
@@ -773,6 +775,30 @@ export default function LocalProductsDashboard() {
   return (
     <div className="min-h-screen bg-[#070b16] p-2 text-slate-100 lg:p-3">
       <div className="mx-auto max-w-[1680px] space-y-3">
+        <div className="flex flex-wrap items-center gap-1 border-b border-slate-700">
+          {VIEW_TABS.map((tabItem) => {
+            const active = activeView === tabItem.key;
+
+            return (
+              <button
+                key={tabItem.key}
+                type="button"
+                onClick={() => setActiveView(tabItem.key)}
+                className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-semibold transition ${
+                  active
+                    ? "border-orange-400 text-orange-300"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {tabItem.label}
+                <span className="rounded-sm bg-white/5 px-1.5 py-0.5 text-[11px] text-slate-400">
+                  {tabCounts[tabItem.key] ?? 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <ProductFilterBar
           filters={filters}
           setFilters={setFilters}
@@ -783,6 +809,7 @@ export default function LocalProductsDashboard() {
           onClear={clearAllFilters}
           onOpenExport={() => setExportOpen(true)}
           onAddProduct={() => openOverlay("/product/local-products/create")}
+          onAddVariation={() => setAddVariationOpen(true)}
         />
 
         {selectedKeys.length > 0 && (
@@ -853,6 +880,14 @@ export default function LocalProductsDashboard() {
         imagePreview={imagePreview}
         onClose={() => setImagePreview(null)}
       />
+
+      {addVariationOpen && (
+        <AddVariationModal
+          products={products}
+          productImages={productImages}
+          onClose={() => setAddVariationOpen(false)}
+        />
+      )}
 
       <ExportCsvModal
         open={exportOpen}
