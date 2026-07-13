@@ -9,6 +9,7 @@ import EditUserPage from "./pages/users/edit_user_page";
 import AccessControlPage from "./pages/access/AccessControlPage";
 import LogsPage from "./pages/logs/LogsPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
+import SalesDashboardPage from "./pages/reports/sales_dashboard";
 import ProductManagementRoutes from "./routes/product_management/index";
 import MarketplaceManagementRoutes from "./routes/marketplace_management/index";
 import DarazProductRoute from "./routes/Daraz/product_management/index";
@@ -104,6 +105,15 @@ export default function App() {
         element={
           <ProtectedLayout>
             <NotificationsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/reports/sales"
+        element={
+          <ProtectedLayout>
+            <SalesDashboardPage />
           </ProtectedLayout>
         }
       />

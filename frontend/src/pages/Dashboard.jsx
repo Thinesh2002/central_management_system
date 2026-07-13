@@ -1,98 +1,113 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
-  FileText,
-  KeyRound,
+  BarChart3,
+  ImageOff,
   LayoutDashboard,
-  Lock,
+  Package,
   RefreshCcw,
-  ShieldCheck,
-  UserCheck,
-  Users,
+  ShoppingCart,
+  TrendingUp,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import api, { getApiError } from "../config/api";
+import ordersApi from "../config/sub_api/order_management_api/orders_api";
+import localProductsApi from "../config/sub_api/product_management_api/local_products_api";
+import notificationsApi from "../config/sub_api/notifications_api";
+import { getApiError } from "../config/api";
 import { getStoredUser } from "../config/auth";
+import { resolveImageUrl } from "./product_management/products/product_dashboard/utils/localProductsImageHelpers";
 
-function isLocked(user) {
-  if (!user?.locked_until) return false;
-  return new Date(user.locked_until) > new Date();
+function money(value, currency = "LKR") {
+  return `${currency} ${Number(value || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-function formatDate(value) {
-  if (!value) return "-";
-
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return "-";
-  }
+function getItemQty(item = {}) {
+  return Number(item.qty || item.quantity || 1) || 1;
 }
 
-function toArray(value) {
-  if (Array.isArray(value)) return value;
+function getItemLineTotal(item = {}) {
+  const lineTotal = Number(item.line_total || item.total_price || 0);
+  if (lineTotal) return lineTotal;
 
-  if (Array.isArray(value?.users)) return value.users;
-  if (Array.isArray(value?.pages)) return value.pages;
-  if (Array.isArray(value?.logs)) return value.logs;
-  if (Array.isArray(value?.loginLogs)) return value.loginLogs;
-  if (Array.isArray(value?.login_logs)) return value.login_logs;
-  if (Array.isArray(value?.data)) return value.data;
-  if (Array.isArray(value?.rows)) return value.rows;
-  if (Array.isArray(value?.result)) return value.result;
+  const unit = Number(item.unit_price || item.price || 0);
+  return unit * getItemQty(item);
+}
 
+function getItemSku(item = {}) {
+  return item.local_sku || item.sku || item.seller_sku || item.shop_sku || item.marketplace_sku || "";
+}
+
+function getItemName(item = {}) {
+  return item.product_title || item.name || item.product_name || item.title || "-";
+}
+
+function getItemImage(item = {}) {
+  return item.product_main_image || item.product_image_url || item.image_url || item.image || "";
+}
+
+const OPEN_STATUSES = new Set(["pending", "unpaid", "new", "packed", "ready_to_ship", "shipped", "dispatched"]);
+const TO_SHIP_STATUSES = new Set(["pending", "unpaid", "new"]);
+
+function normalizeOrderList(response) {
+  return response?.orders || [];
+}
+
+function normalizeProductList(response) {
+  const parsed = response?.data ?? response;
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.data)) return parsed.data;
   return [];
 }
 
-function StatCard({ title, value, icon: Icon, description, tone = "blue" }) {
+function SnapshotCard({ label, value, icon: Icon, tone = "orange" }) {
   const toneClass = {
-    blue: "border-blue-900 bg-blue-950/40 text-blue-300",
-    emerald: "border-emerald-900 bg-emerald-950/40 text-emerald-300",
-    amber: "border-amber-900 bg-amber-950/40 text-amber-300",
-    red: "border-red-900 bg-red-950/40 text-red-300",
-    slate: "border-slate-800 bg-slate-950 text-slate-300",
+    orange: "border-orange-900/60 bg-orange-950/30 text-orange-300",
+    emerald: "border-emerald-900/60 bg-emerald-950/30 text-emerald-300",
+    sky: "border-sky-900/60 bg-sky-950/30 text-sky-300",
+    red: "border-red-900/60 bg-red-950/30 text-red-300",
   }[tone];
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-      <div className="flex items-start justify-between gap-4">
+    <div className="border border-slate-800 bg-[#0a101d] p-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-400">{title}</p>
-          <h3 className="mt-2 text-3xl font-bold text-white">{value}</h3>
-          <p className="mt-2 text-xs text-slate-500">{description}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+          <h3 className="mt-2 text-2xl font-black text-white">{value}</h3>
         </div>
-
-        <div className={`rounded-xl border p-3 ${toneClass}`}>
-          <Icon size={22} />
+        <div className={`border p-2 ${toneClass}`}>
+          <Icon size={18} />
         </div>
       </div>
     </div>
   );
 }
 
-function QuickLink({ to, icon: Icon, title, description }) {
+function ActionCard({ label, count, description, to }) {
+  if (!count) return null;
+
   return (
     <Link
       to={to}
-      className="group flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 p-4 hover:border-blue-800 hover:bg-slate-800/80"
+      className="flex items-center justify-between gap-3 border border-amber-500/30 bg-amber-500/5 px-4 py-3 hover:border-amber-400/60"
     >
       <div className="flex items-center gap-3">
-        <div className="rounded-xl border border-slate-700 bg-slate-950 p-3 text-blue-400">
-          <Icon size={20} />
-        </div>
-
+        <AlertTriangle size={16} className="shrink-0 text-amber-400" />
         <div>
-          <h4 className="font-bold text-white">{title}</h4>
-          <p className="text-sm text-slate-400">{description}</p>
+          <p className="text-sm font-semibold text-amber-200">{label}</p>
+          <p className="text-xs text-slate-400">{description}</p>
         </div>
       </div>
 
-      <ArrowRight
-        size={18}
-        className="text-slate-500 group-hover:text-blue-400"
-      />
+      <div className="flex items-center gap-2">
+        <span className="flex h-6 min-w-6 items-center justify-center bg-amber-500 px-1.5 text-[11px] font-bold text-slate-950">
+          {count}
+        </span>
+        <ArrowRight size={14} className="text-amber-400" />
+      </div>
     </Link>
   );
 }
@@ -100,99 +115,101 @@ function QuickLink({ to, icon: Icon, title, description }) {
 export default function Dashboard() {
   const currentUser = getStoredUser();
 
-  const [users, setUsers] = useState([]);
-  const [pages, setPages] = useState([]);
-  const [logs, setLogs] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [inventoryRows, setInventoryRows] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function loadDashboard() {
+  async function load() {
     setLoading(true);
     setError("");
 
-    try {
-      const results = await Promise.allSettled([
-        api.get("/users"),
-        api.get("/access/pages"),
-        api.get("/logs"),
-      ]);
+    const results = await Promise.allSettled([
+      ordersApi.listOrders({ limit: 2000 }),
+      localProductsApi.getProducts(),
+      localProductsApi.getInventory({ limit: 500 }),
+      notificationsApi.list({ limit: 1 }),
+    ]);
 
-      const usersResult = results[0];
-      const pagesResult = results[1];
-      const logsResult = results[2];
+    const [ordersResult, productsResult, inventoryResult, notifResult] = results;
 
-      if (usersResult.status === "fulfilled") {
-        setUsers(toArray(usersResult.value?.data));
-      } else {
-        setUsers([]);
-      }
+    setOrders(ordersResult.status === "fulfilled" ? normalizeOrderList(ordersResult.value) : []);
+    setProducts(productsResult.status === "fulfilled" ? normalizeProductList(productsResult.value) : []);
+    setInventoryRows(
+      inventoryResult.status === "fulfilled" ? normalizeProductList(inventoryResult.value) : []
+    );
+    setUnreadCount(
+      notifResult.status === "fulfilled" ? notifResult.value?.data?.unread_count || 0 : 0
+    );
 
-      if (pagesResult.status === "fulfilled") {
-        setPages(toArray(pagesResult.value?.data));
-      } else {
-        setPages([]);
-      }
+    const failed = results.find((item) => item.status === "rejected");
+    if (failed) setError(getApiError(failed.reason));
 
-      if (logsResult.status === "fulfilled") {
-        setLogs(toArray(logsResult.value?.data));
-      } else {
-        setLogs([]);
-      }
-
-      const failed = results.find((item) => item.status === "rejected");
-
-      if (failed) {
-        setError(getApiError(failed.reason));
-      }
-    } catch (err) {
-      setError(getApiError(err));
-      setUsers([]);
-      setPages([]);
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   }
 
   useEffect(() => {
-    loadDashboard();
+    load();
   }, []);
 
-  const safeUsers = Array.isArray(users) ? users : [];
-  const safePages = Array.isArray(pages) ? pages : [];
-  const safeLogs = Array.isArray(logs) ? logs : [];
+  const salesToday = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
 
-  const stats = useMemo(() => {
-    const totalUsers = safeUsers.length;
+    return orders
+      .filter((order) => order.order_date && new Date(order.order_date) >= start)
+      .reduce((sum, order) => sum + Number(order.grand_total || 0), 0);
+  }, [orders]);
 
-    const activeUsers = safeUsers.filter(
-      (user) => user.status === "active"
-    ).length;
+  const openOrdersCount = useMemo(
+    () => orders.filter((order) => OPEN_STATUSES.has(String(order.order_status || "").toLowerCase())).length,
+    [orders]
+  );
 
-    const adminUsers = safeUsers.filter(
-      (user) => user.role === "admin" || user.role === "master_admin"
-    ).length;
+  const toShipCount = useMemo(
+    () => orders.filter((order) => TO_SHIP_STATUSES.has(String(order.order_status || "").toLowerCase())).length,
+    [orders]
+  );
 
-    const lockedUsers = safeUsers.filter((user) => isLocked(user)).length;
+  const lowStockCount = useMemo(
+    () =>
+      inventoryRows.filter((row) => {
+        const alertQty = Number(row.low_stock_alert_qty || 0);
+        const availableQty = Number(row.available_qty ?? row.stock_qty ?? 0);
+        return alertQty > 0 && availableQty <= alertQty;
+      }).length,
+    [inventoryRows]
+  );
 
-    const failedAttempts = safeUsers.reduce(
-      (total, user) => total + Number(user.failed_login_attempts || 0),
-      0
-    );
+  const topProducts = useMemo(() => {
+    const bySku = new Map();
 
-    return {
-      totalUsers,
-      activeUsers,
-      adminUsers,
-      lockedUsers,
-      failedAttempts,
-      totalPages: safePages.length,
-    };
-  }, [safeUsers, safePages]);
+    orders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        const sku = getItemSku(item);
+        if (!sku) return;
 
-  const recentUsers = safeUsers.slice(0, 5);
-  const recentLogs = safeLogs.slice(0, 6);
+        const entry = bySku.get(sku) || {
+          sku,
+          name: getItemName(item),
+          image: getItemImage(item),
+          units: 0,
+          sales: 0,
+        };
+
+        entry.units += getItemQty(item);
+        entry.sales += getItemLineTotal(item);
+        bySku.set(sku, entry);
+      });
+    });
+
+    return Array.from(bySku.values())
+      .sort((a, b) => b.units - a.units)
+      .slice(0, 8);
+  }, [orders]);
 
   return (
     <div className="min-h-full w-full bg-slate-950 text-slate-100">
@@ -200,7 +217,7 @@ export default function Dashboard() {
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <div className="flex items-center gap-2">
-              <LayoutDashboard size={24} className="text-blue-400" />
+              <LayoutDashboard size={24} className="text-orange-400" />
               <h2 className="text-2xl font-bold text-white">Dashboard</h2>
             </div>
 
@@ -209,13 +226,13 @@ export default function Dashboard() {
               <span className="font-semibold text-slate-200">
                 {currentUser?.user_uid || currentUser?.name || "User"}
               </span>
-              Manage users, page access and login security.
+              . Here's how the store is doing.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={loadDashboard}
+            onClick={load}
             disabled={loading}
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -232,288 +249,103 @@ export default function Dashboard() {
       )}
 
       <div className="w-full space-y-5 p-5">
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            title="Total Users"
-            value={stats.totalUsers}
-            icon={Users}
-            description="All created system users"
-            tone="blue"
+        <div className="space-y-2">
+          <ActionCard
+            label="Orders to ship"
+            count={toShipCount}
+            description="Waiting to be packed"
+            to="/order-management/orders?status=to_pack"
           />
-
-          <StatCard
-            title="Active Users"
-            value={stats.activeUsers}
-            icon={UserCheck}
-            description="Users allowed to login"
-            tone="emerald"
+          <ActionCard
+            label="Low stock products"
+            count={lowStockCount}
+            description="At or below their reorder threshold"
+            to="/product/local-products"
           />
-
-          <StatCard
-            title="Admin Users"
-            value={stats.adminUsers}
-            icon={ShieldCheck}
-            description="Master Admin and Admin users"
-            tone="amber"
-          />
-
-          <StatCard
-            title="Locked Users"
-            value={stats.lockedUsers}
-            icon={Lock}
-            description="Locked because of failed login"
-            tone={stats.lockedUsers > 0 ? "red" : "slate"}
+          <ActionCard
+            label="Unread notifications"
+            count={unreadCount}
+            description="New alerts to review"
+            to="/notifications"
           />
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-3">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5 lg:col-span-2">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-white">
-                  System Overview
-                </h3>
-                <p className="text-sm text-slate-400">
-                  Current authentication and page access summary.
-                </p>
-              </div>
-
-              <Activity size={20} className="text-blue-400" />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <p className="text-sm font-semibold text-slate-400">
-                  Created Pages
-                </p>
-                <h4 className="mt-2 text-2xl font-bold text-white">
-                  {stats.totalPages}
-                </h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  Pages available for access control
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <p className="text-sm font-semibold text-slate-400">
-                  Failed Attempts
-                </p>
-                <h4 className="mt-2 text-2xl font-bold text-white">
-                  {stats.failedAttempts}
-                </h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  Total failed login attempts
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <p className="text-sm font-semibold text-slate-400">
-                  Your Role
-                </p>
-                <h4 className="mt-2 text-2xl font-bold capitalize text-white">
-                  {(currentUser?.role || "user").replace("_", " ")}
-                </h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  Current logged-in permission level
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-            <div className="mb-4 flex items-center gap-2">
-              <KeyRound size={20} className="text-blue-400" />
-              <h3 className="text-lg font-bold text-white">Quick Actions</h3>
-            </div>
-
-            <div className="space-y-3">
-              <QuickLink
-                to="/users"
-                icon={Users}
-                title="User Management"
-                description="Create, edit and delete users"
-              />
-
-              <QuickLink
-                to="/access-control"
-                icon={KeyRound}
-                title="Access Control"
-                description="Set page view/edit/delete access"
-              />
-
-              <QuickLink
-                to="/logs"
-                icon={FileText}
-                title="Login Logs"
-                description="Check login activity and security"
-              />
-            </div>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <SnapshotCard label="Sales Today" value={money(salesToday)} icon={TrendingUp} tone="orange" />
+          <SnapshotCard label="Open Orders" value={openOrdersCount} icon={ShoppingCart} tone="sky" />
+          <SnapshotCard label="Total Products" value={products.length} icon={Package} tone="emerald" />
+          <SnapshotCard
+            label="Low Stock Items"
+            value={lowStockCount}
+            icon={AlertTriangle}
+            tone={lowStockCount > 0 ? "red" : "emerald"}
+          />
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+        <div className="border border-slate-800 bg-[#0a101d]">
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 size={16} className="text-orange-300" />
               <div>
-                <h3 className="text-lg font-bold text-white">Recent Users</h3>
-                <p className="text-sm text-slate-400">
-                  Latest users from the system.
-                </p>
+                <h3 className="text-sm font-bold text-white">Product Performance</h3>
+                <p className="text-xs text-slate-500">Top-selling SKUs across all orders</p>
               </div>
-
-              <Link
-                to="/users"
-                className="text-sm font-semibold text-blue-400 hover:text-blue-300"
-              >
-                View all
-              </Link>
             </div>
 
+            <Link
+              to="/reports/sales"
+              className="flex items-center gap-1 text-[11px] font-semibold text-orange-300 hover:text-orange-200"
+            >
+              View Sales Dashboard
+              <ArrowRight size={12} />
+            </Link>
+          </div>
+
+          {!topProducts.length ? (
+            <p className="py-10 text-center text-[12px] text-slate-500">No sales data yet.</p>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-950">
+              <table className="min-w-full divide-y divide-slate-800">
+                <thead className="bg-[#111827]">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-300">
-                      User ID
-                    </th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-300">
-                      Email
-                    </th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-300">
-                      Role
-                    </th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-300">
-                      Status
-                    </th>
+                    {["Product", "SKU", "Units Sold", "Sales"].map((header) => (
+                      <th
+                        key={header}
+                        className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300"
+                      >
+                        {header}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-
                 <tbody className="divide-y divide-slate-800">
-                  {recentUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-800/70">
-                      <td className="px-4 py-3 font-semibold text-white">
-                        {user.user_uid}
-                      </td>
+                  {topProducts.map((product) => {
+                    const imageUrl = resolveImageUrl(product.image);
 
-                      <td className="px-4 py-3 text-slate-300">
-                        {user.email}
-                      </td>
-
-                      <td className="px-4 py-3 capitalize text-slate-300">
-                        {user.role?.replace("_", " ")}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            user.status === "active"
-                              ? "bg-emerald-950 text-emerald-300"
-                              : "bg-red-950 text-red-300"
-                          }`}
-                        >
-                          {user.status}
-                        </span>
-
-                        {isLocked(user) && (
-                          <span className="ml-2 rounded-full bg-amber-950 px-3 py-1 text-xs font-semibold text-amber-300">
-                            locked
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-
-                  {!recentUsers.length && (
-                    <tr>
-                      <td
-                        colSpan="4"
-                        className="px-4 py-10 text-center text-slate-400"
-                      >
-                        No users found.
-                      </td>
-                    </tr>
-                  )}
+                    return (
+                      <tr key={product.sku}>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-white ring-1 ring-slate-700">
+                              {imageUrl ? (
+                                <img src={imageUrl} alt="" className="h-full w-full object-contain" />
+                              ) : (
+                                <ImageOff size={13} className="text-slate-400" />
+                              )}
+                            </div>
+                            <span className="line-clamp-1 text-[12px] text-slate-200">{product.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-2 font-mono text-[11px] text-slate-400">{product.sku}</td>
+                        <td className="px-4 py-2 text-[12px] text-slate-200">{product.units}</td>
+                        <td className="px-4 py-2 text-[12px] text-slate-200">{money(product.sales)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-              <div>
-                <h3 className="text-lg font-bold text-white">Recent Logs</h3>
-                <p className="text-sm text-slate-400">
-                  Latest login/security activities.
-                </p>
-              </div>
-
-              <Link
-                to="/logs"
-                className="text-sm font-semibold text-blue-400 hover:text-blue-300"
-              >
-                View all
-              </Link>
-            </div>
-
-            <div className="divide-y divide-slate-800">
-              {recentLogs.map((log, index) => {
-                const status = log.status || log.login_status || "-";
-                const isSuccess = status === "success";
-
-                return (
-                  <div
-                    key={log.id || index}
-                    className="flex items-start justify-between gap-4 px-5 py-4 hover:bg-slate-800/60"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`mt-0.5 rounded-xl border p-2 ${
-                          isSuccess
-                            ? "border-emerald-900 bg-emerald-950 text-emerald-300"
-                            : "border-red-900 bg-red-950 text-red-300"
-                        }`}
-                      >
-                        {isSuccess ? (
-                          <ShieldCheck size={16} />
-                        ) : (
-                          <AlertTriangle size={16} />
-                        )}
-                      </div>
-
-                      <div>
-                        <p className="font-semibold text-white">
-                          {log.email ||
-                            log.login_identifier ||
-                            log.login_user_id ||
-                            "Unknown"}
-                        </p>
-
-                        <p className="text-sm text-slate-400">
-                          {log.action || "login"} • {status}
-                        </p>
-
-                        {log.failure_reason && (
-                          <p className="mt-1 text-xs text-red-300">
-                            {log.failure_reason}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="whitespace-nowrap text-xs text-slate-500">
-                      {formatDate(log.created_at || log.createdAt)}
-                    </p>
-                  </div>
-                );
-              })}
-
-              {!recentLogs.length && (
-                <div className="px-5 py-10 text-center text-slate-400">
-                  No logs found.
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
