@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRightCircle, Eye, MoreHorizontal, Pencil, Printer, Trash2, Truck } from "lucide-react";
-import { canDarazPrintAwb, nextDarazStep } from "../utils/orderHelpers";
+import { nextDarazStep } from "../utils/orderHelpers";
 
 const MANUAL_STATUSES = [
   "pending",
@@ -87,9 +87,9 @@ export default function RowActionsMenu({
         ref={triggerRef}
         type="button"
         onClick={() => (open ? setOpen(false) : openMenu())}
-        className="flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-slate-600 px-2 text-[11px] font-semibold text-slate-200 transition hover:border-orange-400 hover:text-orange-200"
+        className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-slate-600 px-2 text-[12px] font-semibold text-slate-200 transition hover:border-orange-400 hover:text-orange-200"
       >
-        <MoreHorizontal size={12} />
+        <MoreHorizontal size={13} />
         More
       </button>
 
@@ -98,38 +98,38 @@ export default function RowActionsMenu({
           <div
             ref={menuRef}
             style={{ position: "fixed", top: coords.top, left: coords.left }}
-            className="z-[100] w-56 border border-slate-700 bg-[#0b1220] py-1 shadow-2xl"
+            className="z-[100] w-60 border border-slate-700 bg-[#0b1220] py-1 shadow-2xl"
           >
             <div className="border-b border-slate-800 px-3 py-2">
-              <p className="truncate text-[11px] font-semibold text-white">
+              <p className="truncate text-[12px] font-semibold text-white">
                 {order.display_order_no || order.order_no}
               </p>
-              <p className="mt-0.5 text-[10px] text-slate-500">{order.order_status || "-"}</p>
+              <p className="mt-0.5 text-[11px] text-slate-500">{order.order_status || "-"}</p>
             </div>
 
             <button
               type="button"
               onClick={() => run(onView)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-200 hover:bg-slate-800"
             >
-              <Eye size={12} /> View Details
+              <Eye size={13} /> View Details
             </button>
 
             <button
               type="button"
               onClick={() => run(onPrintInvoice)}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-200 hover:bg-slate-800"
             >
-              <Printer size={12} /> Print Invoice
+              <Printer size={13} /> Print Invoice
             </button>
 
             {hasWaybill && (
               <button
                 type="button"
                 onClick={() => run(onTrack)}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-200 hover:bg-slate-800"
               >
-                <Truck size={12} /> Tracking
+                <Truck size={13} /> Tracking
               </button>
             )}
 
@@ -140,20 +140,20 @@ export default function RowActionsMenu({
                 <button
                   type="button"
                   onClick={() => run(onEdit)}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-slate-200 hover:bg-slate-800"
                 >
-                  <Pencil size={12} /> Edit Order
+                  <Pencil size={13} /> Edit Order
                 </button>
 
                 <button
                   type="button"
                   onClick={() => run(onDelete)}
-                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-red-400 hover:bg-red-950/60"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] text-red-400 hover:bg-red-950/60"
                 >
-                  <Trash2 size={12} /> Delete Order
+                  <Trash2 size={13} /> Delete Order
                 </button>
 
-                <div className="mt-1 border-t border-slate-800 px-3 pt-1.5 text-[10px] font-semibold uppercase text-slate-500">
+                <div className="mt-1 border-t border-slate-800 px-3 pt-1.5 text-[11px] font-semibold uppercase text-slate-500">
                   Change Status
                 </div>
                 {MANUAL_STATUSES.map((status) => (
@@ -162,7 +162,7 @@ export default function RowActionsMenu({
                     type="button"
                     disabled={status === order.order_status}
                     onClick={() => run(() => onChangeStatus(status))}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[11px] capitalize text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600"
+                    className="flex w-full items-center px-3 py-2 text-left text-[12px] capitalize text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:text-slate-600"
                   >
                     {status.replace(/_/g, " ")}
                   </button>
@@ -172,7 +172,7 @@ export default function RowActionsMenu({
 
             {isDaraz && (
               <>
-                <div className="mt-1 border-t border-slate-800 px-3 pt-1.5 text-[10px] font-semibold uppercase text-slate-500">
+                <div className="mt-1 border-t border-slate-800 px-3 pt-1.5 text-[11px] font-semibold uppercase text-slate-500">
                   Daraz Actions
                 </div>
 
@@ -184,19 +184,9 @@ export default function RowActionsMenu({
                         step.kind === "status" ? onChangeStatus(step.status) : onDarazAction(step.action)
                       )
                     }
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] font-semibold text-orange-300 hover:bg-slate-800"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-orange-300 hover:bg-slate-800"
                   >
-                    <ArrowRightCircle size={12} /> {step.label}
-                  </button>
-                )}
-
-                {canDarazPrintAwb(order) && (
-                  <button
-                    type="button"
-                    onClick={() => run(() => onDarazAction("print_awb"))}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
-                  >
-                    Print AWB
+                    <ArrowRightCircle size={13} /> {step.label}
                   </button>
                 )}
 
@@ -205,7 +195,7 @@ export default function RowActionsMenu({
                     key={action.value}
                     type="button"
                     onClick={() => run(() => onDarazAction(action.value))}
-                    className="flex w-full items-center px-3 py-1.5 text-left text-[11px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                    className="flex w-full items-center px-3 py-2 text-left text-[12px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                   >
                     {action.label}
                   </button>

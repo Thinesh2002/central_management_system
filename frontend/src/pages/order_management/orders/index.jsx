@@ -506,7 +506,7 @@ export default function OrdersPage() {
             <table className="min-w-full divide-y divide-slate-800">
               <thead className="border-b border-slate-800 bg-[#111827]">
                 <tr>
-                  <th className="w-10 px-4 py-3">
+                  <th className="w-10 px-5 py-4">
                     <input
                       type="checkbox"
                       checked={allPageSelected}
@@ -518,7 +518,7 @@ export default function OrdersPage() {
                     (header) => (
                       <th
                         key={header}
-                        className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300"
+                        className="px-5 py-4 text-left text-[12px] font-semibold uppercase tracking-wide text-orange-300"
                       >
                         {header}
                       </th>
@@ -530,7 +530,7 @@ export default function OrdersPage() {
               <tbody>
                 {!pagedOrders.length && (
                   <tr>
-                    <td colSpan="7" className="px-3 py-8 text-center text-[12px] text-slate-500">
+                    <td colSpan="7" className="px-5 py-8 text-center text-[13px] text-slate-500">
                       No orders found for the selected filter.
                     </td>
                   </tr>

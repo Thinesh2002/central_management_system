@@ -2,7 +2,6 @@ import React, { Fragment, memo } from "react";
 import { ArrowRightCircle, ImageOff, Printer, Truck } from "lucide-react";
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
 import {
-  canDarazPrintAwb,
   fullAddress,
   money,
   nextDarazStep,
@@ -48,12 +47,12 @@ function ProductThumb({ order, item, onPreview }) {
       }
       disabled={!url}
       title={url ? "Click to preview" : "No image"}
-      className="relative z-0 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[2.2] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
+      className="relative z-0 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[2.2] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
     >
       {url ? (
         <img src={url} alt={title || "Product"} className="h-full w-full object-contain" />
       ) : (
-        <ImageOff size={15} className="text-slate-400" />
+        <ImageOff size={17} className="text-slate-400" />
       )}
     </button>
   );
@@ -69,9 +68,9 @@ function ActionButton({ label, icon: Icon, onClick, tone = "outline" }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-7 w-full items-center justify-center gap-1.5 rounded-sm px-2 text-[11px] font-semibold transition ${toneClass}`}
+      className={`flex h-8 w-full items-center justify-center gap-1.5 rounded-sm px-2 text-[12px] font-semibold transition ${toneClass}`}
     >
-      {Icon && <Icon size={12} />}
+      {Icon && <Icon size={13} />}
       {label}
     </button>
   );
@@ -118,7 +117,7 @@ function OrderRow({
             }`}
           >
             {isFirst && (
-              <td rowSpan={rowCount} className="px-4 py-3.5 align-top">
+              <td rowSpan={rowCount} className="px-5 py-4 align-top">
                 <input
                   type="checkbox"
                   checked={Boolean(isSelected)}
@@ -129,35 +128,35 @@ function OrderRow({
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-4 py-3 align-top">
+              <td rowSpan={rowCount} className="px-5 py-4 align-top">
                 <button
                   type="button"
                   onClick={() => onView(order)}
-                  className="cursor-pointer text-[11px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
+                  className="cursor-pointer text-[13px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
                 >
                   #{order.display_order_no || order.order_no}
                 </button>
-                <p className={`mt-1 text-[10px] font-semibold ${source.className}`}>{source.label}</p>
-                <p className="mt-1 text-[10px] text-slate-300">{order.account_name || "-"}</p>
-                <p className="mt-1 text-[9px] text-slate-500">
+                <p className={`mt-1.5 text-[11px] font-semibold ${source.className}`}>{source.label}</p>
+                <p className="mt-1.5 text-[11px] text-slate-300">{order.account_name || "-"}</p>
+                <p className="mt-1.5 text-[10px] text-slate-500">
                   {dateParts.date} {dateParts.time}
                 </p>
                 {isMulti && (
-                  <p className="mt-1 text-[9px] font-semibold text-orange-300">{items.length} items</p>
+                  <p className="mt-1.5 text-[10px] font-semibold text-orange-300">{items.length} items</p>
                 )}
               </td>
             )}
 
-            <td className="px-4 py-3 align-top">
-              <div className="flex min-w-0 items-start gap-3">
+            <td className="px-5 py-4 align-top">
+              <div className="flex min-w-0 items-start gap-4">
                 <ProductThumb order={order} item={item} onPreview={onPreviewImage} />
 
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[11px] font-normal leading-4 text-slate-100">
+                  <p className="line-clamp-2 text-[13px] font-normal leading-5 text-slate-100">
                     {item ? getItemName(item) : order.first_item_title || "-"}
                   </p>
 
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] text-slate-500">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
                     {itemSku && itemSku !== "-" ? (
                       <button
                         type="button"
@@ -175,36 +174,36 @@ function OrderRow({
             </td>
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-4 py-3 align-top">
-                <p className="text-[11px] font-semibold text-slate-200">
+              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+                <p className="text-[13px] font-semibold text-slate-200">
                   {order.customer_name || order.shipping_name || "-"}
                 </p>
-                <p className="mt-1 text-[10px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
-                <p className="mt-1 max-w-55 text-[9px] leading-4 text-slate-500">
+                <p className="mt-1.5 text-[11px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
+                <p className="mt-1.5 max-w-55 text-[10px] leading-5 text-slate-500">
                   {fullAddress(order) || "-"}
                 </p>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-4 py-3 align-top">
-                <p className="text-[11px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
-                <p className="mt-1 text-[9px] text-slate-500">
+              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+                <p className="text-[13px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
+                <p className="mt-1.5 text-[10px] text-slate-500">
                   Discount: {money(order.discount_total, order.currency)}
                 </p>
-                <p className="mt-1 text-[9px] uppercase text-slate-500">{order.payment_method || "-"}</p>
+                <p className="mt-1.5 text-[10px] uppercase text-slate-500">{order.payment_method || "-"}</p>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-4 py-3 align-top">
-                <span className={`text-[10px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
+              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+                <span className={`text-[12px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-4 py-3 align-top">
-                <div className="flex w-36 flex-col gap-1.5">
+              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+                <div className="flex w-40 flex-col gap-2">
                   {isDaraz && darazStep && (
                     <ActionButton
                       label={darazStep.label}
@@ -218,7 +217,7 @@ function OrderRow({
                     />
                   )}
 
-                  {isDaraz && canDarazPrintAwb(order) && (
+                  {isDaraz && (
                     <ActionButton
                       label="Print AWB"
                       icon={Truck}
