@@ -1,7 +1,17 @@
 import React, { Fragment, memo } from "react";
-import { Eye, ImageOff, Pencil, Printer, Trash2 } from "lucide-react";
+import { ArrowRightCircle, ImageOff, Printer, Truck } from "lucide-react";
 import { resolveImageUrl } from "../../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
-import { fullAddress, money, niceDate, orderKey, sourceMeta, statusBadgeClass, statusLabel } from "../utils/orderHelpers";
+import {
+  canDarazPrintAwb,
+  fullAddress,
+  money,
+  nextDarazStep,
+  niceDate,
+  orderKey,
+  sourceMeta,
+  statusBadgeClass,
+  statusLabel,
+} from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
 import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
 
@@ -38,32 +48,31 @@ function ProductThumb({ order, item, onPreview }) {
       }
       disabled={!url}
       title={url ? "Click to preview" : "No image"}
-      className="relative z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[2.2] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
+      className="relative z-0 flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-slate-200 transition-transform duration-150 ease-out disabled:cursor-default hover:z-20 hover:scale-[2.2] hover:shadow-xl hover:ring-1 hover:ring-orange-400"
     >
       {url ? (
         <img src={url} alt={title || "Product"} className="h-full w-full object-contain" />
       ) : (
-        <ImageOff size={13} className="text-slate-400" />
+        <ImageOff size={15} className="text-slate-400" />
       )}
     </button>
   );
 }
 
-function IconButton({ icon, title, onClick, tone = "default" }) {
-  const Icon = icon;
+function ActionButton({ label, icon: Icon, onClick, tone = "outline" }) {
   const toneClass =
-    tone === "danger"
-      ? "text-slate-400 hover:bg-red-950 hover:text-red-400"
-      : "text-slate-400 hover:bg-slate-800 hover:text-white";
+    tone === "primary"
+      ? "bg-orange-500 text-slate-950 hover:bg-orange-400"
+      : "border border-slate-600 text-slate-200 hover:border-orange-400 hover:text-orange-200";
 
   return (
     <button
       type="button"
-      title={title}
       onClick={onClick}
-      className={`flex h-6 w-6 items-center justify-center rounded transition ${toneClass}`}
+      className={`flex h-7 w-full items-center justify-center gap-1.5 rounded-sm px-2 text-[11px] font-semibold transition ${toneClass}`}
     >
-      <Icon size={12} />
+      {Icon && <Icon size={12} />}
+      {label}
     </button>
   );
 }
@@ -80,6 +89,7 @@ function OrderRow({
   onTrack,
   onChangeStatus,
   onDarazAction,
+  onAddWaybill,
 }) {
   const { openOverlay } = usePageOverlay();
   const source = sourceMeta(order.source);
@@ -89,6 +99,10 @@ function OrderRow({
   const items = order.items?.length ? order.items : [null];
   const rowCount = items.length;
   const isMulti = items.length > 1;
+
+  const isDaraz = order.source === "daraz";
+  const hasWaybill = Boolean(order.waybill_id || order.tracking_number);
+  const darazStep = isDaraz ? nextDarazStep(order) : null;
 
   return (
     <Fragment>
@@ -104,7 +118,7 @@ function OrderRow({
             }`}
           >
             {isFirst && (
-              <td rowSpan={rowCount} className="px-3 py-2.5 align-top">
+              <td rowSpan={rowCount} className="px-4 py-3.5 align-top">
                 <input
                   type="checkbox"
                   checked={Boolean(isSelected)}
@@ -115,27 +129,27 @@ function OrderRow({
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+              <td rowSpan={rowCount} className="px-4 py-3 align-top">
                 <button
                   type="button"
                   onClick={() => onView(order)}
-                  className="cursor-pointer text-[10px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
+                  className="cursor-pointer text-[11px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
                 >
                   #{order.display_order_no || order.order_no}
                 </button>
-                <p className={`mt-0.5 text-[10px] font-semibold ${source.className}`}>{source.label}</p>
-                <p className="mt-0.5 text-[10px] text-slate-300">{order.account_name || "-"}</p>
-                <p className="mt-0.5 text-[9px] text-slate-500">
+                <p className={`mt-1 text-[10px] font-semibold ${source.className}`}>{source.label}</p>
+                <p className="mt-1 text-[10px] text-slate-300">{order.account_name || "-"}</p>
+                <p className="mt-1 text-[9px] text-slate-500">
                   {dateParts.date} {dateParts.time}
                 </p>
                 {isMulti && (
-                  <p className="mt-0.5 text-[9px] font-semibold text-orange-300">{items.length} items</p>
+                  <p className="mt-1 text-[9px] font-semibold text-orange-300">{items.length} items</p>
                 )}
               </td>
             )}
 
-            <td className="px-3 py-2 align-top">
-              <div className="flex min-w-0 items-start gap-2">
+            <td className="px-4 py-3 align-top">
+              <div className="flex min-w-0 items-start gap-3">
                 <ProductThumb order={order} item={item} onPreview={onPreviewImage} />
 
                 <div className="min-w-0 flex-1">
@@ -143,7 +157,7 @@ function OrderRow({
                     {item ? getItemName(item) : order.first_item_title || "-"}
                   </p>
 
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-slate-500">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] text-slate-500">
                     {itemSku && itemSku !== "-" ? (
                       <button
                         type="button"
@@ -161,51 +175,74 @@ function OrderRow({
             </td>
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+              <td rowSpan={rowCount} className="px-4 py-3 align-top">
                 <p className="text-[11px] font-semibold text-slate-200">
                   {order.customer_name || order.shipping_name || "-"}
                 </p>
-                <p className="mt-0.5 text-[10px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
-                <p className="mt-0.5 max-w-55 text-[9px] leading-4 text-slate-500">
+                <p className="mt-1 text-[10px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
+                <p className="mt-1 max-w-55 text-[9px] leading-4 text-slate-500">
                   {fullAddress(order) || "-"}
                 </p>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+              <td rowSpan={rowCount} className="px-4 py-3 align-top">
                 <p className="text-[11px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
-                <p className="mt-0.5 text-[9px] text-slate-500">
+                <p className="mt-1 text-[9px] text-slate-500">
                   Discount: {money(order.discount_total, order.currency)}
                 </p>
-                <p className="mt-0.5 text-[9px] uppercase text-slate-500">{order.payment_method || "-"}</p>
+                <p className="mt-1 text-[9px] uppercase text-slate-500">{order.payment_method || "-"}</p>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-3 py-2 align-top">
+              <td rowSpan={rowCount} className="px-4 py-3 align-top">
                 <span className={`text-[10px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-3 py-2 text-right align-top">
-                <div className="flex items-center justify-end gap-0.5">
-                  <IconButton icon={Eye} title="View" onClick={() => onView(order)} />
-                  <IconButton icon={Printer} title="Print Invoice" onClick={() => onPrintInvoice(order)} />
-
-                  {order.source === "local" && (
-                    <>
-                      <IconButton icon={Pencil} title="Edit" onClick={() => onEdit(order)} />
-                      <IconButton icon={Trash2} title="Delete" tone="danger" onClick={() => onDelete(order)} />
-                    </>
+              <td rowSpan={rowCount} className="px-4 py-3 align-top">
+                <div className="flex w-36 flex-col gap-1.5">
+                  {isDaraz && darazStep && (
+                    <ActionButton
+                      label={darazStep.label}
+                      icon={ArrowRightCircle}
+                      tone="primary"
+                      onClick={() =>
+                        darazStep.kind === "status"
+                          ? onChangeStatus(order, darazStep.status)
+                          : onDarazAction(order, darazStep.action)
+                      }
+                    />
                   )}
+
+                  {isDaraz && canDarazPrintAwb(order) && (
+                    <ActionButton
+                      label="Print AWB"
+                      icon={Truck}
+                      onClick={() => onDarazAction(order, "print_awb")}
+                    />
+                  )}
+
+                  {!isDaraz && (
+                    <ActionButton
+                      label={hasWaybill ? "Edit Waybill" : "Add Waybill"}
+                      icon={Truck}
+                      onClick={() => onAddWaybill(order)}
+                    />
+                  )}
+
+                  <ActionButton label="Print Invoice" icon={Printer} onClick={() => onPrintInvoice(order)} />
 
                   <RowActionsMenu
                     order={order}
                     onView={() => onView(order)}
                     onPrintInvoice={() => onPrintInvoice(order)}
                     onTrack={() => onTrack(order)}
+                    onEdit={() => onEdit(order)}
+                    onDelete={() => onDelete(order)}
                     onChangeStatus={(status) => onChangeStatus(order, status)}
                     onDarazAction={(action) => onDarazAction(order, action)}
                   />

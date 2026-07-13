@@ -245,6 +245,23 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleAddWaybill = useCallback(async (order) => {
+    const waybillId = window.prompt("Enter waybill / tracking number");
+    if (!waybillId) return;
+
+    try {
+      await ordersApi.createWaybill(order.source, order.source_order_id, {
+        waybill_id: waybillId,
+        tracking_number: waybillId,
+      });
+      showToast("Waybill saved.");
+      await load();
+    } catch (err) {
+      alert(getApiError(err, "Failed to save waybill"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleChangeStatus = useCallback(
     async (order, nextStatus) => {
       try {
@@ -489,7 +506,7 @@ export default function OrdersPage() {
             <table className="min-w-full divide-y divide-slate-800">
               <thead className="border-b border-slate-800 bg-[#111827]">
                 <tr>
-                  <th className="w-10 px-3 py-2.5">
+                  <th className="w-10 px-4 py-3">
                     <input
                       type="checkbox"
                       checked={allPageSelected}
@@ -501,7 +518,7 @@ export default function OrdersPage() {
                     (header) => (
                       <th
                         key={header}
-                        className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300"
+                        className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-orange-300"
                       >
                         {header}
                       </th>
@@ -533,6 +550,7 @@ export default function OrdersPage() {
                     onTrack={handleTrack}
                     onChangeStatus={handleChangeStatus}
                     onDarazAction={handleDarazRowAction}
+                    onAddWaybill={handleAddWaybill}
                   />
                 ))}
               </tbody>

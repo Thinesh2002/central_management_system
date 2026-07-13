@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRightCircle, Eye, MoreVertical, Printer, Truck } from "lucide-react";
+import { ArrowRightCircle, Eye, MoreHorizontal, Pencil, Printer, Trash2, Truck } from "lucide-react";
 import { canDarazPrintAwb, nextDarazStep } from "../utils/orderHelpers";
 
 const MANUAL_STATUSES = [
@@ -27,6 +27,8 @@ export default function RowActionsMenu({
   onView,
   onPrintInvoice,
   onTrack,
+  onEdit,
+  onDelete,
   onChangeStatus,
   onDarazAction,
 }) {
@@ -85,9 +87,10 @@ export default function RowActionsMenu({
         ref={triggerRef}
         type="button"
         onClick={() => (open ? setOpen(false) : openMenu())}
-        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded text-slate-400 hover:bg-slate-800 hover:text-white"
+        className="flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-slate-600 px-2 text-[11px] font-semibold text-slate-200 transition hover:border-orange-400 hover:text-orange-200"
       >
-        <MoreVertical size={14} />
+        <MoreHorizontal size={12} />
+        More
       </button>
 
       {open &&
@@ -132,6 +135,24 @@ export default function RowActionsMenu({
 
             {isLocal && (
               <>
+                <div className="mt-1 border-t border-slate-800" />
+
+                <button
+                  type="button"
+                  onClick={() => run(onEdit)}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+                >
+                  <Pencil size={12} /> Edit Order
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => run(onDelete)}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-red-400 hover:bg-red-950/60"
+                >
+                  <Trash2 size={12} /> Delete Order
+                </button>
+
                 <div className="mt-1 border-t border-slate-800 px-3 pt-1.5 text-[10px] font-semibold uppercase text-slate-500">
                   Change Status
                 </div>
