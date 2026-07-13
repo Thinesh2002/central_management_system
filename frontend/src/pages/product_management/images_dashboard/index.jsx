@@ -8,7 +8,6 @@ import {
   ImagePlus,
   Lock,
   Package,
-  Pencil,
   RefreshCw,
   Search,
   Tag,
@@ -175,9 +174,8 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
   }, [focused, query, skuOptions]);
 
   return (
-    <div ref={containerRef} className="relative w-full sm:w-64">
-      <div className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-950 pl-2.5 pr-1 focus-within:border-orange-500">
-        <Tag size={13} className="shrink-0 text-slate-500" />
+    <div ref={containerRef} className="relative w-44">
+      <div className="flex h-7 items-center gap-1.5 border border-slate-600 bg-[#2b3441] pl-2.5 pr-1 focus-within:border-orange-400">
         <input
           value={value || query}
           onChange={(e) => {
@@ -185,8 +183,8 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
             if (value) onSelect("");
           }}
           onFocus={() => setFocused(true)}
-          placeholder="Search by SKU..."
-          className="h-full w-full min-w-0 bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-600"
+          placeholder="Enter SKU"
+          className="h-full w-full min-w-0 bg-transparent text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
         />
         {value ? (
           <button
@@ -195,7 +193,7 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
               onSelect("");
               setQuery("");
             }}
-            className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-500 hover:text-white"
+            className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-500 hover:text-white"
           >
             <X size={12} />
           </button>
@@ -203,7 +201,7 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
       </div>
 
       {focused && results.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl shadow-black/50">
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto border border-slate-700 bg-[#0b1220] shadow-2xl shadow-black/50">
           {results.map((row) => (
             <button
               key={row.sku}
@@ -225,12 +223,8 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
   );
 }
 
-function ImageCard({ image, onSaveAltText, onRename, onDelete, onPreview, busy }) {
+function ImageCard({ image, onSaveAltText, onDelete, onPreview, busy }) {
   const [altText, setAltText] = useState(image.alt_text || "");
-  const [renaming, setRenaming] = useState(false);
-  const [newName, setNewName] = useState(
-    (image.file_name || "").replace(/\.[^.]+$/, "")
-  );
   const [copied, setCopied] = useState(false);
 
   const previewUrl = resolveImageUrl(image.image_url || image.image_path);
@@ -247,15 +241,8 @@ function ImageCard({ image, onSaveAltText, onRename, onDelete, onPreview, busy }
     });
   }
 
-  function submitRename() {
-    if (!newName.trim()) return;
-    onRename(image, newName.trim()).then((ok) => {
-      if (ok) setRenaming(false);
-    });
-  }
-
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+    <div className="flex flex-col overflow-hidden border border-slate-800 bg-slate-900">
       <button
         type="button"
         onClick={() => onPreview(image)}
@@ -269,23 +256,23 @@ function ImageCard({ image, onSaveAltText, onRename, onDelete, onPreview, busy }
             className="h-full w-full object-cover transition duration-200 hover:scale-105"
           />
         ) : (
-          <ImagePlus size={28} className="text-slate-700" />
+          <ImagePlus size={18} className="text-slate-700" />
         )}
 
         <span
-          className={`absolute left-2 top-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          className={`absolute left-1 top-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
             isAssigned
               ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
               : "bg-slate-700/60 text-slate-300 ring-1 ring-slate-600/50"
           }`}
         >
-          {isAssigned ? <Lock size={10} /> : null}
+          {isAssigned ? <Lock size={9} /> : null}
           {isAssigned ? "Assigned" : "Unassigned"}
         </span>
 
         {image._attachment_count > 1 ? (
           <span
-            className="absolute right-2 top-2 inline-flex items-center rounded-full bg-slate-950/80 px-2 py-0.5 text-[10px] font-semibold text-slate-300 ring-1 ring-slate-700"
+            className="absolute right-1 top-1 inline-flex items-center rounded-full bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300 ring-1 ring-slate-700"
             title={`Attached in ${image._attachment_count} places`}
           >
             ×{image._attachment_count}
@@ -293,57 +280,30 @@ function ImageCard({ image, onSaveAltText, onRename, onDelete, onPreview, busy }
         ) : null}
 
         {image.sku ? (
-          <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/70 px-2 py-1 text-left text-[10px] font-semibold text-orange-300">
+          <span className="absolute bottom-1 left-1 right-1 truncate rounded bg-black/70 px-1.5 py-0.5 text-left text-[9px] font-semibold text-orange-300">
             {image.sku}
           </span>
         ) : null}
       </button>
 
-      <div className="flex flex-1 flex-col gap-2 p-3 text-xs">
-        {renaming ? (
-          <div className="flex items-center gap-1">
-            <input
-              autoFocus
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitRename()}
-              className="h-7 flex-1 rounded border border-slate-700 bg-slate-950 px-2 text-[11px] text-slate-100 outline-none focus:border-orange-500"
-            />
-            <button
-              type="button"
-              onClick={submitRename}
-              disabled={busy}
-              className="rounded border border-emerald-600/40 bg-emerald-600/10 px-2 py-1 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-600/20 disabled:opacity-50"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => setRenaming(false)}
-              className="rounded border border-slate-700 p-1 text-slate-400 hover:text-white"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        ) : (
-          <p className="truncate font-medium text-slate-200" title={image.file_name}>
-            {image.file_name || "-"}
-          </p>
-        )}
+      <div className="flex flex-1 flex-col gap-1.5 p-2 text-xs">
+        <p className="truncate text-[10px] font-medium text-slate-200" title={image.file_name}>
+          {image.file_name || "-"}
+        </p>
 
         <div className="flex items-center gap-1">
           <input
             readOnly
             value={previewUrl}
-            className="h-7 flex-1 truncate rounded border border-slate-800 bg-slate-950 px-2 text-[10px] text-slate-500"
+            className="h-6 flex-1 truncate border border-slate-800 bg-slate-950 px-1.5 text-[9px] text-slate-500"
           />
           <button
             type="button"
             onClick={copyUrl}
             title="Copy image URL"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-slate-800 text-slate-400 hover:border-orange-500 hover:text-orange-300"
+            className="flex h-6 w-6 shrink-0 items-center justify-center border border-slate-800 text-slate-400 hover:border-orange-500 hover:text-orange-300"
           >
-            {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
+            {copied ? <CheckCircle size={11} /> : <Copy size={11} />}
           </button>
         </div>
 
@@ -356,32 +316,19 @@ function ImageCard({ image, onSaveAltText, onRename, onDelete, onPreview, busy }
             }
           }}
           placeholder="Alt text..."
-          className="h-7 rounded border border-slate-800 bg-slate-950 px-2 text-[11px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-orange-500"
+          className="h-6 border border-slate-800 bg-slate-950 px-1.5 text-[10px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-orange-500"
         />
 
-        <div className="mt-auto flex items-center gap-2 pt-1">
-          <button
-            type="button"
-            disabled={isAssigned || busy}
-            onClick={() => setRenaming(true)}
-            title={isAssigned ? "Assigned images can't be renamed" : "Rename"}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-700 py-1.5 text-[11px] font-semibold text-slate-300 hover:border-orange-500 hover:text-orange-300 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Pencil size={12} />
-            Rename
-          </button>
-
-          <button
-            type="button"
-            disabled={isAssigned || busy}
-            onClick={() => onDelete(image)}
-            title={isAssigned ? "Assigned images can't be deleted" : "Delete"}
-            className="flex flex-1 items-center justify-center gap-1 rounded border border-slate-700 py-1.5 text-[11px] font-semibold text-red-400 hover:border-red-500/60 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Trash2 size={12} />
-            Delete
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={isAssigned || busy}
+          onClick={() => onDelete(image)}
+          title={isAssigned ? "Assigned images can't be deleted" : "Delete"}
+          className="mt-auto flex items-center justify-center gap-1 border border-slate-700 py-1 text-[10px] font-semibold text-red-400 hover:border-red-500/60 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Trash2 size={11} />
+          Delete
+        </button>
       </div>
     </div>
   );
@@ -508,28 +455,6 @@ export default function ImagesDashboardPage() {
     }
   }
 
-  async function handleRename(image, fileName) {
-    setBusyId(String(image.id));
-    setError("");
-    setSuccess("");
-
-    try {
-      const res = await localProductsApi.renameImage(image.id, fileName);
-      const updated = res?.data?.data;
-
-      setImages((prev) =>
-        prev.map((row) => (row.id === image.id ? { ...row, ...updated } : row))
-      );
-      setSuccess("Image renamed.");
-      return true;
-    } catch (err) {
-      setError(getErrorMessage(err, "Failed to rename image."));
-      return false;
-    } finally {
-      setBusyId("");
-    }
-  }
-
   async function handleDelete(image) {
     if (!window.confirm(`Delete "${image.file_name}"? This cannot be undone.`)) {
       return;
@@ -551,138 +476,123 @@ export default function ImagesDashboardPage() {
   }
 
   return (
-    <div className="min-h-full bg-slate-950 p-4 text-slate-200 md:p-6">
-      <div className="mx-auto max-w-7xl space-y-4">
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-white">Images Dashboard</h1>
-            <p className="mt-1 text-xs text-slate-400">
-              All uploaded product images in one place. Assigned images (in use
-              by a product, or mirrored to Daraz / WooCommerce) are protected
-              from rename and delete.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={loadImages}
-              disabled={loading}
-              className="flex h-9 items-center gap-2 rounded-lg border border-slate-700 px-3 text-xs font-semibold text-slate-300 hover:border-orange-500 hover:text-orange-300 disabled:opacity-60"
-            >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              onClick={handleUploadClick}
-              disabled={uploading}
-              className="flex h-9 items-center gap-2 rounded-lg bg-orange-500 px-3 text-xs font-bold text-slate-950 hover:bg-orange-400 disabled:opacity-60"
-            >
-              <ImagePlus size={14} />
-              {uploading ? "Uploading..." : "Add Image"}
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              hidden
-              onChange={handleFileSelected}
-            />
-          </div>
+    <div className="min-h-full w-full bg-slate-950 text-slate-200">
+      {error ? (
+        <div className="flex items-start gap-2 border-b border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
         </div>
+      ) : null}
 
-        {error ? (
-          <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        ) : null}
-
-        {success ? (
-          <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-            <CheckCircle size={14} className="mt-0.5 shrink-0" />
-            <span>{success}</span>
-          </div>
-        ) : null}
-
-        <div className="rounded-2xl border border-slate-800 bg-slate-900">
-          <div className="flex items-center gap-1 border-b border-slate-800 px-3">
-            {TABS.map((item) => {
-              const Icon = item.icon;
-              const active = tab === item.key;
-
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setTab(item.key)}
-                  className={`flex h-10 items-center gap-1.5 border-b-2 px-3 text-[12px] font-semibold transition ${
-                    active
-                      ? "border-orange-400 text-white"
-                      : "border-transparent text-slate-500 hover:text-slate-300"
-                  }`}
-                >
-                  <Icon size={13} />
-                  {item.label}
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                      active ? "bg-orange-500/20 text-orange-300" : "bg-slate-800 text-slate-500"
-                    }`}
-                  >
-                    {tabCounts[item.key]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="flex h-8 items-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-2.5 focus-within:border-orange-500">
-                <Search size={13} className="shrink-0 text-slate-500" />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search file name or alt text..."
-                  className="h-full w-56 min-w-0 bg-transparent text-xs text-slate-200 outline-none placeholder:text-slate-600"
-                />
-              </div>
-
-              <SkuSearchDropdown skuOptions={skuOptions} value={skuFilter} onSelect={setSkuFilter} />
-            </div>
-
-            <span className="text-[11px] text-slate-500">
-              {filteredImages.length} of {images.length}
-            </span>
-          </div>
+      {success ? (
+        <div className="flex items-start gap-2 border-b border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          <CheckCircle size={14} className="mt-0.5 shrink-0" />
+          <span>{success}</span>
         </div>
+      ) : null}
 
-        {loading ? (
-          <Loader label="Loading images..." minHeight="240px" />
-        ) : filteredImages.length === 0 ? (
-          <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-slate-500">
-            <ImagePlus size={28} />
-            <span className="text-sm font-semibold">No images found.</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filteredImages.map((image) => (
-              <ImageCard
-                key={image.id}
-                image={image}
-                busy={busyId === String(image.id)}
-                onSaveAltText={handleSaveAltText}
-                onRename={handleRename}
-                onDelete={handleDelete}
-                onPreview={setPreviewImage}
-              />
-            ))}
-          </div>
-        )}
+      <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800/60 px-3 pt-2">
+        {TABS.map((item) => {
+          const Icon = item.icon;
+          const active = tab === item.key;
+
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setTab(item.key)}
+              className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-semibold transition ${
+                active
+                  ? "border-orange-400 text-orange-300"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Icon size={13} />
+              {item.label}
+              <span className="rounded-sm bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-400">
+                {tabCounts[item.key]}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      <div className="flex flex-wrap items-end gap-2 border-b border-zinc-800/60 px-3 py-2.5">
+        <label className="block">
+          <span className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300">
+            <Search size={10} className="text-orange-400" />
+            Search
+          </span>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search file name or alt text"
+            className="h-7 w-56 border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:border-orange-400"
+          />
+        </label>
+
+        <label className="block">
+          <span className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300">
+            <Tag size={10} className="text-orange-400" />
+            SKU
+          </span>
+          <SkuSearchDropdown skuOptions={skuOptions} value={skuFilter} onSelect={setSkuFilter} />
+        </label>
+
+        <button
+          type="button"
+          onClick={loadImages}
+          disabled={loading}
+          className="flex h-7 items-center gap-1.5 border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-semibold text-slate-200 hover:border-orange-400 disabled:opacity-60"
+        >
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          disabled={uploading}
+          className="flex h-7 items-center gap-1.5 bg-orange-500 px-2.5 text-[11px] font-bold text-slate-950 hover:bg-orange-400 disabled:opacity-60"
+        >
+          <ImagePlus size={12} />
+          {uploading ? "Uploading..." : "Add Image"}
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          hidden
+          onChange={handleFileSelected}
+        />
+
+        <span className="ml-auto text-[11px] text-slate-500">
+          {filteredImages.length} of {images.length}
+        </span>
+      </div>
+
+      {loading ? (
+        <Loader label="Loading images..." minHeight="240px" />
+      ) : filteredImages.length === 0 ? (
+        <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-slate-500">
+          <ImagePlus size={28} />
+          <span className="text-sm font-semibold">No images found.</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 p-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10">
+          {filteredImages.map((image) => (
+            <ImageCard
+              key={image.id}
+              image={image}
+              busy={busyId === String(image.id)}
+              onSaveAltText={handleSaveAltText}
+              onDelete={handleDelete}
+              onPreview={setPreviewImage}
+            />
+          ))}
+        </div>
+      )}
 
       <ImageDetailModal image={previewImage} onClose={() => setPreviewImage(null)} />
     </div>
