@@ -201,6 +201,7 @@ function mergeProductsWithPrices(products = [], priceRows = []) {
   return products.map((product) => {
     const productSku = getProductSku(product);
     const currency = product.currency || product.currency_code || "LKR";
+    const variants = getProductVariants(product);
 
     // Variable products carry no price of their own — only their variants
     // do, so the parent row shows a range across variant prices instead of
@@ -208,9 +209,7 @@ function mergeProductsWithPrices(products = [], priceRows = []) {
     const matchedRows = isVariableProduct(product)
       ? cleanPriceRows.filter((row) => {
           const variantSkus = new Set(
-            getProductVariants(product).map((variant) =>
-              getVariantSku(variant).toLowerCase()
-            )
+            variants.map((variant) => getVariantSku(variant).toLowerCase())
           );
           return variantSkus.has(getPriceSku(row).toLowerCase());
         })
@@ -218,8 +217,18 @@ function mergeProductsWithPrices(products = [], priceRows = []) {
 
     const priceSummary = getPriceSummary(matchedRows, currency);
 
+    // The aggregate summary above only tells the parent row a min-max
+    // range — each variant still needs its own matched price row attached
+    // so a variant's own row can show its actual price, not the parent's.
+    const variantsWithPrices = variants.map((variant) => {
+      const variantSku = getVariantSku(variant).toLowerCase();
+      const ownRow = matchedRows.find((row) => getPriceSku(row).toLowerCase() === variantSku);
+      return ownRow ? { ...variant, price_summary: getPriceSummary([ownRow], currency) } : variant;
+    });
+
     return {
       ...product,
+      ...(variants.length ? { variants: variantsWithPrices } : {}),
       price_summary: priceSummary,
     };
   });

@@ -143,6 +143,13 @@ function getStockStatus(product = {}, variant = {}) {
 }
 
 function getPriceText(record = {}) {
+  // A variant's own price row (matched by SKU) is attached as
+  // `price_summary` upstream, same as the parent product - prefer that
+  // over the flat-field guesses below, which are rarely actually present.
+  if (record.price_summary?.price_text) {
+    return record.price_summary.price_text;
+  }
+
   const currency = record.currency || record.currency_code || "LKR";
 
   const price = pickFirstValue(
