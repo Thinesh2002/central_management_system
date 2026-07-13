@@ -1,48 +1,50 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Bell, Check } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { Bell } from "lucide-react";
 
 import notificationsApi from "../config/sub_api/notifications_api";
+import { useToast } from "./common/toast/ToastProvider";
 
-const POLL_INTERVAL_MS = 60000;
+const POLL_INTERVAL_MS = 20000;
+const MAX_TOASTS_PER_POLL = 3;
 
-const SEVERITY_DOT = {
-  info: "bg-sky-400",
-  warning: "bg-amber-400",
-  error: "bg-red-400",
-};
+export default function NotificationBell({ onNavigate }) {
+  const showToast = useToast();
 
-function formatRelativeTime(value) {
-  if (!value) return "";
-
-  const diffMs = Date.now() - new Date(value).getTime();
-  const minutes = Math.floor(diffMs / 60000);
-
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-export default function NotificationBell({ inline = false }) {
-  const navigate = useNavigate();
-  const containerRef = useRef(null);
-
-  const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const lastSeenIdRef = useRef(null);
+  const firstLoadRef = useRef(true);
 
   async function load() {
     try {
-      const res = await notificationsApi.list({ limit: 30 });
-      setNotifications(res?.data?.data || []);
+      const res = await notificationsApi.list({ limit: 10 });
+      const rows = res?.data?.data || [];
       setUnreadCount(res?.data?.unread_count || 0);
+
+      if (rows.length) {
+        const newestId = rows[0].id;
+
+        // Skip the very first load (everything would look "new" on page
+        // open) — only toast for notifications that arrived since the last
+        // poll, so it behaves like a live message rather than a history dump.
+        if (!firstLoadRef.current && lastSeenIdRef.current != null) {
+          rows
+            .filter((row) => row.id > lastSeenIdRef.current)
+            .slice(0, MAX_TOASTS_PER_POLL)
+            .reverse()
+            .forEach((row) => {
+              showToast(row.title, {
+                type: row.severity === "error" || row.severity === "warning" ? "error" : "success",
+                duration: 5000,
+              });
+            });
+        }
+
+        lastSeenIdRef.current = newestId;
+        firstLoadRef.current = false;
+      }
     } catch {
-      // Silent - the bell just won't update this cycle, no need to alarm the user over a poll failure.
+      // Silent - the badge just won't update this cycle, no need to alarm the user over a poll failure.
     }
   }
 
@@ -52,111 +54,27 @@ export default function NotificationBell({ inline = false }) {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  async function handleNotificationClick(notification) {
-    if (!notification.is_read) {
-      try {
-        await notificationsApi.markRead(notification.id);
-        setNotifications((prev) =>
-          prev.map((row) => (row.id === notification.id ? { ...row, is_read: 1 } : row))
-        );
-        setUnreadCount((prev) => Math.max(prev - 1, 0));
-      } catch {
-        // Non-fatal - navigation still proceeds even if marking read failed.
-      }
-    }
-
-    setOpen(false);
-    if (notification.link) navigate(notification.link);
-  }
-
-  async function handleMarkAllRead() {
-    try {
-      await notificationsApi.markAllRead();
-      setNotifications((prev) => prev.map((row) => ({ ...row, is_read: 1 })));
-      setUnreadCount(0);
-    } catch {
-      // Silent - user can retry.
-    }
-  }
-
   return (
-    <div ref={containerRef} className={inline ? "relative" : "fixed right-3 top-3 z-30"}>
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-slate-700 bg-[#0f172a] text-slate-200 shadow-lg shadow-black/40 transition hover:bg-slate-800"
-        aria-label="Notifications"
-      >
-        <Bell size={18} />
-        {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div className="absolute right-0 mt-2 w-80 overflow-hidden rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl shadow-black/50">
-          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-3 py-2">
-            <h3 className="text-[13px] font-semibold text-white">Notifications</h3>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-[11px] font-semibold text-orange-300 hover:text-orange-200"
-              >
-                <Check size={11} />
-                Mark all read
-              </button>
-            )}
-          </div>
-
-          <div className="max-h-96 overflow-y-auto">
-            {!notifications.length ? (
-              <p className="px-3 py-8 text-center text-[12px] text-slate-500">No notifications yet.</p>
-            ) : (
-              notifications.map((notification) => (
-                <button
-                  key={notification.id}
-                  type="button"
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`flex w-full items-start gap-2 border-b border-slate-800/60 px-3 py-2.5 text-left hover:bg-slate-800/60 ${
-                    notification.is_read ? "opacity-60" : ""
-                  }`}
-                >
-                  <span
-                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
-                      SEVERITY_DOT[notification.severity] || SEVERITY_DOT.info
-                    }`}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[12px] font-semibold text-slate-100">{notification.title}</span>
-                    {notification.message && (
-                      <span className="mt-0.5 block line-clamp-2 text-[11px] text-slate-400">
-                        {notification.message}
-                      </span>
-                    )}
-                    <span className="mt-0.5 block text-[10px] text-slate-600">
-                      {formatRelativeTime(notification.created_at)}
-                    </span>
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
+    <NavLink
+      to="/notifications"
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `relative flex cursor-pointer items-center gap-2.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
+          isActive ? "bg-[#1b3158] text-white" : "text-slate-300 hover:bg-[#16233a] hover:text-white"
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Bell size={15} className={isActive ? "text-[#7fb3ff]" : "text-slate-400"} />
+          <span className="flex-1 truncate">Notifications</span>
+          {unreadCount > 0 && (
+            <span className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </>
       )}
-    </div>
+    </NavLink>
   );
 }

@@ -10,15 +10,42 @@ async function create({ type, severity = "info", title, message = null, link = n
   return result.insertId;
 }
 
-async function listRecent({ limit = 30, unreadOnly = false } = {}) {
-  const whereSql = unreadOnly ? "WHERE is_read = 0" : "";
+function buildDateFilters({ unreadOnly = false, from = null, to = null } = {}) {
+  const where = [];
+  const params = [];
+
+  if (unreadOnly) where.push("is_read = 0");
+  if (from) {
+    where.push("created_at >= ?");
+    params.push(`${from} 00:00:00`);
+  }
+  if (to) {
+    where.push("created_at <= ?");
+    params.push(`${to} 23:59:59`);
+  }
+
+  return { whereSql: where.length ? `WHERE ${where.join(" AND ")}` : "", params };
+}
+
+async function listRecent({ limit = 30, page = 1, unreadOnly = false, from = null, to = null } = {}) {
+  const { whereSql, params } = buildDateFilters({ unreadOnly, from, to });
+  const pageNum = Math.max(Number(page) || 1, 1);
+  const limitNum = Number(limit);
+  const offset = (pageNum - 1) * limitNum;
 
   const [rows] = await db.query(
-    `SELECT * FROM notifications ${whereSql} ORDER BY id DESC LIMIT ?`,
-    [Number(limit)]
+    `SELECT * FROM notifications ${whereSql} ORDER BY id DESC LIMIT ? OFFSET ?`,
+    [...params, limitNum, offset]
   );
 
   return rows;
+}
+
+async function countAll({ unreadOnly = false, from = null, to = null } = {}) {
+  const { whereSql, params } = buildDateFilters({ unreadOnly, from, to });
+
+  const [rows] = await db.query(`SELECT COUNT(*) AS total FROM notifications ${whereSql}`, params);
+  return Number(rows[0]?.total || 0);
 }
 
 async function getUnreadCount() {
@@ -45,4 +72,12 @@ async function existsRecentOfType(type, sinceDate) {
   return Boolean(rows[0]);
 }
 
-module.exports = { create, listRecent, getUnreadCount, markRead, markAllRead, existsRecentOfType };
+module.exports = {
+  create,
+  listRecent,
+  countAll,
+  getUnreadCount,
+  markRead,
+  markAllRead,
+  existsRecentOfType,
+};

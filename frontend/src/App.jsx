@@ -8,6 +8,7 @@ import CreateUserPage from "./pages/users/create_user_page";
 import EditUserPage from "./pages/users/edit_user_page";
 import AccessControlPage from "./pages/access/AccessControlPage";
 import LogsPage from "./pages/logs/LogsPage";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
 import ProductManagementRoutes from "./routes/product_management/index";
 import MarketplaceManagementRoutes from "./routes/marketplace_management/index";
 import DarazProductRoute from "./routes/Daraz/product_management/index";
@@ -94,6 +95,15 @@ export default function App() {
         element={
           <ProtectedLayout>
             <LogsPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedLayout>
+            <NotificationsPage />
           </ProtectedLayout>
         }
       />

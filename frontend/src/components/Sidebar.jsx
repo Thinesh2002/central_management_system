@@ -5,6 +5,7 @@ import { getStoredUser, logout } from "../config/auth";
 import { useAccessMenu } from "../hooks/useAccessMenu";
 import { canAccessPage } from "../utils/accessMenu";
 import GlobalProductSearch from "./GlobalProductSearch";
+import NotificationBell from "./NotificationBell";
 import { usePageOverlay } from "./common/page_overlay/PageOverlayProvider";
 import {
   LayoutDashboard,
@@ -320,7 +321,16 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-  
+        {/* Search + notifications - pinned above the scrollable nav */}
+        <div className="shrink-0 space-y-2 border-b border-[#1d2940] px-3 py-2.5">
+          <GlobalProductSearch />
+          <NotificationBell
+            onNavigate={() => {
+              closeOverlay();
+              onClose();
+            }}
+          />
+        </div>
 
         {/* Navigation */}
         <nav className="sidebar-scroll flex-1 overflow-y-auto overflow-x-hidden">
