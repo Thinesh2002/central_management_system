@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 
 import notificationsApi from "../config/sub_api/notifications_api";
@@ -8,7 +8,8 @@ import { useToast } from "./common/toast/ToastProvider";
 const POLL_INTERVAL_MS = 20000;
 const MAX_TOASTS_PER_POLL = 3;
 
-export default function NotificationBell({ onNavigate }) {
+export default function NotificationBell() {
+  const navigate = useNavigate();
   const showToast = useToast();
 
   const [unreadCount, setUnreadCount] = useState(0);
@@ -55,26 +56,18 @@ export default function NotificationBell({ onNavigate }) {
   }, []);
 
   return (
-    <NavLink
-      to="/notifications"
-      onClick={onNavigate}
-      className={({ isActive }) =>
-        `relative flex cursor-pointer items-center gap-2.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
-          isActive ? "bg-[#1b3158] text-white" : "text-slate-300 hover:bg-[#16233a] hover:text-white"
-        }`
-      }
+    <button
+      type="button"
+      onClick={() => navigate("/notifications")}
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-[#0f172a] text-slate-200 transition hover:bg-slate-800"
+      aria-label="Notifications"
     >
-      {({ isActive }) => (
-        <>
-          <Bell size={15} className={isActive ? "text-[#7fb3ff]" : "text-slate-400"} />
-          <span className="flex-1 truncate">Notifications</span>
-          {unreadCount > 0 && (
-            <span className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </>
+      <Bell size={16} />
+      {unreadCount > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
       )}
-    </NavLink>
+    </button>
   );
 }
