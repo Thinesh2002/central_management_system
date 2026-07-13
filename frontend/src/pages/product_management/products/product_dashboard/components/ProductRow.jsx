@@ -229,12 +229,12 @@ export default function ProductRow({
 
         {/* Actions */}
         <td className="px-3 py-3 align-middle">
-          <div className="flex items-center justify-center gap-0.5">
+          <div className="flex items-center justify-center gap-2.5">
             <button
               type="button"
               onClick={handleViewProduct}
               title="View"
-              className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
+              className="flex h-6 w-6 cursor-pointer items-center justify-center text-sky-300 transition hover:text-sky-200"
             >
               <Eye size={13} />
             </button>
@@ -244,7 +244,7 @@ export default function ProductRow({
                 type="button"
                 onClick={handleEditProduct}
                 title="Edit"
-                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
+                className="flex h-6 w-6 cursor-pointer items-center justify-center text-amber-300 transition hover:text-amber-200"
               >
                 <Edit size={13} />
               </button>
@@ -255,7 +255,7 @@ export default function ProductRow({
                 type="button"
                 onClick={handleRemoveProduct}
                 title="Delete"
-                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
+                className="flex h-6 w-6 cursor-pointer items-center justify-center text-rose-300 transition hover:text-rose-200"
               >
                 <Trash2 size={13} />
               </button>
@@ -266,7 +266,7 @@ export default function ProductRow({
                 <button
                   type="button"
                   onClick={() => setActionOpen((prev) => !prev)}
-                  className="flex h-6 w-6 cursor-pointer items-center justify-center rounded text-slate-300 transition hover:bg-white/10 hover:text-orange-300"
+                  className="flex h-6 w-6 cursor-pointer items-center justify-center text-violet-300 transition hover:text-violet-200"
                   title="More actions"
                 >
                   <MoreVertical size={14} />

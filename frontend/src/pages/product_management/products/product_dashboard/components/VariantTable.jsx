@@ -307,13 +307,13 @@ export default function VariantTable({
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    <div className="flex justify-end gap-1.5">
+                    <div className="flex justify-end gap-2.5">
                       <button
                         type="button"
                         onClick={() =>
                           openOverlay(`/product/local-products/edit/${productId}/variants/${variantId}/view`)
                         }
-                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-slate-700 text-slate-300 transition hover:border-orange-400 hover:text-orange-300"
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-sky-300 transition hover:text-sky-200"
                         title="View variant"
                       >
                         <Eye size={14} />
@@ -325,7 +325,7 @@ export default function VariantTable({
                           onClick={() =>
                             openOverlay(`/product/local-products/edit/${productId}/variants/${variantId}/edit/basic`)
                           }
-                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-sky-500/40 bg-sky-500/10 text-sky-300 transition hover:bg-sky-500/20 hover:text-sky-200"
+                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-amber-300 transition hover:text-amber-200"
                           title="Edit variant"
                         >
                           <Edit size={14} />
@@ -336,7 +336,7 @@ export default function VariantTable({
                         <button
                           type="button"
                           onClick={() => onDeleteVariant && onDeleteVariant(variant)}
-                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center border border-rose-500/40 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/20 hover:text-rose-200"
+                          className="inline-flex h-7 w-7 cursor-pointer items-center justify-center text-rose-300 transition hover:text-rose-200"
                           title="Delete variant"
                         >
                           <Trash2 size={14} />
