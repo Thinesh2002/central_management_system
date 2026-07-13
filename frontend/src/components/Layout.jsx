@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Menu } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
-import Header from "./Header";
+import NotificationWatcher from "./NotificationWatcher";
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,13 +21,23 @@ export default function Layout({ children }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <NotificationWatcher />
+
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
+      {/* No header to host a permanent toggle - this is the only way back
+          into the sidebar on mobile once it's closed. */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        className="fixed left-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-[#0f172a] text-slate-200 shadow-lg shadow-black/40 transition hover:bg-slate-800 lg:hidden"
+        aria-label="Open sidebar"
+      >
+        <Menu size={17} />
+      </button>
+
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:pl-58">
-        <main className="m-3 flex-1 rounded-2xl border border-slate-800 p-3">
-          <Header onOpenSidebar={() => setSidebarOpen(true)} />
-          {children}
-        </main>
+        <main className="m-3 flex-1 rounded-2xl border border-slate-800 p-3">{children}</main>
         <Footer />
       </div>
     </div>

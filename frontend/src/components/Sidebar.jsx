@@ -34,6 +34,7 @@ import {
   UserCog,
   MessageSquare,
   Sparkles,
+  Bell,
 } from "lucide-react";
 
 const iconMap = {
@@ -63,9 +64,18 @@ const iconMap = {
   UserCog,
   MessageSquare,
   Sparkles,
+  Bell,
 };
 
 const staticMenu = [
+  {
+    section: "GENERAL",
+    page_key: "notifications",
+    page_name: "Notifications",
+    path: "/notifications",
+    icon: "Bell",
+    exact: true,
+  },
   {
     section: "PRODUCT MANAGEMENT",
     page_key: "products",
@@ -264,7 +274,10 @@ export default function Sidebar({ open, onClose }) {
   const [menu] = useState(staticMenu);
 
   const visibleMenu = useMemo(
-    () => menu.filter((item) => canAccessPage(accessMenu, user, item)),
+    // Notifications is cross-cutting (same as the backend route, which only
+    // requires login, no page-permission grant) - always shown regardless
+    // of the user's granular access-control assignments.
+    () => menu.filter((item) => item.page_key === "notifications" || canAccessPage(accessMenu, user, item)),
     [menu, accessMenu, user]
   );
 
