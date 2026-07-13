@@ -9,6 +9,7 @@ import {
   orderKey,
   sourceMeta,
   statusBadgeClass,
+  statusBucketKey,
   statusLabel,
 } from "../utils/orderHelpers";
 import RowActionsMenu from "./RowActionsMenu";
@@ -59,9 +60,8 @@ function ProductThumb({ order, item, onPreview }) {
 }
 
 const ACTION_TONE_CLASS = {
-  primary: "bg-orange-500 text-slate-950 hover:bg-orange-400",
-  purple: "border border-purple-500/50 bg-purple-500/10 text-purple-200 hover:border-purple-400 hover:bg-purple-500/20",
-  outline: "border border-slate-600 text-slate-200 hover:border-orange-400 hover:text-orange-200",
+  primary: "bg-yellow-500 text-slate-950 hover:bg-yellow-400",
+  outline: "border border-slate-600 text-slate-200 hover:border-yellow-400 hover:text-yellow-200",
 };
 
 function ActionButton({ label, icon: Icon, onClick, tone = "outline" }) {
@@ -105,6 +105,7 @@ function OrderRow({
   const isDaraz = order.source === "daraz";
   const hasWaybill = Boolean(order.waybill_id || order.tracking_number);
   const darazStep = isDaraz ? nextDarazStep(order) : null;
+  const isCancelled = statusBucketKey(order) === "cancelled";
 
   return (
     <Fragment>
@@ -220,11 +221,11 @@ function OrderRow({
                     />
                   )}
 
-                  {isDaraz && (
+                  {isDaraz && !isCancelled && (
                     <ActionButton
                       label="Print AWB"
                       icon={Truck}
-                      tone="purple"
+                      tone="primary"
                       onClick={() => onDarazAction(order, "print_awb")}
                     />
                   )}
@@ -233,11 +234,12 @@ function OrderRow({
                     <ActionButton
                       label={hasWaybill ? "Edit Waybill" : "Add Waybill"}
                       icon={Truck}
+                      tone="primary"
                       onClick={() => onAddWaybill(order)}
                     />
                   )}
 
-                  <ActionButton label="Print Invoice" icon={Printer} tone="purple" onClick={() => onPrintInvoice(order)} />
+                  <ActionButton label="Print Invoice" icon={Printer} tone="primary" onClick={() => onPrintInvoice(order)} />
 
                   <RowActionsMenu
                     order={order}

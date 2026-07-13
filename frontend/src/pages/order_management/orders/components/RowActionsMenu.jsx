@@ -87,7 +87,7 @@ export default function RowActionsMenu({
         ref={triggerRef}
         type="button"
         onClick={() => (open ? setOpen(false) : openMenu())}
-        className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-slate-600 px-2 text-[12px] font-semibold text-slate-200 transition hover:border-orange-400 hover:text-orange-200"
+        className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-slate-600 px-2 text-[12px] font-semibold text-slate-200 transition hover:border-yellow-400 hover:text-yellow-200"
       >
         <MoreHorizontal size={13} />
         More
@@ -184,7 +184,7 @@ export default function RowActionsMenu({
                         step.kind === "status" ? onChangeStatus(step.status) : onDarazAction(step.action)
                       )
                     }
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-orange-300 hover:bg-slate-800"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-semibold text-yellow-300 hover:bg-slate-800"
                   >
                     <ArrowRightCircle size={13} /> {step.label}
                   </button>
