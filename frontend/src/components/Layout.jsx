@@ -37,7 +37,7 @@ export default function Layout({ children }) {
       </button>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:pl-58">
-        <main className="m-3 flex-1 rounded-2xl border border-slate-800 p-3">{children}</main>
+        <main className="m-3 flex-1 p-3">{children}</main>
         <Footer />
       </div>
     </div>
