@@ -2,6 +2,7 @@ const asyncHandler = require("../../middleware/async_handler");
 const tokenService = require("../../services/marketplace/token_service");
 const fulfillmentService = require("../../services/daraz/order_management/daraz_order_fulfillment_service");
 const fulfillmentModel = require("../../models/order_management/daraz_order_fulfillment_model");
+const darazOrderApiService = require("../../services/daraz/order_management/daraz_order_api_service");
 
 function darazResultOf(response) {
   return response?.data?.result || response?.data || {};
@@ -89,8 +90,31 @@ async function runPack({ account, credentials, order }) {
   return { response, packageId };
 }
 
-async function requirePackageId(order) {
+// order.waybill_id is only refreshed by the scheduled Daraz order sync (every
+// 30 minutes) — an order packed moments ago, or packed directly on Daraz's
+// own seller center outside this app, would still read as "not packed"
+// here until that next sync runs. Before failing, check Daraz directly for
+// a package_id and backfill it locally if one now exists.
+async function requirePackageId({ account, credentials, order }) {
   if (order.waybill_id) return [order.waybill_id];
+
+  try {
+    const itemsResponse = await darazOrderApiService.getOrderItems({
+      account,
+      credentials,
+      orderId: order.daraz_order_id,
+    });
+
+    const items = itemsResponse?.data?.data || [];
+    const packageId = items.map((item) => pick(item, ["package_id", "packageId"])).find(Boolean);
+
+    if (packageId) {
+      await fulfillmentModel.savePackageResult(order.id, { packageId });
+      return [packageId];
+    }
+  } catch (lookupError) {
+    console.error("[DARAZ_LIVE_PACKAGE_ID_LOOKUP_ERROR]", lookupError?.message);
+  }
 
   const error = new Error("This order hasn't been packed yet — pack it first to get a package ID.");
   error.statusCode = 400;
@@ -130,33 +154,33 @@ async function runAction({ action, account, credentials, order, invoiceNumber })
     }
 
     case "ready_to_ship": {
-      const packageIds = await requirePackageId(order);
+      const packageIds = await requirePackageId({ account, credentials, order });
       const response = await fulfillmentService.readyToShip({ account, credentials, packageIds });
       await fulfillmentModel.savePackageResult(order.id, { orderStatus: "ready_to_ship" });
       return { response };
     }
 
     case "print_awb": {
-      const packageIds = await requirePackageId(order);
+      const packageIds = await requirePackageId({ account, credentials, order });
       const response = await fulfillmentService.printAwb({ account, credentials, packageIds });
       const result = darazResultOf(response);
       return { response, pdfUrl: result?.data?.pdf_url || result?.pdf_url || null };
     }
 
     case "recreate_package": {
-      const packageIds = await requirePackageId(order);
+      const packageIds = await requirePackageId({ account, credentials, order });
       return { response: await fulfillmentService.recreatePackage({ account, credentials, packageIds }) };
     }
 
     case "confirm_dbs_delivered": {
-      const packageIds = await requirePackageId(order);
+      const packageIds = await requirePackageId({ account, credentials, order });
       const response = await fulfillmentService.confirmDeliveryForDBS({ account, credentials, packageIds });
       await fulfillmentModel.savePackageResult(order.id, { orderStatus: "delivered" });
       return { response };
     }
 
     case "failed_dbs_delivery": {
-      const packageIds = await requirePackageId(order);
+      const packageIds = await requirePackageId({ account, credentials, order });
       return { response: await fulfillmentService.failedDeliveryForDBS({ account, credentials, packageIds }) };
     }
 

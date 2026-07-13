@@ -11,5 +11,14 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Only pass through same-origin requests. Re-dispatching a cross-origin
+  // request via fetch(event.request) from inside the worker does not
+  // reliably reproduce the original CORS context — it was intermittently
+  // failing on calls to the API host with "No Access-Control-Allow-Origin
+  // header", even though the exact same request succeeds when the page
+  // makes it directly. This worker only exists for PWA installability, so
+  // it has no reason to touch cross-origin API calls at all.
+  if (new URL(event.request.url).origin !== self.location.origin) return;
+
   event.respondWith(fetch(event.request));
 });
