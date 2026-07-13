@@ -78,13 +78,6 @@ export function canDarazReady(order) {
   return Boolean(order.waybill_id) && normalize(order.order_status) !== "ready_to_ship";
 }
 
-export function canDarazPrintAwb(order) {
-  if (normalize(order.source) !== "daraz") return false;
-  const s = normalize(order.order_status);
-  if (["cancelled", "canceled", "delivered", "returned", "shipped_back_success"].includes(s)) return false;
-  return Boolean(order.waybill_id);
-}
-
 // Buckets for the status tabs. "unpaid" and "pending" (Daraz's own raw
 // statuses) are merged into one "To Pack" bucket — they were split into
 // separate "New"/"To Pack" tabs before, but that distinction wasn't

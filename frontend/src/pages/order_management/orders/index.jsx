@@ -22,15 +22,15 @@ import ImagePreviewModal from "./components/ImagePreviewModal";
 import PdfPreviewModal from "./components/PdfPreviewModal";
 import {
   canDarazPack,
-  canDarazPrintAwb,
   canDarazReady,
   countByStatus,
   matchesStatus,
   normalize,
   orderKey,
   orderSearchText,
+  statusBucketKey,
 } from "./utils/orderHelpers";
-import { extractDarazActionMessage, extractPdfUrl, openDarazDocument } from "./utils/darazDocument";
+import { extractDarazActionMessage, extractPdfUrls, openDarazDocument } from "./utils/darazDocument";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 const STATUS_TABS = [
@@ -42,12 +42,6 @@ const STATUS_TABS = [
   { key: "delivered", label: "Delivered" },
   { key: "cancelled", label: "Cancelled" },
   { key: "returned", label: "Returned" },
-];
-
-const DARAZ_EXTRA_ACTIONS = [
-  { value: "get_shipment_providers", label: "Get Shipment Providers" },
-  { value: "recreate_package", label: "Recreate Package" },
-  { value: "set_invoice_number", label: "Set Invoice Number" },
 ];
 
 const blankFilters = {
@@ -135,11 +129,10 @@ export default function OrdersPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
+  const [pdfPreviewUrls, setPdfPreviewUrls] = useState([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [darazExtraAction, setDarazExtraAction] = useState(DARAZ_EXTRA_ACTIONS[0].value);
 
   async function load() {
     setLoading(true);
@@ -293,13 +286,18 @@ export default function OrdersPage() {
 
       if (action === "print_awb") {
         // Shown in the same in-app popup style as Print Invoice, instead of
-        // a separate browser tab.
-        const pdfUrl = extractPdfUrl(result);
+        // a separate browser tab. Bulk prints can return several sheets (up
+        // to 9 labels each) - the modal shows each as its own tab.
+        const pdfUrls = extractPdfUrls(result);
 
-        if (pdfUrl) {
-          setPdfPreviewUrl(pdfUrl);
+        if (pdfUrls.length) {
+          setPdfPreviewUrls(pdfUrls);
         } else {
           alert(extractDarazActionMessage(result) || "AWB document not returned by Daraz.");
+        }
+
+        if (result?.data?.errors?.length) {
+          showToast(extractDarazActionMessage(result), { type: "error" });
         }
       } else {
         const opened = openDarazDocument(result);
@@ -328,7 +326,11 @@ export default function OrdersPage() {
     const validOrders = selectedDaraz.filter((order) => {
       if (action === "pack") return canDarazPack(order);
       if (action === "ready_to_ship") return canDarazReady(order);
-      if (action === "print_awb") return canDarazPrintAwb(order);
+      // print_awb intentionally doesn't pre-filter on the locally cached
+      // waybill_id here — the backend now checks Daraz live for a package
+      // ID when it's missing locally, so trusting only our cache would
+      // silently drop orders that were actually packed but not yet synced.
+      if (action === "print_awb") return statusBucketKey(order) !== "cancelled";
       return order.source === "daraz";
     });
 
@@ -448,41 +450,16 @@ export default function OrdersPage() {
               </button>
             )}
 
-            {selectedDaraz.some(canDarazPrintAwb) && (
+            {selectedDaraz.some((order) => statusBucketKey(order) !== "cancelled") && (
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => runBulkAction("print_awb")}
+                title="Prints one A4 sheet per 9 selected orders"
                 className="inline-flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950 px-2.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Printer size={12} /> Print AWB
               </button>
-            )}
-
-            {selectedDaraz.length > 0 && (
-              <div className="flex items-center gap-1.5 border border-slate-700 bg-[#0b1220] px-1.5 py-1">
-                <select
-                  value={darazExtraAction}
-                  disabled={busy}
-                  onChange={(e) => setDarazExtraAction(e.target.value)}
-                  className="h-6 min-w-[160px] cursor-pointer border-none bg-transparent px-1 text-[10px] font-semibold text-slate-300 outline-none"
-                >
-                  {DARAZ_EXTRA_ACTIONS.map((action) => (
-                    <option key={action.value} value={action.value}>
-                      {action.label}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => runDarazAction(darazExtraAction, selectedDaraz.map((o) => o.source_order_id))}
-                  className="h-6 shrink-0 rounded-sm border border-slate-700 bg-slate-800 px-2 text-[10px] font-semibold text-slate-200 hover:bg-slate-700 disabled:opacity-60"
-                >
-                  Run
-                </button>
-              </div>
             )}
           </div>
         </div>
@@ -595,7 +572,7 @@ export default function OrdersPage() {
 
       <ImagePreviewModal image={imagePreview} onClose={() => setImagePreview(null)} />
 
-      <PdfPreviewModal url={pdfPreviewUrl} onClose={() => setPdfPreviewUrl(null)} />
+      <PdfPreviewModal urls={pdfPreviewUrls} onClose={() => setPdfPreviewUrls([])} />
     </div>
   );
 }

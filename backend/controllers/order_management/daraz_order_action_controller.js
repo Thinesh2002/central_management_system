@@ -201,6 +201,13 @@ async function runAction({ action, account, credentials, order, invoiceNumber })
   }
 }
 
+// Daraz lays out one A4 sheet of labels per /order/package/document/get
+// call, up to this many packages per sheet — bulk Print AWB batches
+// package IDs into groups of this size so e.g. 10 selected orders produce
+// 2 sheets (9 + 1) instead of either one call per order (discarding all
+// but the last PDF) or a single oversized call Daraz would reject.
+const PRINT_AWB_BATCH_SIZE = 9;
+
 const runBulkAction = asyncHandler(async (req, res) => {
   const { action, order_ids: orderIds = [], invoice_number: invoiceNumber } = req.body || {};
 
@@ -215,6 +222,12 @@ const runBulkAction = asyncHandler(async (req, res) => {
   const results = [];
   const errors = [];
   let lastPdfUrl = null;
+  const pdfUrls = [];
+
+  // Keyed by Daraz account id — package IDs are only valid against the
+  // credentials of the account that issued them, and a bulk selection can
+  // span multiple Daraz accounts.
+  const printAwbQueue = new Map();
 
   for (const orderId of orderIds) {
     try {
@@ -235,6 +248,16 @@ const runBulkAction = asyncHandler(async (req, res) => {
 
       const { credentials } = await tokenService.getValidCredentialsForAccount(account.id);
 
+      if (action === "print_awb") {
+        const packageIds = await requirePackageId({ account, credentials, order });
+        const queued = printAwbQueue.get(account.id) || { account, credentials, packageIds: [] };
+        queued.packageIds.push(...packageIds);
+        printAwbQueue.set(account.id, queued);
+
+        results.push({ order_id: orderId, success: true, message: "Queued for AWB sheet" });
+        continue;
+      }
+
       const { response, pdfUrl } = await runAction({ action, account, credentials, order, invoiceNumber });
 
       if (pdfUrl) lastPdfUrl = pdfUrl;
@@ -242,6 +265,26 @@ const runBulkAction = asyncHandler(async (req, res) => {
       results.push({ order_id: orderId, success: true, message: response?.message || "Success" });
     } catch (error) {
       errors.push({ order_id: orderId, reason: error.message || "Daraz action failed" });
+    }
+  }
+
+  if (action === "print_awb") {
+    for (const { account, credentials, packageIds } of printAwbQueue.values()) {
+      for (let i = 0; i < packageIds.length; i += PRINT_AWB_BATCH_SIZE) {
+        const chunk = packageIds.slice(i, i + PRINT_AWB_BATCH_SIZE);
+
+        try {
+          const response = await fulfillmentService.printAwb({ account, credentials, packageIds: chunk });
+          const result = darazResultOf(response);
+          const pdfUrl = result?.data?.pdf_url || result?.pdf_url || null;
+          if (pdfUrl) pdfUrls.push(pdfUrl);
+        } catch (error) {
+          errors.push({
+            order_id: null,
+            reason: `AWB sheet for ${chunk.length} package(s) failed: ${error.message || "Daraz action failed"}`,
+          });
+        }
+      }
     }
   }
 
@@ -258,7 +301,7 @@ const runBulkAction = asyncHandler(async (req, res) => {
     message: allFailed
       ? `"${action}" failed for all ${orderIds.length} order(s).`
       : `"${action}" completed for ${results.length} of ${orderIds.length} order(s).`,
-    data: { results, errors, pdf_url: lastPdfUrl },
+    data: { results, errors, pdf_url: pdfUrls[0] || lastPdfUrl, pdf_urls: pdfUrls.length ? pdfUrls : undefined },
   });
 });
 
