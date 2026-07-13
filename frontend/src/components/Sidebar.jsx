@@ -244,6 +244,14 @@ const staticMenu = [
     icon: "ScrollText",
     exact: true,
   },
+  {
+    section: "SETTINGS",
+    page_key: "notifications",
+    page_name: "Notifications",
+    path: "/notifications",
+    icon: "Bell",
+    exact: true,
+  },
 ];
 
 function groupMenu(menuItems) {
