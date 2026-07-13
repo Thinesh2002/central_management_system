@@ -69,14 +69,6 @@ const iconMap = {
 
 const staticMenu = [
   {
-    section: "GENERAL",
-    page_key: "notifications",
-    page_name: "Notifications",
-    path: "/notifications",
-    icon: "Bell",
-    exact: true,
-  },
-  {
     section: "PRODUCT MANAGEMENT",
     page_key: "products",
     pageKeys: ["products", "local_products"],
