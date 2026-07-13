@@ -58,11 +58,14 @@ function ProductThumb({ order, item, onPreview }) {
   );
 }
 
+const ACTION_TONE_CLASS = {
+  primary: "bg-orange-500 text-slate-950 hover:bg-orange-400",
+  purple: "border border-purple-500/50 bg-purple-500/10 text-purple-200 hover:border-purple-400 hover:bg-purple-500/20",
+  outline: "border border-slate-600 text-slate-200 hover:border-orange-400 hover:text-orange-200",
+};
+
 function ActionButton({ label, icon: Icon, onClick, tone = "outline" }) {
-  const toneClass =
-    tone === "primary"
-      ? "bg-orange-500 text-slate-950 hover:bg-orange-400"
-      : "border border-slate-600 text-slate-200 hover:border-orange-400 hover:text-orange-200";
+  const toneClass = ACTION_TONE_CLASS[tone] || ACTION_TONE_CLASS.outline;
 
   return (
     <button
@@ -221,6 +224,7 @@ function OrderRow({
                     <ActionButton
                       label="Print AWB"
                       icon={Truck}
+                      tone="purple"
                       onClick={() => onDarazAction(order, "print_awb")}
                     />
                   )}
@@ -233,7 +237,7 @@ function OrderRow({
                     />
                   )}
 
-                  <ActionButton label="Print Invoice" icon={Printer} onClick={() => onPrintInvoice(order)} />
+                  <ActionButton label="Print Invoice" icon={Printer} tone="purple" onClick={() => onPrintInvoice(order)} />
 
                   <RowActionsMenu
                     order={order}

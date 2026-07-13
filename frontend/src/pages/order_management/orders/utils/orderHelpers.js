@@ -145,18 +145,16 @@ export function statusBadgeClass(order) {
 
 // Single contextual "what's next" step for a Daraz order — replaces
 // showing Pack/Ready-To-Ship as two separately-gated buttons with one
-// button whose label/action tracks the order's current bucket. Daraz has
-// no seller-triggered API for the step after Ready To Ship (the courier's
-// own pickup scan is what flips it to Shipped on Daraz's side), so
-// "Handover" only updates our own local order_status — it does not call
-// Daraz at all.
+// button whose label/action tracks the order's current bucket. There is no
+// step after Ready To Ship: Daraz has no seller-triggered API for it, and
+// the transition to Shipped must come from the courier's own pickup scan
+// (synced back from Daraz), never a manual local status change.
 export function nextDarazStep(order) {
   if (normalize(order.source) !== "daraz") return null;
 
   const key = statusBucketKey(order);
   if (key === "to_pack") return { kind: "action", action: "pack", label: "Pack" };
   if (key === "to_arrange_shipment") return { kind: "action", action: "ready_to_ship", label: "Ready To Ship" };
-  if (key === "ready_to_ship") return { kind: "status", status: "shipped", label: "Handover" };
   return null;
 }
 

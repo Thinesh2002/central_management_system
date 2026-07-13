@@ -19,6 +19,7 @@ import Loader from "../../../components/common/Loader";
 import OrderRow from "./components/OrderRow";
 import FilterDrawer from "./components/FilterDrawer";
 import ImagePreviewModal from "./components/ImagePreviewModal";
+import PdfPreviewModal from "./components/PdfPreviewModal";
 import {
   canDarazPack,
   canDarazPrintAwb,
@@ -29,13 +30,7 @@ import {
   orderKey,
   orderSearchText,
 } from "./utils/orderHelpers";
-import {
-  closePrintWindow,
-  extractDarazActionMessage,
-  openBlankPrintWindow,
-  openDarazDocument,
-  writePrintWindowMessage,
-} from "./utils/darazDocument";
+import { extractDarazActionMessage, extractPdfUrl, openDarazDocument } from "./utils/darazDocument";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 const STATUS_TABS = [
@@ -140,6 +135,7 @@ export default function OrdersPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -286,10 +282,6 @@ export default function OrdersPage() {
       if (!invoiceNumber) return;
     }
 
-    // Opened synchronously (before the await below) so browsers don't treat
-    // it as an unsolicited popup — populated with the real PDF once the
-    // Daraz call resolves.
-    const printWindow = action === "print_awb" ? openBlankPrintWindow("Preparing AWB print...") : null;
     setBusy(true);
 
     try {
@@ -299,29 +291,29 @@ export default function OrdersPage() {
         invoice_number: invoiceNumber,
       });
 
-      const opened = action === "print_awb" ? openDarazDocument(result, printWindow) : openDarazDocument(result);
+      if (action === "print_awb") {
+        // Shown in the same in-app popup style as Print Invoice, instead of
+        // a separate browser tab.
+        const pdfUrl = extractPdfUrl(result);
 
-      if (!opened && action === "print_awb") {
-        const message = extractDarazActionMessage(result) || "AWB document not returned by Daraz.";
-        writePrintWindowMessage(printWindow, message);
-        alert(message);
-      } else if (!opened && (result?.data?.errors?.length || result?.data?.skipped?.length)) {
-        alert(extractDarazActionMessage(result));
+        if (pdfUrl) {
+          setPdfPreviewUrl(pdfUrl);
+        } else {
+          alert(extractDarazActionMessage(result) || "AWB document not returned by Daraz.");
+        }
       } else {
-        showToast(result?.message || "Daraz action submitted.");
+        const opened = openDarazDocument(result);
+
+        if (!opened && (result?.data?.errors?.length || result?.data?.skipped?.length)) {
+          alert(extractDarazActionMessage(result));
+        } else if (!opened) {
+          showToast(result?.message || "Daraz action submitted.");
+        }
       }
 
       await load();
     } catch (err) {
-      const message = getApiError(err, "Daraz action failed");
-
-      if (action === "print_awb") {
-        writePrintWindowMessage(printWindow, message);
-      } else {
-        closePrintWindow(printWindow);
-      }
-
-      alert(message);
+      alert(getApiError(err, "Daraz action failed"));
     } finally {
       setBusy(false);
     }
@@ -602,6 +594,8 @@ export default function OrdersPage() {
       />
 
       <ImagePreviewModal image={imagePreview} onClose={() => setImagePreview(null)} />
+
+      <PdfPreviewModal url={pdfPreviewUrl} onClose={() => setPdfPreviewUrl(null)} />
     </div>
   );
 }
