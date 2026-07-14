@@ -13,11 +13,18 @@ export default function AddWaybillModal({ order, onClose, onSaved }) {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(null);
 
+  // Keyed off the order's id, not the order object itself - on the detail
+  // page, onSaved triggers a refetch that replaces the order prop with a
+  // new object for the *same* order. Keying off the whole object would
+  // re-run this on that refresh and wipe the just-set "saved" confirmation
+  // via setSaved(null), snapping the modal back to the plain form right
+  // after a successful save (looked exactly like the save had failed).
   useEffect(() => {
     setWaybillId(order?.waybill_id || order?.tracking_number || "");
     setError("");
     setSaved(null);
-  }, [order]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order?.source_order_id]);
 
   if (!order) return null;
 
