@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ImageOff, Plus, Save, Search, Trash2 } from "lucide-react";
+import { Check, Hash, ImageOff, Loader2, Plus, Save, Trash2 } from "lucide-react";
 
 import ordersApi from "../../../../config/sub_api/order_management_api/orders_api";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
@@ -123,14 +123,14 @@ function money(value, currency = "LKR") {
 
 function FieldLabel({ children, required }) {
   return (
-    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+    <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
       {children} {required && <span className="text-orange-400">*</span>}
     </span>
   );
 }
 
 const FIELD_CLASS =
-  "h-9 w-full border border-slate-700 bg-[#0a101d] px-2.5 text-[12px] font-medium text-slate-100 outline-none focus:border-orange-400";
+  "h-10 w-full rounded-md border border-slate-700 bg-[#0a101d] px-3 text-[13px] font-medium text-slate-100 outline-none transition focus:border-orange-400 focus:ring-1 focus:ring-orange-400/40";
 
 export default function CreateManualOrderPage() {
   const navigate = useNavigate();
@@ -140,6 +140,8 @@ export default function CreateManualOrderPage() {
   const [skuSearch, setSkuSearch] = useState({});
   const [productMatches, setProductMatches] = useState({});
   const [searching, setSearching] = useState(null);
+  const [orderNoPreview, setOrderNoPreview] = useState(null);
+  const searchTimers = useRef({});
 
   const [form, setForm] = useState({
     source_type: "MANUAL_WHATSAPP",
@@ -159,6 +161,7 @@ export default function CreateManualOrderPage() {
     currency: "LKR",
     discount_total: "0.00",
     shipping_fee: "0.00",
+    buyer_pays_shipping: "0.00",
     tax_percentage: "0",
     payment_method: "COD",
     customer_note: "",
@@ -175,9 +178,36 @@ export default function CreateManualOrderPage() {
   );
 
   const orderTotal = useMemo(
-    () => itemTotal - Number(form.discount_total || 0) + Number(form.shipping_fee || 0) + taxTotal,
-    [itemTotal, form.discount_total, form.shipping_fee, taxTotal]
+    () => itemTotal - Number(form.discount_total || 0) + Number(form.buyer_pays_shipping || 0) + taxTotal,
+    [itemTotal, form.discount_total, form.buyer_pays_shipping, taxTotal]
   );
+
+  // Preview the order number createManualOrder would assign right now -
+  // debounced since it hits the server on every keystroke in account_name.
+  useEffect(() => {
+    const accountName = clean(form.account_name);
+
+    if (!accountName) {
+      setOrderNoPreview(null);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await ordersApi.getNextOrderNumber(accountName);
+        setOrderNoPreview(res?.data?.order_no || null);
+      } catch {
+        setOrderNoPreview(null);
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [form.account_name]);
+
+  useEffect(() => {
+    const timers = searchTimers.current;
+    return () => Object.values(timers).forEach((timer) => window.clearTimeout(timer));
+  }, []);
 
   function setRoot(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -205,22 +235,34 @@ export default function CreateManualOrderPage() {
     }));
   }
 
-  async function searchSku(index) {
-    const query = clean(skuSearch[index]);
-    if (!query) return;
-
+  async function runSkuSearch(index, query) {
     setSearching(index);
 
     try {
-      const res = await localProductsApi.getProducts({ limit: 100, search: query });
+      const res = await localProductsApi.getProducts({ limit: 20, search: query });
       const rows = res?.data?.data || res?.data || [];
       const flat = flattenCatalog(Array.isArray(rows) ? rows : []);
       setProductMatches((prev) => ({ ...prev, [index]: flat.slice(0, 20) }));
     } catch {
       setProductMatches((prev) => ({ ...prev, [index]: [] }));
     } finally {
-      setSearching(null);
+      setSearching((prev) => (prev === index ? null : prev));
     }
+  }
+
+  // Live search-as-you-type, debounced so every keystroke doesn't hit the
+  // server - fires 350ms after the user stops typing.
+  function handleSkuQueryChange(index, value) {
+    setSkuSearch((prev) => ({ ...prev, [index]: value }));
+    window.clearTimeout(searchTimers.current[index]);
+
+    const query = clean(value);
+    if (query.length < 2) {
+      setProductMatches((prev) => ({ ...prev, [index]: [] }));
+      return;
+    }
+
+    searchTimers.current[index] = window.setTimeout(() => runSkuSearch(index, query), 350);
   }
 
   function selectMatch(index, match) {
@@ -294,11 +336,20 @@ export default function CreateManualOrderPage() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-[14px] font-semibold text-white">Create Manual Order</h1>
+            <h1 className="text-[15px] font-semibold text-white">Create Manual Order</h1>
             <p className="text-[11px] text-slate-500">
               Order number is generated automatically from the account name (e.g. BH0001, BH0002...).
             </p>
           </div>
+
+          {orderNoPreview && (
+            <span
+              title="This order will be created with this number"
+              className="inline-flex items-center gap-1.5 rounded-full border border-orange-500/40 bg-orange-500/10 px-3 py-1.5 text-[12px] font-bold text-orange-300"
+            >
+              <Hash size={12} /> {orderNoPreview}
+            </span>
+          )}
         </div>
 
         <button
@@ -311,8 +362,8 @@ export default function CreateManualOrderPage() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
-        <section className="border border-slate-800 bg-[#0b1220] p-3">
-          <h3 className="mb-3 text-[12px] font-semibold text-white">Customer Details</h3>
+        <section className="border border-slate-800 bg-[#0b1220] p-4">
+          <h3 className="mb-3 text-[13px] font-semibold text-white">Customer Details</h3>
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="block">
@@ -379,8 +430,8 @@ export default function CreateManualOrderPage() {
           </div>
         </section>
 
-        <section className="border border-slate-800 bg-[#0b1220] p-3">
-          <h3 className="mb-3 text-[12px] font-semibold text-white">Order Source</h3>
+        <section className="border border-slate-800 bg-[#0b1220] p-4">
+          <h3 className="mb-3 text-[13px] font-semibold text-white">Order Source</h3>
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="block">
@@ -427,8 +478,8 @@ export default function CreateManualOrderPage() {
         </section>
       </div>
 
-      <section className="border border-slate-800 bg-[#0b1220] p-3">
-        <h3 className="mb-3 text-[12px] font-semibold text-white">Shipping Address</h3>
+      <section className="border border-slate-800 bg-[#0b1220] p-4">
+        <h3 className="mb-3 text-[13px] font-semibold text-white">Shipping Address</h3>
 
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <label className="block">
@@ -489,9 +540,9 @@ export default function CreateManualOrderPage() {
         </div>
       </section>
 
-      <section className="border border-slate-800 bg-[#0b1220] p-3">
+      <section className="border border-slate-800 bg-[#0b1220] p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-[12px] font-semibold text-white">Order Items</h3>
+          <h3 className="text-[13px] font-semibold text-white">Order Items</h3>
           <button
             type="button"
             onClick={addItem}
@@ -509,35 +560,51 @@ export default function CreateManualOrderPage() {
                   <ProductImage src={item.image_url} name={item.product_title} />
                 </div>
 
-                <label className="block">
+                <label className="relative block">
                   <FieldLabel>SKU</FieldLabel>
-                  <div className="flex gap-1">
+                  <div className="relative">
                     <input
                       className={FIELD_CLASS}
                       value={skuSearch[index] ?? item.sku}
-                      onChange={(e) => setSkuSearch((prev) => ({ ...prev, [index]: e.target.value }))}
-                      placeholder="Search SKU..."
+                      onChange={(e) => handleSkuQueryChange(index, e.target.value)}
+                      placeholder="Type to search products..."
+                      autoComplete="off"
                     />
-                    <button
-                      type="button"
-                      onClick={() => searchSku(index)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center border border-slate-700 bg-slate-800 text-slate-300 hover:border-orange-400"
-                    >
-                      <Search size={13} className={searching === index ? "animate-pulse" : ""} />
-                    </button>
+                    {searching === index && (
+                      <Loader2
+                        size={14}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-orange-400"
+                      />
+                    )}
                   </div>
 
+                  {item.sku && item.product_title && (
+                    <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-emerald-400">
+                      <Check size={11} className="shrink-0" />
+                      <span className="truncate">{item.product_title}</span>
+                      <span className="shrink-0 font-mono text-emerald-300/80">({item.sku})</span>
+                    </p>
+                  )}
+
                   {productMatches[index]?.length > 0 && (
-                    <div className="relative z-10 mt-1 max-h-48 overflow-y-auto border border-slate-700 bg-[#0b1220] shadow-xl">
+                    <div className="absolute z-20 mt-1 max-h-56 w-full min-w-70 overflow-y-auto rounded-md border border-slate-700 bg-[#0b1220] shadow-2xl">
+                      <p className="border-b border-slate-800 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        {productMatches[index].length} match{productMatches[index].length === 1 ? "" : "es"}
+                      </p>
                       {productMatches[index].map((match) => (
                         <button
                           type="button"
                           key={`${match.sku}-${match.product_id}`}
                           onClick={() => selectMatch(index, match)}
-                          className="flex w-full items-center gap-2 border-b border-slate-800 px-2 py-1.5 text-left hover:bg-slate-800/60"
+                          className="flex w-full items-center gap-2 border-b border-slate-800 px-2.5 py-2 text-left hover:bg-slate-800/60"
                         >
                           <ProductImage src={match.image_url} name={match.product_name} />
-                          <span className="min-w-0 truncate text-[11px] text-slate-200">{match.label}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12px] font-semibold text-slate-100">
+                              {match.product_name}
+                            </span>
+                            <span className="block font-mono text-[10px] text-slate-400">{match.sku}</span>
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -605,12 +672,12 @@ export default function CreateManualOrderPage() {
       </section>
 
       <div className="grid gap-3 lg:grid-cols-[1fr_360px]">
-        <section className="border border-slate-800 bg-[#0b1220] p-3">
+        <section className="border border-slate-800 bg-[#0b1220] p-4">
           <label className="block">
             <FieldLabel>Customer Note</FieldLabel>
             <textarea
               rows={4}
-              className="w-full border border-slate-700 bg-[#0a101d] px-2.5 py-2 text-[12px] text-slate-100 outline-none focus:border-orange-400"
+              className="w-full rounded-md border border-slate-700 bg-[#0a101d] px-3 py-2.5 text-[13px] text-slate-100 outline-none transition focus:border-orange-400 focus:ring-1 focus:ring-orange-400/40"
               value={form.customer_note}
               onChange={(e) => setRoot("customer_note", e.target.value)}
               placeholder="Note for internal team or customer"
@@ -618,7 +685,7 @@ export default function CreateManualOrderPage() {
           </label>
         </section>
 
-        <section className="border border-slate-800 bg-[#0b1220] p-3">
+        <section className="border border-slate-800 bg-[#0b1220] p-4">
           <div className="space-y-2">
             <label className="block">
               <FieldLabel>Discount Total</FieldLabel>
@@ -631,16 +698,31 @@ export default function CreateManualOrderPage() {
               />
             </label>
 
-            <label className="block">
-              <FieldLabel>Shipping Fee</FieldLabel>
-              <input
-                type="number"
-                step="0.01"
-                className={FIELD_CLASS}
-                value={form.shipping_fee}
-                onChange={(e) => setRoot("shipping_fee", e.target.value)}
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block">
+                <FieldLabel>Shipping Fee</FieldLabel>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={FIELD_CLASS}
+                  value={form.shipping_fee}
+                  onChange={(e) => setRoot("shipping_fee", e.target.value)}
+                  title="Actual delivery cost - not charged to the customer"
+                />
+              </label>
+
+              <label className="block">
+                <FieldLabel>Buyer Pays Shipping</FieldLabel>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={FIELD_CLASS}
+                  value={form.buyer_pays_shipping}
+                  onChange={(e) => setRoot("buyer_pays_shipping", e.target.value)}
+                  title="Amount charged to the customer - this is what feeds the order total"
+                />
+              </label>
+            </div>
 
             <label className="block">
               <FieldLabel>Tax %</FieldLabel>
@@ -657,6 +739,14 @@ export default function CreateManualOrderPage() {
               <div className="flex justify-between text-slate-400">
                 <span>Item total</span>
                 <span>{money(itemTotal, form.currency)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Discount</span>
+                <span>- {money(form.discount_total, form.currency)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Shipping (buyer pays)</span>
+                <span>{money(form.buyer_pays_shipping, form.currency)}</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Tax</span>

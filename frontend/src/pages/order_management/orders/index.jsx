@@ -21,6 +21,7 @@ import FilterDrawer from "./components/FilterDrawer";
 import ImagePreviewModal from "./components/ImagePreviewModal";
 import PdfPreviewModal from "./components/PdfPreviewModal";
 import PrintLayoutChoiceModal from "./components/PrintLayoutChoiceModal";
+import AddWaybillModal from "./components/AddWaybillModal";
 import {
   canDarazPack,
   canDarazReady,
@@ -132,6 +133,7 @@ export default function OrdersPage() {
   const [imagePreview, setImagePreview] = useState(null);
   const [pdfPreviewUrls, setPdfPreviewUrls] = useState([]);
   const [printChoiceOpen, setPrintChoiceOpen] = useState(false);
+  const [waybillModalOrder, setWaybillModalOrder] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -236,21 +238,8 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddWaybill = useCallback(async (order) => {
-    const waybillId = window.prompt("Enter waybill / tracking number");
-    if (!waybillId) return;
-
-    try {
-      await ordersApi.createWaybill(order.source, order.source_order_id, {
-        waybill_id: waybillId,
-        tracking_number: waybillId,
-      });
-      showToast("Waybill saved.");
-      await load();
-    } catch (err) {
-      alert(getApiError(err, "Failed to save waybill"));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleAddWaybill = useCallback((order) => {
+    setWaybillModalOrder(order);
   }, []);
 
   const handleChangeStatus = useCallback(
@@ -601,6 +590,12 @@ export default function OrdersPage() {
       />
 
       <PdfPreviewModal urls={pdfPreviewUrls} onClose={() => setPdfPreviewUrls([])} />
+
+      <AddWaybillModal
+        order={waybillModalOrder}
+        onClose={() => setWaybillModalOrder(null)}
+        onSaved={load}
+      />
     </div>
   );
 }

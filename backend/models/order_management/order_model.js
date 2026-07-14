@@ -330,7 +330,7 @@ async function getUnified(source, id) {
   return { ...normalizeOrderRow(orderRows[0], String(source).toLowerCase()), items };
 }
 
-async function updateStatus(source, id, { status, waybill_id, tracking_number } = {}) {
+async function updateStatus(source, id, { status, waybill_id, tracking_number, courier_name } = {}) {
   const config = getSourceConfig(source);
   const model = createGenericModel(config.table);
 
@@ -338,6 +338,10 @@ async function updateStatus(source, id, { status, waybill_id, tracking_number } 
   if (status !== undefined) payload.order_status = status;
   if (waybill_id !== undefined) payload.waybill_id = waybill_id;
   if (tracking_number !== undefined) payload.tracking_number = tracking_number;
+  // Only meaningful for local orders (Daraz/Woo tables don't carry this
+  // column) - pickAllowedData silently drops it there, same as any other
+  // column that doesn't exist on a given source's table.
+  if (courier_name !== undefined) payload.courier_name = courier_name;
 
   return model.update(id, payload);
 }
@@ -422,6 +426,7 @@ async function createManualOrder(payload = {}) {
     currency,
     discount_total,
     shipping_fee,
+    buyer_pays_shipping,
     tax_percentage,
     payment_method,
     customer_note,
@@ -489,6 +494,7 @@ async function createManualOrder(payload = {}) {
     currency: currency || "LKR",
     discount_total: discount_total || 0,
     shipping_fee: shipping_fee || 0,
+    buyer_pays_shipping: buyer_pays_shipping || 0,
     tax_percentage: tax_percentage || 0,
     item_total: totals.item_total || 0,
     tax_total: totals.tax_total || 0,
@@ -531,4 +537,5 @@ module.exports = {
   getFilterOptions,
   createManualOrder,
   isCountableStatus,
+  nextManualOrderNo,
 };

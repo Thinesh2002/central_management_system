@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get("/", controller.listOrders);
 router.get("/filter-options", controller.filterOptions);
+router.get("/next-number", controller.previewOrderNumber);
 router.post("/", controller.createManualOrder);
 router.get("/:source/:id", controller.getOrder);
 router.delete("/:source/:id", controller.deleteOrder);

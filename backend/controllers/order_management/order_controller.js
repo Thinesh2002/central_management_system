@@ -41,18 +41,38 @@ const filterOptions = asyncHandler(async (req, res) => {
   return res.json({ success: true, message: "Filter options loaded", data: options });
 });
 
+// Read-only preview of the order number createManualOrder would assign
+// right now - lets the create-order page show it before submitting. Not
+// reserved: a concurrent create for the same account could still claim it
+// first, same race createManualOrder itself already has.
+const previewOrderNumber = asyncHandler(async (req, res) => {
+  const accountName = String(req.query.account_name || "").trim();
+
+  if (!accountName) {
+    return res.json({ success: true, message: "Order number preview", data: { order_no: null } });
+  }
+
+  const orderNo = await orderModel.nextManualOrderNo(accountName);
+  return res.json({ success: true, message: "Order number preview", data: { order_no: orderNo } });
+});
+
 const updateStatus = asyncHandler(async (req, res) => {
   const { source, id } = req.params;
-  const { status, waybill_id, tracking_number } = req.body || {};
+  const { status, waybill_id, tracking_number, courier_name } = req.body || {};
 
-  const updated = await orderModel.updateStatus(source, id, { status, waybill_id, tracking_number });
+  const updated = await orderModel.updateStatus(source, id, {
+    status,
+    waybill_id,
+    tracking_number,
+    courier_name,
+  });
 
   return res.json({ success: true, message: "Order status updated", data: updated });
 });
 
 const createWaybill = asyncHandler(async (req, res) => {
   const { source, id } = req.params;
-  const { waybill_id, tracking_number } = req.body || {};
+  const { waybill_id, tracking_number, courier_name } = req.body || {};
 
   if (!waybill_id) {
     return res.status(400).json({ success: false, message: "waybill_id is required." });
@@ -61,6 +81,7 @@ const createWaybill = asyncHandler(async (req, res) => {
   const updated = await orderModel.updateStatus(source, id, {
     waybill_id,
     tracking_number: tracking_number || waybill_id,
+    courier_name,
   });
 
   return res.json({ success: true, message: "Waybill saved", data: updated });
@@ -319,6 +340,7 @@ module.exports = {
   listOrders,
   getOrder,
   filterOptions,
+  previewOrderNumber,
   updateStatus,
   createWaybill,
   createManualOrder,

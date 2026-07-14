@@ -22,6 +22,7 @@ import ordersApi from "../../../../config/sub_api/order_management_api/orders_ap
 import { getApiError } from "../../../../config/api";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
 import SendMessageCard from "./components/SendMessageCard";
+import AddWaybillModal from "../components/AddWaybillModal";
 
 const STATUS_OPTIONS = [
   "pending",
@@ -676,6 +677,7 @@ export default function OrderDetailPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [trackOpen, setTrackOpen] = useState(false);
+  const [waybillModalOpen, setWaybillModalOpen] = useState(false);
   const [detailDarazAction, setDetailDarazAction] = useState("get_shipment_providers");
   const [darazBusy, setDarazBusy] = useState(false);
   const [transactions, setTransactions] = useState([]);
@@ -731,19 +733,6 @@ export default function OrderDetailPage() {
       await load(true);
     } catch (err) {
       alert(getApiError(err, "Failed to update status"));
-    }
-  }
-
-  async function saveWaybill() {
-    const waybillId = window.prompt("Enter waybill / tracking number");
-    if (!waybillId) return;
-
-    try {
-      await ordersApi.createWaybill(source, id, { waybill_id: waybillId, tracking_number: waybillId });
-      showToast("Waybill saved.");
-      await load(true);
-    } catch (err) {
-      alert(getApiError(err, "Failed to save waybill"));
     }
   }
 
@@ -807,7 +796,7 @@ export default function OrderDetailPage() {
           {source === "local" && (
             <button
               type="button"
-              onClick={saveWaybill}
+              onClick={() => setWaybillModalOpen(true)}
               className="inline-flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-sky-950 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-900"
             >
               Set Waybill
@@ -970,6 +959,12 @@ export default function OrderDetailPage() {
       </div>
 
       {isDaraz && <TrackOrderModal open={trackOpen} onClose={() => setTrackOpen(false)} order={order} />}
+
+      <AddWaybillModal
+        order={waybillModalOpen ? order : null}
+        onClose={() => setWaybillModalOpen(false)}
+        onSaved={() => load(true)}
+      />
     </div>
   );
 }

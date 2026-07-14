@@ -32,6 +32,13 @@ const ordersApi = {
     return response.data;
   },
 
+  async getNextOrderNumber(accountName) {
+    const response = await api.get(`${ORDERS_BASE_URL}/next-number`, {
+      params: cleanParams({ account_name: accountName }),
+    });
+    return response.data;
+  },
+
   async updateStatus(source, id, payload) {
     const response = await api.patch(`${ORDERS_BASE_URL}/${source}/${id}/status`, payload);
     return response.data;

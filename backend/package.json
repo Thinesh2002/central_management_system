@@ -23,7 +23,8 @@
     "patch-daraz-title-optimizer": "node scripts/run-sql-file.js 19_daraz_title_optimizer_patch.sql",
     "patch-daraz-title-optimizer-logs": "node scripts/run-sql-file.js 20_daraz_title_optimizer_logs_patch.sql",
     "patch-daraz-title-optimizer-logs-reviewer": "node scripts/run-sql-file.js 21_daraz_title_optimizer_logs_reviewer_patch.sql",
-    "patch-notifications": "node scripts/run-sql-file.js 22_notifications_patch.sql"
+    "patch-notifications": "node scripts/run-sql-file.js 22_notifications_patch.sql",
+    "patch-manual-order-enhancements": "node scripts/run-sql-file.js 23_manual_order_enhancements_patch.sql"
   },
   "author": "",
   "license": "ISC",
