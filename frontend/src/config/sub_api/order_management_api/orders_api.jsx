@@ -72,8 +72,8 @@ const ordersApi = {
     return response.data;
   },
 
-  async darazBulkAction(payload) {
-    const response = await api.post(DARAZ_ACTIONS_URL, payload);
+  async darazBulkAction(payload, options) {
+    const response = await api.post(DARAZ_ACTIONS_URL, payload, options);
     return response.data;
   },
 

@@ -1,8 +1,15 @@
+const axios = require("axios");
 const asyncHandler = require("../../middleware/async_handler");
 const tokenService = require("../../services/marketplace/token_service");
 const fulfillmentService = require("../../services/daraz/order_management/daraz_order_fulfillment_service");
 const fulfillmentModel = require("../../models/order_management/daraz_order_fulfillment_model");
 const darazOrderApiService = require("../../services/daraz/order_management/daraz_order_api_service");
+const { composeAwbGridPdf } = require("../../services/pdf/awb_grid_service");
+
+async function fetchPdfBytes(url) {
+  const response = await axios.get(url, { responseType: "arraybuffer", timeout: 20000 });
+  return Buffer.from(response.data);
+}
 
 function darazResultOf(response) {
   return response?.data?.result || response?.data || {};
@@ -209,7 +216,8 @@ async function runAction({ action, account, credentials, order, invoiceNumber })
 const PRINT_AWB_BATCH_SIZE = 9;
 
 const runBulkAction = asyncHandler(async (req, res) => {
-  const { action, order_ids: orderIds = [], invoice_number: invoiceNumber } = req.body || {};
+  const { action, order_ids: orderIds = [], invoice_number: invoiceNumber, print_layout: printLayout } =
+    req.body || {};
 
   if (!action) {
     return res.status(400).json({ success: false, message: "action is required." });
@@ -218,6 +226,8 @@ const runBulkAction = asyncHandler(async (req, res) => {
   if (!orderIds.length) {
     return res.status(400).json({ success: false, message: "order_ids is required." });
   }
+
+  const isA4Grid = action === "print_awb" && printLayout === "a4_grid";
 
   const results = [];
   const errors = [];
@@ -228,6 +238,11 @@ const runBulkAction = asyncHandler(async (req, res) => {
   // credentials of the account that issued them, and a bulk selection can
   // span multiple Daraz accounts.
   const printAwbQueue = new Map();
+
+  // A4 grid mode fetches one label PDF per package (not batched, since we
+  // need to know each page is exactly one clean label to impose onto our
+  // own grid) — collected here and composed after the main loop.
+  const gridLabelBuffers = [];
 
   for (const orderId of orderIds) {
     try {
@@ -250,6 +265,24 @@ const runBulkAction = asyncHandler(async (req, res) => {
 
       if (action === "print_awb") {
         const packageIds = await requirePackageId({ account, credentials, order });
+
+        if (isA4Grid) {
+          for (const packageId of packageIds) {
+            const response = await fulfillmentService.printAwb({ account, credentials, packageIds: [packageId] });
+            const result = darazResultOf(response);
+            const pdfUrl = result?.data?.pdf_url || result?.pdf_url || null;
+
+            if (!pdfUrl) {
+              throw new Error("Daraz didn't return a label PDF for this package.");
+            }
+
+            gridLabelBuffers.push(await fetchPdfBytes(pdfUrl));
+          }
+
+          results.push({ order_id: orderId, success: true, message: "Queued for A4 sheet" });
+          continue;
+        }
+
         const queued = printAwbQueue.get(account.id) || { account, credentials, packageIds: [] };
         queued.packageIds.push(...packageIds);
         printAwbQueue.set(account.id, queued);
@@ -268,7 +301,16 @@ const runBulkAction = asyncHandler(async (req, res) => {
     }
   }
 
-  if (action === "print_awb") {
+  if (isA4Grid) {
+    if (gridLabelBuffers.length) {
+      try {
+        const compositeBytes = await composeAwbGridPdf(gridLabelBuffers);
+        pdfUrls.push(`data:application/pdf;base64,${compositeBytes.toString("base64")}`);
+      } catch (error) {
+        errors.push({ order_id: null, reason: `Failed to compose the A4 label sheet: ${error.message}` });
+      }
+    }
+  } else if (action === "print_awb") {
     for (const { account, credentials, packageIds } of printAwbQueue.values()) {
       for (let i = 0; i < packageIds.length; i += PRINT_AWB_BATCH_SIZE) {
         const chunk = packageIds.slice(i, i + PRINT_AWB_BATCH_SIZE);

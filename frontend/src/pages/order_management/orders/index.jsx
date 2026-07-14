@@ -20,6 +20,7 @@ import OrderRow from "./components/OrderRow";
 import FilterDrawer from "./components/FilterDrawer";
 import ImagePreviewModal from "./components/ImagePreviewModal";
 import PdfPreviewModal from "./components/PdfPreviewModal";
+import PrintLayoutChoiceModal from "./components/PrintLayoutChoiceModal";
 import {
   canDarazPack,
   canDarazReady,
@@ -130,6 +131,7 @@ export default function OrdersPage() {
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
   const [pdfPreviewUrls, setPdfPreviewUrls] = useState([]);
+  const [printChoiceOpen, setPrintChoiceOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -265,7 +267,7 @@ export default function OrdersPage() {
     []
   );
 
-  async function runDarazAction(action, orderIds) {
+  async function runDarazAction(action, orderIds, { printLayout } = {}) {
     if (!orderIds.length) return;
 
     let invoiceNumber;
@@ -278,11 +280,17 @@ export default function OrdersPage() {
     setBusy(true);
 
     try {
-      const result = await ordersApi.darazBulkAction({
-        action,
-        order_ids: orderIds,
-        invoice_number: invoiceNumber,
-      });
+      const result = await ordersApi.darazBulkAction(
+        {
+          action,
+          order_ids: orderIds,
+          invoice_number: invoiceNumber,
+          print_layout: printLayout,
+        },
+        // A4 grid mode fetches + composes one PDF per package sequentially -
+        // slower than Daraz's own batched call, so it needs real headroom.
+        action === "print_awb" ? { timeout: 300000 } : undefined
+      );
 
       if (action === "print_awb") {
         // Shown in the same in-app popup style as Print Invoice, instead of
@@ -322,7 +330,7 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function runBulkAction(action) {
+  function runBulkAction(action, options) {
     const validOrders = selectedDaraz.filter((order) => {
       if (action === "pack") return canDarazPack(order);
       if (action === "ready_to_ship") return canDarazReady(order);
@@ -334,7 +342,12 @@ export default function OrdersPage() {
       return order.source === "daraz";
     });
 
-    runDarazAction(action, validOrders.map((order) => order.source_order_id));
+    runDarazAction(action, validOrders.map((order) => order.source_order_id), options);
+  }
+
+  function choosePrintLayout(layout) {
+    setPrintChoiceOpen(false);
+    runBulkAction("print_awb", { printLayout: layout });
   }
 
   return (
@@ -454,8 +467,8 @@ export default function OrdersPage() {
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => runBulkAction("print_awb")}
-                title="Prints one A4 sheet per 9 selected orders"
+                onClick={() => setPrintChoiceOpen(true)}
+                title="Choose Normal or A4 (3x3 grid) label printing"
                 className="inline-flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950 px-2.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Printer size={12} /> Print AWB
@@ -571,6 +584,12 @@ export default function OrdersPage() {
       />
 
       <ImagePreviewModal image={imagePreview} onClose={() => setImagePreview(null)} />
+
+      <PrintLayoutChoiceModal
+        open={printChoiceOpen}
+        onClose={() => setPrintChoiceOpen(false)}
+        onChoose={choosePrintLayout}
+      />
 
       <PdfPreviewModal urls={pdfPreviewUrls} onClose={() => setPdfPreviewUrls([])} />
     </div>
