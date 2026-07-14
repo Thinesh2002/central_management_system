@@ -34,6 +34,18 @@ async function trackOrder(waybillId) {
     }
   );
 
+  // Trans Express returns validation failures (e.g. an unknown/invalid
+  // waybill) as HTTP 200 with an { errors: { field: [messages] } } body,
+  // not a 4xx - confirmed live against their API. Without this check that
+  // shape was silently treated as valid (empty) tracking data, showing
+  // "No tracking events yet" instead of the real reason.
+  if (response.data?.errors) {
+    const messages = Object.values(response.data.errors).flat().filter(Boolean);
+    const error = new Error(messages.join(" ") || "Trans Express rejected this waybill ID.");
+    error.statusCode = 400;
+    throw error;
+  }
+
   return response.data?.data || response.data || {};
 }
 
