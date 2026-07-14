@@ -183,26 +183,24 @@ export default function CreateManualOrderPage() {
   );
 
   // Preview the order number createManualOrder would assign right now -
-  // debounced since it hits the server on every keystroke in account_name.
+  // every manual order uses the same BH prefix, so this doesn't depend on
+  // account name and only needs to load once.
   useEffect(() => {
-    const accountName = clean(form.account_name);
+    let cancelled = false;
 
-    if (!accountName) {
-      setOrderNoPreview(null);
-      return undefined;
-    }
+    ordersApi
+      .getNextOrderNumber()
+      .then((res) => {
+        if (!cancelled) setOrderNoPreview(res?.data?.order_no || null);
+      })
+      .catch(() => {
+        if (!cancelled) setOrderNoPreview(null);
+      });
 
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = await ordersApi.getNextOrderNumber(accountName);
-        setOrderNoPreview(res?.data?.order_no || null);
-      } catch {
-        setOrderNoPreview(null);
-      }
-    }, 400);
-
-    return () => window.clearTimeout(timer);
-  }, [form.account_name]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const timers = searchTimers.current;
@@ -333,7 +331,7 @@ export default function CreateManualOrderPage() {
           <div>
             <h1 className="text-[15px] font-semibold text-white">Create Manual Order</h1>
             <p className="text-[11px] text-slate-500">
-              Order number is generated automatically from the account name (e.g. BH0001, BH0002...).
+              Order number is generated automatically (BH0001, BH0002, ...).
             </p>
           </div>
 

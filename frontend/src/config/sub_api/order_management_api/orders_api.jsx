@@ -32,10 +32,8 @@ const ordersApi = {
     return response.data;
   },
 
-  async getNextOrderNumber(accountName) {
-    const response = await api.get(`${ORDERS_BASE_URL}/next-number`, {
-      params: cleanParams({ account_name: accountName }),
-    });
+  async getNextOrderNumber() {
+    const response = await api.get(`${ORDERS_BASE_URL}/next-number`);
     return response.data;
   },
 

@@ -44,16 +44,11 @@ const filterOptions = asyncHandler(async (req, res) => {
 
 // Read-only preview of the order number createManualOrder would assign
 // right now - lets the create-order page show it before submitting. Not
-// reserved: a concurrent create for the same account could still claim it
-// first, same race createManualOrder itself already has.
+// reserved: a concurrent create could still claim it first, same race
+// createManualOrder itself already has. Every manual order uses the same
+// BH prefix, so this doesn't depend on account name at all.
 const previewOrderNumber = asyncHandler(async (req, res) => {
-  const accountName = String(req.query.account_name || "").trim();
-
-  if (!accountName) {
-    return res.json({ success: true, message: "Order number preview", data: { order_no: null } });
-  }
-
-  const orderNo = await orderModel.nextManualOrderNo(accountName);
+  const orderNo = await orderModel.nextManualOrderNo();
   return res.json({ success: true, message: "Order number preview", data: { order_no: orderNo } });
 });
 

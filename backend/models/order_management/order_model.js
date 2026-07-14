@@ -383,32 +383,21 @@ async function getFilterOptions() {
   };
 }
 
-// Manual order numbers use the account's short code (e.g. BrightHub -> BH)
-// plus a zero-padded running number — BH0001, BH0002, ...
-function accountPrefix(accountName = "") {
-  const initials = String(accountName)
-    .split(/\s+/)
-    .map((word) => word[0])
-    .filter(Boolean)
-    .join("")
-    .toUpperCase();
+// Every manual order gets the same BH prefix plus a zero-padded running
+// number — BH0001, BH0002, ... — regardless of account name.
+const MANUAL_ORDER_PREFIX = "BH";
 
-  return initials.slice(0, 3) || "MO";
-}
-
-async function nextManualOrderNo(accountName) {
-  const prefix = accountPrefix(accountName);
-
+async function nextManualOrderNo() {
   const [rows] = await db.query(
     "SELECT order_no FROM orders WHERE order_no LIKE ? ORDER BY id DESC LIMIT 1",
-    [`${prefix}%`]
+    [`${MANUAL_ORDER_PREFIX}%`]
   );
 
   const lastNo = rows[0]?.order_no || "";
-  const lastNumber = Number(String(lastNo).replace(prefix, "")) || 0;
+  const lastNumber = Number(String(lastNo).replace(MANUAL_ORDER_PREFIX, "")) || 0;
   const nextNumber = lastNumber + 1;
 
-  return `${prefix}${String(nextNumber).padStart(4, "0")}`;
+  return `${MANUAL_ORDER_PREFIX}${String(nextNumber).padStart(4, "0")}`;
 }
 
 async function createManualOrder(payload = {}) {
@@ -434,7 +423,7 @@ async function createManualOrder(payload = {}) {
     throw new Error("At least one order item is required.");
   }
 
-  const orderNo = await nextManualOrderNo(account_name);
+  const orderNo = await nextManualOrderNo();
 
   const orderModel = createGenericModel("orders");
   const itemModel = createGenericModel("order_items");
