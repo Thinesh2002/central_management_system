@@ -121,7 +121,7 @@ function OrderRow({
             }`}
           >
             {isFirst && (
-              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+              <td rowSpan={rowCount} className="px-5 py-5 align-top">
                 <input
                   type="checkbox"
                   checked={Boolean(isSelected)}
@@ -132,26 +132,26 @@ function OrderRow({
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+              <td rowSpan={rowCount} className="px-5 py-5 align-top">
                 <button
                   type="button"
                   onClick={() => onView(order)}
-                  className="cursor-pointer text-[13px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
+                  className="cursor-pointer text-[12px] font-semibold text-slate-200 hover:text-sky-300 hover:underline"
                 >
                   #{order.display_order_no || order.order_no}
                 </button>
-                <p className={`mt-1.5 text-[11px] font-semibold ${source.className}`}>{source.label}</p>
-                <p className="mt-1.5 text-[11px] text-slate-300">{order.account_name || "-"}</p>
-                <p className="mt-1.5 text-[10px] text-slate-500">
+                <p className={`mt-2 text-[11px] font-semibold ${source.className}`}>{source.label}</p>
+                <p className="mt-2 text-[11px] text-slate-300">{order.account_name || "-"}</p>
+                <p className="mt-2 text-[10px] text-slate-500">
                   {dateParts.date} {dateParts.time}
                 </p>
                 {isMulti && (
-                  <p className="mt-1.5 text-[10px] font-semibold text-orange-300">{items.length} items</p>
+                  <p className="mt-2 text-[10px] font-semibold text-orange-300">{items.length} items</p>
                 )}
               </td>
             )}
 
-            <td className="px-5 py-4 align-top">
+            <td className="px-5 py-5 align-top">
               <div className="flex min-w-0 items-start gap-4">
                 <ProductThumb order={order} item={item} onPreview={onPreviewImage} />
 
@@ -178,35 +178,35 @@ function OrderRow({
             </td>
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+              <td rowSpan={rowCount} className="px-5 py-5 align-top">
                 <p className="text-[13px] font-semibold text-slate-200">
                   {order.customer_name || order.shipping_name || "-"}
                 </p>
-                <p className="mt-1.5 text-[11px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
-                <p className="mt-1.5 max-w-55 text-[10px] leading-5 text-slate-500">
+                <p className="mt-2 text-[11px] text-slate-400">{order.customer_phone || order.shipping_phone || "-"}</p>
+                <p className="mt-2 max-w-55 text-[10px] leading-5 text-slate-500">
                   {fullAddress(order) || "-"}
                 </p>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+              <td rowSpan={rowCount} className="px-5 py-5 align-top">
                 <p className="text-[13px] font-semibold text-slate-100">{money(order.grand_total, order.currency)}</p>
-                <p className="mt-1.5 text-[10px] text-slate-500">
+                <p className="mt-2 text-[10px] text-slate-500">
                   Discount: {money(order.discount_total, order.currency)}
                 </p>
-                <p className="mt-1.5 text-[10px] uppercase text-slate-500">{order.payment_method || "-"}</p>
+                <p className="mt-2 text-[10px] uppercase text-slate-500">{order.payment_method || "-"}</p>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+              <td rowSpan={rowCount} className="px-5 py-5 align-top">
                 <span className={`text-[12px] font-semibold ${statusBadgeClass(order)}`}>{statusLabel(order)}</span>
               </td>
             )}
 
             {isFirst && (
-              <td rowSpan={rowCount} className="px-5 py-4 align-top">
+              <td rowSpan={rowCount} className="px-5 py-5 align-top">
                 <div className="flex w-40 flex-col gap-2">
                   {isDaraz && darazStep && (
                     <ActionButton

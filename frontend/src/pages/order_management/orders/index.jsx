@@ -485,10 +485,19 @@ export default function OrdersPage() {
       ) : (
         <section className="overflow-visible border border-slate-800 bg-[#0b1220]">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-800">
+            <table className="min-w-full table-fixed divide-y divide-slate-800">
+              <colgroup>
+                <col className="w-10" />
+                <col className="w-[13%]" />
+                <col className="w-[30%]" />
+                <col className="w-[17%]" />
+                <col className="w-[13%]" />
+                <col className="w-[10%]" />
+                <col className="w-[14%]" />
+              </colgroup>
               <thead className="border-b border-slate-800 bg-[#111827]">
                 <tr>
-                  <th className="w-10 px-5 py-4">
+                  <th className="w-10 px-5 py-5">
                     <input
                       type="checkbox"
                       checked={allPageSelected}
@@ -500,7 +509,7 @@ export default function OrdersPage() {
                     (header) => (
                       <th
                         key={header}
-                        className="px-5 py-4 text-left text-[12px] font-semibold uppercase tracking-wide text-orange-300"
+                        className="px-5 py-5 text-left text-[12px] font-semibold uppercase tracking-wide text-orange-300"
                       >
                         {header}
                       </th>
