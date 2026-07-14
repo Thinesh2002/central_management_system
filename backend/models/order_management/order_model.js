@@ -55,6 +55,16 @@ const ITEM_COLUMN_CANDIDATES = [
   "sku",
   "qty",
   "quantity",
+  // The marketplace's own product/item identifier — column name varies per
+  // platform (daraz_order_items vs woo_order_items were never independently
+  // confirmed, same reason daraz_order_fulfillment_model discovers its own
+  // order_item_id column at runtime instead of guessing).
+  "product_id",
+  "daraz_order_item_id",
+  "order_item_id",
+  "item_id",
+  "daraz_item_id",
+  "sku_id",
 ];
 
 const safeItemColumnsCache = new Map();
@@ -102,6 +112,20 @@ function extractItemSku(item = {}) {
 
 function extractItemQty(item = {}) {
   return Number(item.qty || item.quantity || 1);
+}
+
+// The marketplace's own identifier for this line's product (Daraz/Woo), as
+// opposed to seller_sku/local_sku which is a text code, not a numeric ID.
+function extractItemProductId(item = {}) {
+  return (
+    item.product_id ??
+    item.daraz_order_item_id ??
+    item.order_item_id ??
+    item.item_id ??
+    item.daraz_item_id ??
+    item.sku_id ??
+    null
+  );
 }
 
 // Every line item for these orders, each with its own resolved image — a
@@ -164,6 +188,7 @@ async function getLocalOrderItems(orderIds) {
     const list = map.get(row.order_id) || [];
     list.push({
       id: row.id,
+      product_id: row.product_id || null,
       sku: extractItemSku(row),
       qty: extractItemQty(row),
       product_title: row.product_title || null,
@@ -192,6 +217,7 @@ async function getMarketplaceOrderItems(config, orderIds) {
 
     list.push({
       id: row.id,
+      product_id: extractItemProductId(row),
       sku: extractItemSku(row),
       qty: extractItemQty(row),
       product_title: extractItemTitle(row),

@@ -27,6 +27,10 @@ function getItemSku(item = {}) {
   return item.local_sku || item.sku || item.seller_sku || item.shop_sku || item.marketplace_sku || "-";
 }
 
+function getItemProductId(item = {}) {
+  return item.product_id ?? null;
+}
+
 function getItemQty(item = {}) {
   return Number(item.qty || item.quantity || 1) || 1;
 }
@@ -112,6 +116,7 @@ function OrderRow({
       {items.map((item, index) => {
         const isFirst = index === 0;
         const itemSku = item ? getItemSku(item) : null;
+        const itemProductId = item ? getItemProductId(item) : null;
 
         return (
           <tr
@@ -156,19 +161,20 @@ function OrderRow({
                 <ProductThumb order={order} item={item} onPreview={onPreviewImage} />
 
                 <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[13px] font-normal leading-5 text-slate-100">
+                  <p className="text-[14px] font-normal leading-5 text-slate-100">
                     {item ? getItemName(item) : order.first_item_title || "-"}
                   </p>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                  <div className="mt-2 flex flex-col gap-1 text-[12px] text-slate-400">
+                    {itemProductId != null && <span>Product ID: {itemProductId}</span>}
                     {itemSku && itemSku !== "-" ? (
                       <button
                         type="button"
                         onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(itemSku)}`)}
                         title="Open SKU Economics Report"
-                        className="font-mono text-slate-400 underline decoration-dotted hover:text-orange-300"
+                        className="w-fit font-mono text-slate-400 underline decoration-dotted hover:text-orange-300"
                       >
-                        {itemSku}
+                        SKU: {itemSku}
                       </button>
                     ) : null}
                     {item && <span>Qty: {getItemQty(item)}</span>}
