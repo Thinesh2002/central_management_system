@@ -58,21 +58,16 @@ const previewOrderNumber = asyncHandler(async (req, res) => {
 
 const updateStatus = asyncHandler(async (req, res) => {
   const { source, id } = req.params;
-  const { status, waybill_id, tracking_number, courier_name } = req.body || {};
+  const { status, waybill_id, tracking_number } = req.body || {};
 
-  const updated = await orderModel.updateStatus(source, id, {
-    status,
-    waybill_id,
-    tracking_number,
-    courier_name,
-  });
+  const updated = await orderModel.updateStatus(source, id, { status, waybill_id, tracking_number });
 
   return res.json({ success: true, message: "Order status updated", data: updated });
 });
 
 const createWaybill = asyncHandler(async (req, res) => {
   const { source, id } = req.params;
-  const { waybill_id, tracking_number, courier_name } = req.body || {};
+  const { waybill_id, tracking_number } = req.body || {};
 
   if (!waybill_id) {
     return res.status(400).json({ success: false, message: "waybill_id is required." });
@@ -81,7 +76,6 @@ const createWaybill = asyncHandler(async (req, res) => {
   const updated = await orderModel.updateStatus(source, id, {
     waybill_id,
     tracking_number: tracking_number || waybill_id,
-    courier_name,
   });
 
   return res.json({ success: true, message: "Waybill saved", data: updated });

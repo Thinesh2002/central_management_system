@@ -6,18 +6,15 @@ import { getApiError } from "../../../../config/api";
 // Same purple-header popup language as PdfPreviewModal/PrintLayoutChoiceModal.
 // Replaces the old window.prompt() flow for local orders - no real courier
 // API is wired up for manual orders yet, so "Track My Order" opens a search
-// for the waybill (plus courier name, if given) rather than a specific
-// courier's tracking page.
+// for the waybill number rather than a specific courier's tracking page.
 export default function AddWaybillModal({ order, onClose, onSaved }) {
   const [waybillId, setWaybillId] = useState("");
-  const [courierName, setCourierName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(null);
 
   useEffect(() => {
     setWaybillId(order?.waybill_id || order?.tracking_number || "");
-    setCourierName(order?.courier_name || "");
     setError("");
     setSaved(null);
   }, [order]);
@@ -37,10 +34,9 @@ export default function AddWaybillModal({ order, onClose, onSaved }) {
       await ordersApi.createWaybill(order.source, order.source_order_id, {
         waybill_id: waybillId.trim(),
         tracking_number: waybillId.trim(),
-        courier_name: courierName.trim() || null,
       });
 
-      setSaved({ waybillId: waybillId.trim(), courierName: courierName.trim() });
+      setSaved({ waybillId: waybillId.trim() });
       onSaved?.();
     } catch (err) {
       setError(getApiError(err, "Failed to save waybill"));
@@ -50,8 +46,11 @@ export default function AddWaybillModal({ order, onClose, onSaved }) {
   }
 
   function trackMyOrder() {
-    const query = saved.courierName ? `${saved.courierName} tracking ${saved.waybillId}` : `track ${saved.waybillId}`;
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener");
+    window.open(
+      `https://www.google.com/search?q=${encodeURIComponent(`track ${saved.waybillId}`)}`,
+      "_blank",
+      "noopener"
+    );
   }
 
   return (
@@ -84,7 +83,6 @@ export default function AddWaybillModal({ order, onClose, onSaved }) {
               <CheckCircle2 size={16} className="shrink-0" />
               <span className="text-[12px] font-semibold">
                 {order.display_order_no || order.order_no}: {saved.waybillId}
-                {saved.courierName ? ` — ${saved.courierName}` : ""}
               </span>
             </div>
 
@@ -108,18 +106,6 @@ export default function AddWaybillModal({ order, onClose, onSaved }) {
                 onChange={(e) => setWaybillId(e.target.value)}
                 className="h-10 w-full rounded-md border border-slate-700 bg-[#0a101d] px-3 text-[13px] font-medium text-slate-100 outline-none transition focus:border-orange-400 focus:ring-1 focus:ring-orange-400/40"
                 placeholder="e.g. LK123456789"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                Courier Name
-              </span>
-              <input
-                value={courierName}
-                onChange={(e) => setCourierName(e.target.value)}
-                className="h-10 w-full rounded-md border border-slate-700 bg-[#0a101d] px-3 text-[13px] font-medium text-slate-100 outline-none transition focus:border-orange-400 focus:ring-1 focus:ring-orange-400/40"
-                placeholder="e.g. Trans Express, Domex..."
               />
             </label>
 

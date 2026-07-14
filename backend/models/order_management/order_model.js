@@ -330,7 +330,7 @@ async function getUnified(source, id) {
   return { ...normalizeOrderRow(orderRows[0], String(source).toLowerCase()), items };
 }
 
-async function updateStatus(source, id, { status, waybill_id, tracking_number, courier_name } = {}) {
+async function updateStatus(source, id, { status, waybill_id, tracking_number } = {}) {
   const config = getSourceConfig(source);
   const model = createGenericModel(config.table);
 
@@ -338,10 +338,6 @@ async function updateStatus(source, id, { status, waybill_id, tracking_number, c
   if (status !== undefined) payload.order_status = status;
   if (waybill_id !== undefined) payload.waybill_id = waybill_id;
   if (tracking_number !== undefined) payload.tracking_number = tracking_number;
-  // Only meaningful for local orders (Daraz/Woo tables don't carry this
-  // column) - pickAllowedData silently drops it there, same as any other
-  // column that doesn't exist on a given source's table.
-  if (courier_name !== undefined) payload.courier_name = courier_name;
 
   return model.update(id, payload);
 }
