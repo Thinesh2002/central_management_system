@@ -78,6 +78,10 @@ const {
 
 const { startLowStockCheckJob } = require("./jobs/inventory/low_stock_check_job");
 
+const {
+  startTransExpressTrackingSyncJob,
+} = require("./jobs/order_management/trans_express_tracking_sync_job");
+
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
@@ -265,6 +269,7 @@ async function startServer() {
     startJob("DARAZ_TITLE_OPTIMIZER_JOB", startDarazTitleOptimizerJob);
     startJob("DARAZ_TITLE_FULL_SCAN_JOB", startDarazTitleFullScanJob);
     startJob("LOW_STOCK_CHECK_JOB", startLowStockCheckJob);
+    startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
   });
 }
 

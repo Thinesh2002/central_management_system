@@ -23,6 +23,7 @@ import { getApiError } from "../../../../config/api";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
 import SendMessageCard from "./components/SendMessageCard";
 import AddWaybillModal from "../components/AddWaybillModal";
+import WaybillTrackingModal from "../components/WaybillTrackingModal";
 
 const STATUS_OPTIONS = [
   "pending",
@@ -455,6 +456,36 @@ function TrackingMiniCard({ order, onTrack }) {
   );
 }
 
+// Local orders' equivalent of TrackingMiniCard, showing the waybill this
+// app itself saved rather than any Daraz-specific package_id/provider.
+function WaybillMiniCard({ order, onTrack }) {
+  const waybillId = order.waybill_id || order.tracking_number;
+
+  return (
+    <Card
+      title="Waybill"
+      icon={Truck}
+      right={
+        waybillId && (
+          <button
+            type="button"
+            onClick={onTrack}
+            className="inline-flex h-7 items-center gap-1 rounded-sm border border-orange-500/40 bg-orange-500 px-2.5 text-[11px] font-semibold text-white hover:bg-orange-400"
+          >
+            <Eye size={12} /> Track My Order
+          </button>
+        )
+      }
+    >
+      {waybillId ? (
+        <InfoLine label="Waybill ID" value={waybillId} />
+      ) : (
+        <p className="text-[12px] text-slate-500">No waybill set yet — use "Set Waybill" above.</p>
+      )}
+    </Card>
+  );
+}
+
 function flattenTrackingRows(modules = []) {
   const rows = [];
 
@@ -678,6 +709,7 @@ export default function OrderDetailPage() {
   const [error, setError] = useState("");
   const [trackOpen, setTrackOpen] = useState(false);
   const [waybillModalOpen, setWaybillModalOpen] = useState(false);
+  const [waybillTrackOpen, setWaybillTrackOpen] = useState(false);
   const [detailDarazAction, setDetailDarazAction] = useState("get_shipment_providers");
   const [darazBusy, setDarazBusy] = useState(false);
   const [transactions, setTransactions] = useState([]);
@@ -800,6 +832,16 @@ export default function OrderDetailPage() {
               className="inline-flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-sky-950 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-900"
             >
               Set Waybill
+            </button>
+          )}
+
+          {source === "local" && order.waybill_id && (
+            <button
+              type="button"
+              onClick={() => setWaybillTrackOpen(true)}
+              className="inline-flex h-7 items-center gap-1 rounded-sm border border-orange-500/40 bg-orange-500 px-2.5 text-[11px] font-semibold text-white hover:bg-orange-400"
+            >
+              <Eye size={12} /> Track My Order
             </button>
           )}
 
@@ -930,6 +972,8 @@ export default function OrderDetailPage() {
 
           {isDaraz && <TrackingMiniCard order={order} onTrack={() => setTrackOpen(true)} />}
 
+          {source === "local" && <WaybillMiniCard order={order} onTrack={() => setWaybillTrackOpen(true)} />}
+
           {isDaraz && <DarazFinanceTable transactions={transactions} currency={order.currency} />}
 
           {isDaraz && <SendMessageCard order={order} />}
@@ -965,6 +1009,14 @@ export default function OrderDetailPage() {
         onClose={() => setWaybillModalOpen(false)}
         onSaved={() => load(true)}
       />
+
+      {source === "local" && (
+        <WaybillTrackingModal
+          open={waybillTrackOpen}
+          onClose={() => setWaybillTrackOpen(false)}
+          order={order}
+        />
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ const darazFinanceApiService = require("../../services/daraz/order_management/da
 const darazMessageApiService = require("../../services/daraz/order_management/daraz_message_api_service");
 const messageTemplateModel = require("../../models/order_management/message_template_model");
 const messageLogModel = require("../../models/order_management/message_log_model");
+const transExpressApiService = require("../../services/trans_express/trans_express_api_service");
 
 function getUserId(req) {
   return req?.user?.id || req?.user?.user_id || req?.body?.created_by || null;
@@ -115,8 +116,23 @@ const createManualOrder = asyncHandler(async (req, res) => {
 const getTracking = asyncHandler(async (req, res) => {
   const { source, id } = req.params;
 
+  if (source === "local") {
+    const order = await orderModel.getUnified("local", id);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found." });
+    }
+
+    if (!order.waybill_id) {
+      return res.status(400).json({ success: false, message: "This order has no waybill yet." });
+    }
+
+    const tracking = await transExpressApiService.trackOrder(order.waybill_id);
+    return res.json({ success: true, message: "Tracking loaded", data: tracking });
+  }
+
   if (source !== "daraz") {
-    return res.status(400).json({ success: false, message: "Tracking is only available for Daraz orders." });
+    return res.status(400).json({ success: false, message: "Tracking is only available for Daraz and local orders." });
   }
 
   const order = await fulfillmentModel.getOrderRow(id);
