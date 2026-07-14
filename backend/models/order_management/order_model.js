@@ -468,7 +468,13 @@ async function createManualOrder(payload = {}) {
         shipping_postal_code: shipping?.shipping_postal_code,
         shipping_country: shipping?.shipping_country,
         shipping_phone: customer.phone_1,
-        source_type: source_type || "MANUAL",
+        // customers.source_type has its own enum ('MANUAL','DARAZ','WOO',
+        // 'FACEBOOK','WHATSAPP','TIKTOK','OTHER') - distinct from
+        // orders.source_type ('MANUAL_WHATSAPP', etc). Passing the order's
+        // value through unmapped hits MySQL strict mode's "Data truncated
+        // for column 'source_type'" since e.g. "MANUAL_WHATSAPP" isn't a
+        // member of the customers enum.
+        source_type: source_type ? source_type.replace(/^MANUAL_/, "") : "MANUAL",
         status: "active",
         created_by,
       });

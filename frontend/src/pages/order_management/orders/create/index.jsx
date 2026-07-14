@@ -294,11 +294,6 @@ export default function CreateManualOrderPage() {
       return;
     }
 
-    if (!form.account_name.trim()) {
-      alert("Account name is required.");
-      return;
-    }
-
     const validItems = form.items.filter((item) => item.sku.trim());
 
     if (!validItems.length) {
@@ -351,14 +346,6 @@ export default function CreateManualOrderPage() {
             </span>
           )}
         </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="inline-flex h-8 items-center gap-1.5 bg-orange-500 px-3 text-[12px] font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Save size={13} /> {saving ? "Saving..." : "Create Order"}
-        </button>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
@@ -449,13 +436,12 @@ export default function CreateManualOrderPage() {
             </label>
 
             <label className="block">
-              <FieldLabel required>Account Name</FieldLabel>
+              <FieldLabel>Account Name</FieldLabel>
               <input
                 className={FIELD_CLASS}
                 value={form.account_name}
                 onChange={(e) => setRoot("account_name", e.target.value)}
                 placeholder="e.g. BrightHub"
-                required
               />
             </label>
 
@@ -578,7 +564,7 @@ export default function CreateManualOrderPage() {
                     )}
                   </div>
 
-                  {item.sku && item.product_title && (
+                  {item.sku && item.product_title && (skuSearch[index] ?? item.sku) === item.sku && (
                     <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-emerald-400">
                       <Check size={11} className="shrink-0" />
                       <span className="truncate">{item.product_title}</span>
@@ -759,6 +745,16 @@ export default function CreateManualOrderPage() {
             </div>
           </div>
         </section>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={saving}
+          className="inline-flex h-10 items-center gap-1.5 rounded-md bg-orange-500 px-5 text-[13px] font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Save size={14} /> {saving ? "Saving..." : "Create Order"}
+        </button>
       </div>
     </form>
   );
