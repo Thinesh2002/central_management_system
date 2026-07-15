@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import {
-  Boxes,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -9,7 +8,6 @@ import {
   MoreVertical,
   PackagePlus,
   Send,
-  Tag,
   Trash2,
 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
@@ -110,17 +108,6 @@ export default function ProductRow({
 
   function handleAddVariant() {
     openOverlay(`/product/local-products/edit/${productId}/variants/create`);
-  }
-
-  // Parent rows with variants have no SKU of their own (getProductSku falls
-  // back to "-") - link to the plain dashboard instead of searching for a
-  // literal dash.
-  function handlePriceDashboard() {
-    openOverlay(sku && sku !== "-" ? `/price?search=${encodeURIComponent(sku)}` : "/price");
-  }
-
-  function handleInventoryDashboard() {
-    openOverlay(sku && sku !== "-" ? `/inventory?search=${encodeURIComponent(sku)}` : "/inventory");
   }
 
   function handleRemoveProduct() {
@@ -286,7 +273,7 @@ export default function ProductRow({
                 </button>
 
                 {actionOpen ? (
-                  <div className="absolute right-0 top-7 z-30 w-52 rounded-sm border border-zinc-800/60 bg-[#0b1220] py-1 text-left shadow-xl">
+                  <div className="absolute right-0 top-7 z-30 w-44 rounded-sm border border-zinc-800/60 bg-[#0b1220] py-1 text-left shadow-xl">
                     <button
                       type="button"
                       onClick={() => {
@@ -296,28 +283,6 @@ export default function ProductRow({
                       className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-[12px] text-zinc-200 hover:bg-white/5 hover:text-orange-300"
                     >
                       <PackagePlus size={13} /> Add Variant
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActionOpen(false);
-                        handlePriceDashboard();
-                      }}
-                      className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-[12px] text-emerald-300 hover:bg-white/5 hover:text-emerald-200"
-                    >
-                      <Tag size={13} /> Price Dashboard
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActionOpen(false);
-                        handleInventoryDashboard();
-                      }}
-                      className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-[12px] text-sky-300 hover:bg-white/5 hover:text-sky-200"
-                    >
-                      <Boxes size={13} /> Inventory Dashboard
                     </button>
 
                     <button

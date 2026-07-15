@@ -810,6 +810,8 @@ export default function LocalProductsDashboard() {
           onOpenExport={() => setExportOpen(true)}
           onAddProduct={() => openOverlay("/product/local-products/create")}
           onAddVariation={() => setAddVariationOpen(true)}
+          onOpenPriceDashboard={() => openOverlay("/price")}
+          onOpenInventoryDashboard={() => openOverlay("/inventory")}
         />
 
         {selectedKeys.length > 0 && (
