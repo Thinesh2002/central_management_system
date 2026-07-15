@@ -54,6 +54,8 @@ async function create({
   contact_email: contactEmail,
   contact_phone: contactPhone,
   business_registration_no: businessRegistrationNo,
+  bank_name: bankName,
+  bank_account_number: bankAccountNumber,
   payment_terms: paymentTerms,
   currency,
   delivery_lead_time_days: deliveryLeadTimeDays,
@@ -70,14 +72,16 @@ async function create({
 
   const [result] = await db.query(
     `INSERT INTO suppliers
-       (name, contact_email, contact_phone, business_registration_no, payment_terms, currency,
-        delivery_lead_time_days, rating, status, notes, created_by, updated_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (name, contact_email, contact_phone, business_registration_no, bank_name, bank_account_number,
+        payment_terms, currency, delivery_lead_time_days, rating, status, notes, created_by, updated_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       name.trim(),
       clean(contactEmail),
       clean(contactPhone),
       clean(businessRegistrationNo),
+      clean(bankName),
+      clean(bankAccountNumber),
       ALLOWED_PAYMENT_TERMS.has(paymentTerms) ? paymentTerms : "cod",
       clean(currency) || "LKR",
       deliveryLeadTimeDays !== undefined && deliveryLeadTimeDays !== null && deliveryLeadTimeDays !== ""
@@ -101,6 +105,8 @@ async function update(
     contact_email: contactEmail,
     contact_phone: contactPhone,
     business_registration_no: businessRegistrationNo,
+    bank_name: bankName,
+    bank_account_number: bankAccountNumber,
     payment_terms: paymentTerms,
     currency,
     delivery_lead_time_days: deliveryLeadTimeDays,
@@ -115,14 +121,17 @@ async function update(
 
   await db.query(
     `UPDATE suppliers
-     SET name = ?, contact_email = ?, contact_phone = ?, business_registration_no = ?, payment_terms = ?,
-         currency = ?, delivery_lead_time_days = ?, rating = ?, status = ?, notes = ?, updated_by = ?
+     SET name = ?, contact_email = ?, contact_phone = ?, business_registration_no = ?, bank_name = ?,
+         bank_account_number = ?, payment_terms = ?, currency = ?, delivery_lead_time_days = ?, rating = ?,
+         status = ?, notes = ?, updated_by = ?
      WHERE id = ?`,
     [
       name && name.trim() ? name.trim() : existing.name,
       contactEmail !== undefined ? clean(contactEmail) : existing.contact_email,
       contactPhone !== undefined ? clean(contactPhone) : existing.contact_phone,
       businessRegistrationNo !== undefined ? clean(businessRegistrationNo) : existing.business_registration_no,
+      bankName !== undefined ? clean(bankName) : existing.bank_name,
+      bankAccountNumber !== undefined ? clean(bankAccountNumber) : existing.bank_account_number,
       ALLOWED_PAYMENT_TERMS.has(paymentTerms) ? paymentTerms : existing.payment_terms,
       currency !== undefined ? clean(currency) || existing.currency : existing.currency,
       deliveryLeadTimeDays !== undefined && deliveryLeadTimeDays !== ""

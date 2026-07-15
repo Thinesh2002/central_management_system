@@ -20,6 +20,8 @@ const emptyForm = {
   contact_email: "",
   contact_phone: "",
   business_registration_no: "",
+  bank_name: "",
+  bank_account_number: "",
   payment_terms: "cod",
   currency: "LKR",
   delivery_lead_time_days: "",
@@ -101,6 +103,8 @@ export default function SuppliersPage() {
       contact_email: row.contact_email || "",
       contact_phone: row.contact_phone || "",
       business_registration_no: row.business_registration_no || "",
+      bank_name: row.bank_name || "",
+      bank_account_number: row.bank_account_number || "",
       payment_terms: row.payment_terms || "cod",
       currency: row.currency || "LKR",
       delivery_lead_time_days: row.delivery_lead_time_days ?? "",
@@ -218,6 +222,7 @@ export default function SuppliersPage() {
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Contact</th>
                 <th className="px-3 py-2 font-medium">Registration No</th>
+                <th className="px-3 py-2 font-medium">Bank Account</th>
                 <th className="px-3 py-2 font-medium">Payment Terms</th>
                 <th className="px-3 py-2 font-medium">Lead Time</th>
                 <th className="px-3 py-2 font-medium">Rating</th>
@@ -234,6 +239,10 @@ export default function SuppliersPage() {
                     <p className="text-slate-500">{row.contact_phone || "-"}</p>
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-slate-400">{row.business_registration_no || "-"}</td>
+                  <td className="px-3 py-2 text-slate-300">
+                    <p>{row.bank_name || "-"}</p>
+                    <p className="font-mono text-[11px] text-slate-500">{row.bank_account_number || "-"}</p>
+                  </td>
                   <td className="px-3 py-2 text-slate-300">
                     {PAYMENT_TERMS_OPTIONS.find((o) => o.value === row.payment_terms)?.label || row.payment_terms}
                   </td>
@@ -328,6 +337,24 @@ export default function SuppliersPage() {
                 <input
                   value={form.business_registration_no}
                   onChange={(e) => setField("business_registration_no", e.target.value)}
+                  className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-medium text-slate-100 outline-none focus:border-orange-400"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-[10px] font-semibold uppercase text-slate-500">Bank Name</span>
+                <input
+                  value={form.bank_name}
+                  onChange={(e) => setField("bank_name", e.target.value)}
+                  className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-medium text-slate-100 outline-none focus:border-orange-400"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-[10px] font-semibold uppercase text-slate-500">Bank Account Number</span>
+                <input
+                  value={form.bank_account_number}
+                  onChange={(e) => setField("bank_account_number", e.target.value)}
                   className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-medium text-slate-100 outline-none focus:border-orange-400"
                 />
               </label>
