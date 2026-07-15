@@ -3,7 +3,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   ClipboardList,
+  DollarSign,
   Monitor,
+  Play,
   RefreshCcw,
   ShieldAlert,
   Boxes,
@@ -14,11 +16,15 @@ import {
 import api, { getApiError } from "../../config/api";
 import { darazProductsApi } from "../../config/sub_api/daraz_api/daraz_products_api";
 import darazTitleOptimizerApi from "../../config/sub_api/daraz_api/daraz_title_optimizer_api";
+import darazPriceReconciliationApi from "../../config/sub_api/daraz_api/daraz_price_reconciliation_api";
+import { useToast } from "../../components/common/toast/ToastProvider";
+import { useIsMasterAdmin } from "../../components/common/permissions/PermissionsProvider";
 
 const TABS = [
   { key: "all", label: "All Logs", icon: ClipboardList },
   { key: "inventory", label: "Inventory Logs", icon: Boxes },
   { key: "title_optimizer", label: "Title Optimizer Logs", icon: Sparkles },
+  { key: "price_reconciliation", label: "Price Reconciliation", icon: DollarSign },
   { key: "system", label: "System Logs", icon: Monitor },
   { key: "sync", label: "Sync Logs", icon: RotateCcw },
 ];
@@ -286,6 +292,63 @@ function formatMoney(value) {
   return number.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
+function PriceReconciliationLogsTable({ rows, loading }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="bg-slate-950">
+          <tr>
+            {["Date", "Account", "SKU", "Price Change", "Status", "Message"].map((header) => (
+              <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-slate-800 bg-slate-900">
+          {rows.map((row) => (
+            <tr key={row.id} className="hover:bg-slate-800/70">
+              <td className="whitespace-nowrap px-3 py-2.5 text-[12px] text-slate-300">
+                {formatDate(row.created_at)}
+              </td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.account_code || row.account_id || "-"}</td>
+              <td className="px-3 py-2.5 font-mono text-[12px] text-slate-200">{row.seller_sku || "-"}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">
+                {formatMoney(row.old_price)} → {formatMoney(row.new_price)}
+              </td>
+              <td className="px-3 py-2.5">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                    row.sync_status === "success"
+                      ? "border-emerald-900 bg-emerald-950 text-emerald-300"
+                      : "border-red-900 bg-red-950 text-red-300"
+                  }`}
+                >
+                  {row.sync_status}
+                </span>
+              </td>
+              <td className="max-w-[320px] px-3 py-2.5">
+                <span className="line-clamp-1 text-[11px] text-slate-400">
+                  {row.message || row.error_message || "-"}
+                </span>
+              </td>
+            </tr>
+          ))}
+
+          {!rows.length && (
+            <tr>
+              <td colSpan="6" className="px-3 py-10 text-center text-[12px] text-slate-400">
+                {loading ? "Loading price reconciliation logs..." : "No price corrections logged yet."}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function TitleImpactModal({ logId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -529,6 +592,8 @@ function AllLogsTable({ rows, loading }) {
 }
 
 export default function LogsPage() {
+  const showToast = useToast();
+  const isMasterAdmin = useIsMasterAdmin();
   const [activeTab, setActiveTab] = useState("all");
 
   const [logs, setLogs] = useState([]);
@@ -544,6 +609,10 @@ export default function LogsPage() {
   const [titleOptimizerLogs, setTitleOptimizerLogs] = useState([]);
   const [titleOptimizerLoading, setTitleOptimizerLoading] = useState(false);
   const [impactLogId, setImpactLogId] = useState(null);
+
+  const [priceReconciliationLogs, setPriceReconciliationLogs] = useState([]);
+  const [priceReconciliationLoading, setPriceReconciliationLoading] = useState(false);
+  const [runningReconciliation, setRunningReconciliation] = useState(false);
 
   async function loadOrderInventoryLogs() {
     setOrderInventoryLoading(true);
@@ -568,6 +637,39 @@ export default function LogsPage() {
       setTitleOptimizerLogs([]);
     } finally {
       setTitleOptimizerLoading(false);
+    }
+  }
+
+  async function loadPriceReconciliationLogs() {
+    setPriceReconciliationLoading(true);
+
+    try {
+      const { data } = await api.get("/logs/price-reconciliation?limit=200");
+      setPriceReconciliationLogs(toArray(data));
+    } catch {
+      setPriceReconciliationLogs([]);
+    } finally {
+      setPriceReconciliationLoading(false);
+    }
+  }
+
+  async function runPriceReconciliationNow() {
+    setRunningReconciliation(true);
+
+    try {
+      const res = await darazPriceReconciliationApi.run();
+      const result = res?.data?.data;
+      showToast(
+        result
+          ? `Reconciliation complete: ${result.corrected} corrected, ${result.failed} failed out of ${result.listings_checked} checked.`
+          : "Reconciliation complete.",
+        { type: "success" }
+      );
+      await loadPriceReconciliationLogs();
+    } catch (err) {
+      showToast(getApiError(err, "Failed to run price reconciliation"), { type: "error" });
+    } finally {
+      setRunningReconciliation(false);
     }
   }
 
@@ -610,6 +712,11 @@ export default function LogsPage() {
       return;
     }
 
+    if (activeTab === "price_reconciliation") {
+      loadPriceReconciliationLogs();
+      return;
+    }
+
     if (activeTab === "inventory") {
       loadOrderInventoryLogs();
     }
@@ -623,6 +730,7 @@ export default function LogsPage() {
     loadSyncRuns();
     loadOrderInventoryLogs();
     loadTitleOptimizerLogs();
+    loadPriceReconciliationLogs();
   }, []);
 
   const inventoryLogs = useMemo(() => logs.filter(isInventoryRow), [logs]);
@@ -653,7 +761,12 @@ export default function LogsPage() {
     );
   }, [logs, syncRuns]);
 
-  const loading = activeTab === "sync" ? syncLoading : logsLoading;
+  const loading =
+    activeTab === "sync"
+      ? syncLoading
+      : activeTab === "price_reconciliation"
+      ? priceReconciliationLoading
+      : logsLoading;
 
   return (
     <div className="min-h-full w-full bg-slate-950 text-slate-100">
@@ -670,15 +783,29 @@ export default function LogsPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={refreshActiveTab}
-            disabled={loading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCcw size={13} className={loading ? "animate-spin" : ""} />
-            {loading ? "Loading..." : "Refresh"}
-          </button>
+          <div className="flex items-center gap-2">
+            {activeTab === "price_reconciliation" && isMasterAdmin && (
+              <button
+                type="button"
+                onClick={runPriceReconciliationNow}
+                disabled={runningReconciliation}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-[12px] font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Play size={13} />
+                {runningReconciliation ? "Running..." : "Run Now"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={refreshActiveTab}
+              disabled={loading}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-[12px] font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCcw size={13} className={loading ? "animate-spin" : ""} />
+              {loading ? "Loading..." : "Refresh"}
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -736,6 +863,8 @@ export default function LogsPage() {
                 {activeTab === "all" && `Showing ${unifiedRows.length} combined records.`}
                 {activeTab === "inventory" && `Showing ${inventoryLogs.length} inventory/price records.`}
                 {activeTab === "title_optimizer" && `Showing ${titleOptimizerLogs.length} scan and title-change records.`}
+                {activeTab === "price_reconciliation" &&
+                  `Showing ${priceReconciliationLogs.length} price correction records. Runs nightly at 01:00 Colombo, comparing internal Daraz target prices against Daraz's live cache and correcting drift.`}
                 {activeTab === "system" && `Showing latest ${logs.length} log records.`}
                 {activeTab === "sync" && `Showing latest ${syncRuns.length} Daraz sync runs.`}
               </p>
@@ -750,6 +879,9 @@ export default function LogsPage() {
               loading={titleOptimizerLoading}
               onViewImpact={setImpactLogId}
             />
+          )}
+          {activeTab === "price_reconciliation" && (
+            <PriceReconciliationLogsTable rows={priceReconciliationLogs} loading={priceReconciliationLoading} />
           )}
           {activeTab === "system" && <SystemLogsTable rows={logs} loading={logsLoading} />}
           {activeTab === "sync" && <SyncLogsTable rows={syncRuns} loading={syncLoading} />}

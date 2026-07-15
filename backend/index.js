@@ -33,6 +33,7 @@ const darazTransferRoutes = require("./routes/daraz/product_management/daraz_tra
 const darazTitleOptimizerRoutes = require("./routes/daraz/product_management/daraz_title_optimizer_route");
 const darazContentOptimizerRoutes = require("./routes/daraz/product_management/daraz_content_optimizer_route");
 const approvalCenterRoutes = require("./routes/daraz/product_management/approval_center_route");
+const darazPriceReconciliationRoutes = require("./routes/daraz/pricing/daraz_price_reconciliation_route");
 const darazInventorySyncRoutes = require("./routes/daraz/inventory/daraz_inventory_sync_route");
 const darazCatalogRoutes = require("./routes/marketplace/daraz_catalog_route");
 const darazSellerMetricsRoutes = require("./routes/daraz/marketplace_management/daraz_seller_metrics_routes");
@@ -90,6 +91,10 @@ const { startLowStockCheckJob } = require("./jobs/inventory/low_stock_check_job"
 const {
   startTransExpressTrackingSyncJob,
 } = require("./jobs/order_management/trans_express_tracking_sync_job");
+
+const {
+  startDarazPriceReconciliationJob,
+} = require("./jobs/daraz/pricing/daraz_price_reconciliation_job");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -215,6 +220,7 @@ app.use("/api/daraz/transfer", darazTransferRoutes);
 app.use("/api/daraz/title-optimizer", darazTitleOptimizerRoutes);
 app.use("/api/daraz/content-optimizer", darazContentOptimizerRoutes);
 app.use("/api/daraz/approval-center", approvalCenterRoutes);
+app.use("/api/daraz/price-reconciliation", darazPriceReconciliationRoutes);
 app.use("/api/daraz-inventory", darazInventorySyncRoutes);
 app.use("/api/daraz-catalog", darazCatalogRoutes);
 app.use("/api/daraz/seller-metrics", darazSellerMetricsRoutes);
@@ -285,6 +291,7 @@ async function startServer() {
     startJob("DARAZ_CONTENT_OPTIMIZER_JOB", startDarazContentOptimizerJob);
     startJob("LOW_STOCK_CHECK_JOB", startLowStockCheckJob);
     startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
+    startJob("DARAZ_PRICE_RECONCILIATION_JOB", startDarazPriceReconciliationJob);
   });
 }
 

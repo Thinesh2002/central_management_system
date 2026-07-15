@@ -1,6 +1,7 @@
 const logModel = require("../models/logModel");
 const inventoryLogModel = require("../models/order_management/inventory_log_model");
 const titleOptimizerLogModel = require("../models/daraz/product_management/daraz_title_optimizer_log_model");
+const priceReconciliationModel = require("../models/daraz/pricing/daraz_price_reconciliation_model");
 const accountModel = require("../models/marketplace/account_model");
 const userModel = require("../models/userModel");
 
@@ -50,4 +51,21 @@ async function getTitleOptimizerLogs(req, res) {
   return res.json({ success: true, logs: enrichedLogs });
 }
 
-module.exports = { getLogs, getLoginLogs, getSystemLogs, getInventoryLogs, getTitleOptimizerLogs };
+async function getPriceReconciliationLogs(req, res) {
+  const logs = await priceReconciliationModel.listRecent({
+    status: req.query.status,
+    seller_sku: req.query.sku,
+    limit: req.query.limit || 200,
+  });
+
+  return res.json({ success: true, logs });
+}
+
+module.exports = {
+  getLogs,
+  getLoginLogs,
+  getSystemLogs,
+  getInventoryLogs,
+  getTitleOptimizerLogs,
+  getPriceReconciliationLogs,
+};

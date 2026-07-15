@@ -32,7 +32,8 @@
     "patch-supplier-bank-details": "node scripts/run-sql-file.js 28_supplier_bank_details_patch.sql",
     "patch-grn": "node scripts/run-sql-file.js 29_grn_patch.sql",
     "patch-price-rules": "node scripts/run-sql-file.js 30_price_rules_patch.sql",
-    "patch-approval-center": "node scripts/run-sql-file.js 31_approval_center_patch.sql"
+    "patch-approval-center": "node scripts/run-sql-file.js 31_approval_center_patch.sql",
+    "patch-price-reconciliation": "node scripts/run-sql-file.js 32_daraz_price_reconciliation_patch.sql"
   },
   "author": "",
   "license": "ISC",
