@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Edit3, ImageOff, Plus, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
@@ -26,7 +27,8 @@ function ProductImage({src,name}){const url=imgUrl(src); return <div className="
 export default function PriceDashboardPage(){
  const showToast=useToast();
  const canViewCostPrice=useCanViewCostPrice();
- const [rows,setRows]=useState([]),[catalog,setCatalog]=useState([]),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[search,setSearch]=useState(""),[modalOpen,setModalOpen]=useState(false),[editing,setEditing]=useState(null),[form,setForm]=useState(emptyForm),[skuSearch,setSkuSearch]=useState(""),[productLoading,setProductLoading]=useState(false),[productMatches,setProductMatches]=useState([]),[selectedProduct,setSelectedProduct]=useState(null);
+ const [searchParams]=useSearchParams();
+ const [rows,setRows]=useState([]),[catalog,setCatalog]=useState([]),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[search,setSearch]=useState(()=>searchParams.get("search")||""),[modalOpen,setModalOpen]=useState(false),[editing,setEditing]=useState(null),[form,setForm]=useState(emptyForm),[skuSearch,setSkuSearch]=useState(""),[productLoading,setProductLoading]=useState(false),[productMatches,setProductMatches]=useState([]),[selectedProduct,setSelectedProduct]=useState(null);
  async function loadCatalog(q=""){setProductLoading(true); try{const res=await localProductsApi.getProducts({limit:200,search:q}); const items=normalizeList(res); const flat=flattenCatalog(items); if(!q)setCatalog(flat); return flat;}catch(e){console.warn("[PRICE_CATALOG_LOAD]",e); return [];}finally{setProductLoading(false);}}
  async function loadPrices(){setLoading(true);try{const [prices]=await Promise.all([localProductsApi.getPrices({limit:500,sort_by:'updated_at',sort_dir:'DESC'}),loadCatalog()]);setRows(normalizeList(prices));}catch(e){alert(getErrorMessage(e,'Unable to load prices.'));}finally{setLoading(false);}}
  useEffect(()=>{loadPrices();},[]);
