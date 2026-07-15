@@ -32,6 +32,7 @@ import {
   MessageSquare,
   Sparkles,
   Bell,
+  Truck,
 } from "lucide-react";
 
 const iconMap = {
@@ -59,6 +60,7 @@ const iconMap = {
   MessageSquare,
   Sparkles,
   Bell,
+  Truck,
 };
 
 const staticMenu = [
@@ -199,6 +201,14 @@ const staticMenu = [
     page_name: "Daraz Metrics",
     path: "/marketplace/daraz-metrics",
     icon: "BarChart3",
+    exact: true,
+  },
+  {
+    section: "SUPPLIER MANAGEMENT",
+    page_key: "suppliers",
+    page_name: "Suppliers",
+    path: "/suppliers",
+    icon: "Truck",
     exact: true,
   },
   {
