@@ -124,6 +124,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "OPTIMIZATION",
+    page_key: "approval_center",
+    page_name: "Approval Center",
+    path: "/approval-center",
+    icon: "ListChecks",
+    exact: true,
+  },
+  {
     section: "MARKETPLACE MANAGEMENT",
     page_key: "woo_products",
     page_name: "WooCommerce Products",

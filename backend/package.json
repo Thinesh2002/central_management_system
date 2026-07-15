@@ -31,7 +31,8 @@
     "patch-purchase-orders": "node scripts/run-sql-file.js 27_purchase_orders_patch.sql",
     "patch-supplier-bank-details": "node scripts/run-sql-file.js 28_supplier_bank_details_patch.sql",
     "patch-grn": "node scripts/run-sql-file.js 29_grn_patch.sql",
-    "patch-price-rules": "node scripts/run-sql-file.js 30_price_rules_patch.sql"
+    "patch-price-rules": "node scripts/run-sql-file.js 30_price_rules_patch.sql",
+    "patch-approval-center": "node scripts/run-sql-file.js 31_approval_center_patch.sql"
   },
   "author": "",
   "license": "ISC",
