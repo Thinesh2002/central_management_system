@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ClipboardList, Loader2, PackageCheck, Plus, Save, Search, Trash2, X } from "lucide-react";
+import { Check, ClipboardList, ImageOff, Loader2, PackageCheck, Plus, Save, Search, Trash2, X } from "lucide-react";
 
 import purchaseOrdersApi from "../../../config/sub_api/supplier_management_api/purchase_orders_api";
 import suppliersApi from "../../../config/sub_api/supplier_management_api/suppliers_api";
@@ -11,6 +11,35 @@ import Loader from "../../../components/common/Loader";
 
 const EDITABLE_STATUSES = new Set(["draft", "pending"]);
 const RECEIVABLE_STATUSES = new Set(["approved", "sent", "partially_received"]);
+
+const RAW_API_BASE_URL = String(
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
+).trim();
+const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
+
+function imgUrl(url) {
+  const u = String(url ?? "").trim();
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("/uploads/")) return `${BACKEND_BASE_URL}${u}`;
+  if (u.startsWith("uploads/")) return `${BACKEND_BASE_URL}/${u}`;
+  if (u.startsWith("/")) return `${BACKEND_BASE_URL}${u}`;
+  return `${BACKEND_BASE_URL}/${u.replace(/^\/+/, "")}`;
+}
+
+function ProductImage({ src, name }) {
+  const url = imgUrl(src);
+
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded border border-slate-700 bg-white">
+      {url ? (
+        <img src={url} alt={name || "Product"} className="h-full w-full object-cover" />
+      ) : (
+        <ImageOff size={13} className="text-slate-400" />
+      )}
+    </div>
+  );
+}
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -36,6 +65,12 @@ function clean(value) {
   return String(value ?? "").trim();
 }
 
+function mainImage(row = {}) {
+  return clean(
+    row.main_image_url || row.image_url || row.product_image_url || row.thumbnail_url || row.image || ""
+  );
+}
+
 function money(value) {
   const num = Number(value);
   return Number.isFinite(num) ? num.toFixed(2) : "0.00";
@@ -47,7 +82,7 @@ function todayInputValue() {
 }
 
 function emptyItem() {
-  return { sku: "", product_name: "", quantity_ordered: 1, unit_cost: 0 };
+  return { sku: "", product_name: "", image_url: "", quantity_ordered: 1, unit_cost: 0 };
 }
 
 function emptyForm() {
@@ -144,6 +179,7 @@ export default function PurchaseOrdersPage() {
       items: (row.items || []).map((item) => ({
         sku: item.sku,
         product_name: item.product_name,
+        image_url: "",
         quantity_ordered: item.quantity_ordered,
         unit_cost: item.unit_cost,
       })),
@@ -181,16 +217,17 @@ export default function PurchaseOrdersPage() {
 
       (Array.isArray(products) ? products : []).forEach((p) => {
         const productName = clean(p.product_name || p.title || p.name || p.sku || "Product");
+        const productImage = mainImage(p);
         const variants = Array.isArray(p.variants) ? p.variants : [];
 
         if (variants.length) {
           variants.forEach((v) => {
             const vSku = clean(v.variant_sku || v.sku || v.local_sku || "");
-            if (vSku) flat.push({ sku: vSku, product_name: productName });
+            if (vSku) flat.push({ sku: vSku, product_name: productName, image_url: mainImage(v) || productImage });
           });
         } else {
           const pSku = clean(p.sku || p.product_sku || p.local_sku || "");
-          if (pSku) flat.push({ sku: pSku, product_name: productName });
+          if (pSku) flat.push({ sku: pSku, product_name: productName, image_url: productImage });
         }
       });
 
@@ -218,6 +255,7 @@ export default function PurchaseOrdersPage() {
   async function selectMatch(index, match) {
     setItemField(index, "sku", match.sku);
     setItemField(index, "product_name", match.product_name);
+    setItemField(index, "image_url", match.image_url || "");
     setMatches((prev) => ({ ...prev, [index]: [] }));
 
     try {
@@ -601,7 +639,9 @@ export default function PurchaseOrdersPage() {
                 <div className="space-y-2">
                   {form.items.map((item, index) => (
                     <div key={index} className="rounded-md border border-slate-800 bg-[#070b16] p-2">
-                      <div className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+                      <div className="grid gap-2 sm:grid-cols-[auto_2fr_1fr_1fr_1fr_auto]">
+                        <ProductImage src={item.image_url} name={item.product_name} />
+
                         <div className="relative">
                           <input
                             value={item.sku}
@@ -621,15 +661,24 @@ export default function PurchaseOrdersPage() {
                             </p>
                           )}
                           {!!matches[index]?.length && (
-                            <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-700 bg-[#0b1220] shadow-xl">
+                            <div className="absolute z-20 mt-1 max-h-56 w-full min-w-70 overflow-y-auto rounded-md border border-slate-700 bg-[#0b1220] shadow-2xl">
+                              <p className="border-b border-slate-800 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                {matches[index].length} match{matches[index].length === 1 ? "" : "es"}
+                              </p>
                               {matches[index].map((match) => (
                                 <button
                                   key={match.sku}
                                   type="button"
                                   onClick={() => selectMatch(index, match)}
-                                  className="block w-full truncate px-2 py-1.5 text-left text-[11px] text-slate-200 hover:bg-slate-800"
+                                  className="flex w-full items-center gap-2 border-b border-slate-800 px-2.5 py-2 text-left hover:bg-slate-800/60"
                                 >
-                                  <span className="font-mono text-orange-400">{match.sku}</span> — {match.product_name}
+                                  <ProductImage src={match.image_url} name={match.product_name} />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-[12px] font-semibold text-slate-100">
+                                      {match.product_name}
+                                    </span>
+                                    <span className="block font-mono text-[10px] text-slate-400">{match.sku}</span>
+                                  </span>
                                 </button>
                               ))}
                             </div>
