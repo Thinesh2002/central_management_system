@@ -1,6 +1,7 @@
 const asyncHandler = require("../../../middleware/async_handler.js");
 const model = require("../../../models/product_management/product/product_price_model.js");
 const productLogModel = require("../../../models/product_management/product/product_log_model.js");
+const priceHistoryModel = require("../../../models/product_management/product/price_history_model.js");
 
 const TABLE_LABEL = "Product price";
 
@@ -274,6 +275,26 @@ const getBySku = asyncHandler(async (req, res) => {
   });
 });
 
+// Cost price is treated as sensitive the same way the frontend's
+// useCanViewCostPrice() hook gates the Cost column - master_admin or admin
+// only, checked here since these routes otherwise carry no auth middleware.
+const costHistory = asyncHandler(async (req, res) => {
+  const role = req.user?.role;
+
+  if (role !== "master_admin" && role !== "admin") {
+    const error = new Error("You do not have permission to view cost price history.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const sku = getSku(req);
+  if (!sku) throw badRequestError("SKU is required.");
+
+  const rows = await priceHistoryModel.listBySku(sku, { field_name: "cost_price" });
+
+  return sendSuccess(res, 200, "Cost price history loaded", rows);
+});
+
 const create = asyncHandler(async (req, res) => {
   const sku = getSku(req);
 
@@ -482,6 +503,7 @@ module.exports = {
   list,
   getById,
   getBySku,
+  costHistory,
   create,
   update,
   updateBySku,

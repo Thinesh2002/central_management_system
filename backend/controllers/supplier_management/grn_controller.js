@@ -35,7 +35,11 @@ async function create(req, res) {
       created_by: req.user?.id || null,
     });
 
-    const stockResults = await grnStockService.increaseStockForReceipt({ grnNumber: grn.grn_number, items });
+    const stockResults = await grnStockService.increaseStockForReceipt({
+      grnNumber: grn.grn_number,
+      items,
+      changedBy: req.user?.id || null,
+    });
     const failures = stockResults.filter((r) => r.status !== "success");
 
     return res.status(201).json({

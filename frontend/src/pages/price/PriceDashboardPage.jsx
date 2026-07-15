@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Edit3, ImageOff, Plus, Save, Search, X } from "lucide-react";
+import { Edit3, History, ImageOff, Plus, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
@@ -29,6 +29,8 @@ export default function PriceDashboardPage(){
  const canViewCostPrice=useCanViewCostPrice();
  const [searchParams]=useSearchParams();
  const [rows,setRows]=useState([]),[catalog,setCatalog]=useState([]),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[search,setSearch]=useState(()=>searchParams.get("search")||""),[modalOpen,setModalOpen]=useState(false),[editing,setEditing]=useState(null),[form,setForm]=useState(emptyForm),[skuSearch,setSkuSearch]=useState(""),[productLoading,setProductLoading]=useState(false),[productMatches,setProductMatches]=useState([]),[selectedProduct,setSelectedProduct]=useState(null);
+ const [historyOpen,setHistoryOpen]=useState(false),[historyLoading,setHistoryLoading]=useState(false),[historySku,setHistorySku]=useState(""),[historyRows,setHistoryRows]=useState([]);
+ async function openHistory(row){const s=sku(row); setHistorySku(s); setHistoryOpen(true); setHistoryLoading(true); setHistoryRows([]); try{const res=await localProductsApi.getCostHistoryBySku(s); setHistoryRows(normalizeList(res));}catch(e){showToast(getErrorMessage(e,'Unable to load cost history.'),{type:'error'});setHistoryOpen(false);}finally{setHistoryLoading(false);}}
  async function loadCatalog(q=""){setProductLoading(true); try{const res=await localProductsApi.getProducts({limit:200,search:q}); const items=normalizeList(res); const flat=flattenCatalog(items); if(!q)setCatalog(flat); return flat;}catch(e){console.warn("[PRICE_CATALOG_LOAD]",e); return [];}finally{setProductLoading(false);}}
  async function loadPrices(){setLoading(true);try{const [prices]=await Promise.all([localProductsApi.getPrices({limit:500,sort_by:'updated_at',sort_dir:'DESC'}),loadCatalog()]);setRows(normalizeList(prices));}catch(e){alert(getErrorMessage(e,'Unable to load prices.'));}finally{setLoading(false);}}
  useEffect(()=>{loadPrices();},[]);
@@ -123,9 +125,16 @@ export default function PriceDashboardPage(){
                       <td className="px-4 py-3 text-right text-slate-300">{fmt(r.profit_percent)}</td>
                       <td className="px-4 py-3 text-slate-400">{r.currency || "LKR"}</td>
                       <td className="px-4 py-3 text-right">
-                        <button type="button" onClick={() => openEdit(r)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-emerald-400 hover:text-emerald-300">
-                          <Edit3 size={13} /> Modify
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          {canViewCostPrice && (
+                            <button type="button" onClick={() => openHistory(r)} title="Cost Price History" className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-cyan-400 hover:text-cyan-300">
+                              <History size={13} />
+                            </button>
+                          )}
+                          <button type="button" onClick={() => openEdit(r)} className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-emerald-400 hover:text-emerald-300">
+                            <Edit3 size={13} /> Modify
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -218,6 +227,49 @@ export default function PriceDashboardPage(){
             </div>
           </div>
         </form>
+      </div>
+    )}
+
+    {historyOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3" onClick={() => setHistoryOpen(false)}>
+        <div onClick={(e) => e.stopPropagation()} className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+            <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-white"><History size={15} /> Cost Price History — {historySku}</h2>
+            <button type="button" onClick={() => setHistoryOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="p-4">
+            {historyLoading ? (
+              <Loader label="Loading cost history..." minHeight="120px" />
+            ) : !historyRows.length ? (
+              <p className="rounded-md border border-slate-800 bg-[#070b16] px-3 py-6 text-center text-[12px] text-slate-500">
+                No cost price changes recorded yet for this SKU. Cost history is logged automatically when goods are received against a purchase order.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border border-slate-800">
+                <table className="w-full text-left text-[12px]">
+                  <thead className="bg-slate-900/60 text-[10px] uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-1.5 font-medium">Date</th>
+                      <th className="px-3 py-1.5 font-medium text-right">Old Cost</th>
+                      <th className="px-3 py-1.5 font-medium text-right">New Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {historyRows.map((h) => (
+                      <tr key={h.id}>
+                        <td className="px-3 py-1.5 text-slate-300">{h.created_at ? String(h.created_at).slice(0, 10) : "-"}</td>
+                        <td className="px-3 py-1.5 text-right text-slate-400">{fmt(h.old_value)}</td>
+                        <td className="px-3 py-1.5 text-right font-semibold text-emerald-300">{fmt(h.new_value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     )}
   </div>

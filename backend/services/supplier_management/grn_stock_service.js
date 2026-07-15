@@ -1,14 +1,45 @@
 const productInventoryModel = require("../../models/product_management/product/product_inventory_model");
+const productPriceModel = require("../../models/product_management/product/product_price_model");
+const priceHistoryModel = require("../../models/product_management/product/price_history_model");
 const skuMappingModel = require("../../models/product_management/sku_mapping/sku_mapping_model");
 const inventoryLogModel = require("../../models/order_management/inventory_log_model");
 const darazInventorySyncService = require("../daraz/inventory/daraz_inventory_sync_service");
+
+// A GRN's unit_cost is the most reliable actual purchase cost there is -
+// push it into product_prices.cost_price and log the change, so the Price
+// Dashboard's cost history reflects real receiving prices, not manual
+// guesses. Never blocks the stock update - a missing price row or a write
+// failure here is logged and swallowed, same pattern as the Daraz push.
+async function updateCostPrice({ resolvedSku, unitCost, grnNumber, changedBy }) {
+  if (!Number.isFinite(unitCost) || unitCost <= 0) return;
+
+  try {
+    const priceRow = await productPriceModel.findBySku(resolvedSku);
+    if (!priceRow) return;
+
+    const oldCost = Number(priceRow.cost_price || 0);
+    if (Math.round(oldCost * 100) === Math.round(unitCost * 100)) return;
+
+    await productPriceModel.updateBySku(resolvedSku, { cost_price: unitCost }, { updated_by: changedBy });
+
+    await priceHistoryModel.create({
+      sku: resolvedSku,
+      field_name: "cost_price",
+      old_value: oldCost,
+      new_value: unitCost,
+      changed_by: changedBy,
+    });
+  } catch (error) {
+    console.error("[GRN_COST_PRICE_UPDATE_FAILED]", { grnNumber, sku: resolvedSku, message: error.message });
+  }
+}
 
 // Mirrors order_inventory_deduction_service's deductStockForNewItem, but in
 // the opposite direction: goods physically arrived, so stock goes up. Kept
 // as its own per-item try/catch loop (not a transaction) so one bad/missing
 // SKU doesn't block the rest of a receipt's stock from updating - the GRN
 // record itself is already committed by this point regardless.
-async function increaseStockForReceipt({ grnNumber, items }) {
+async function increaseStockForReceipt({ grnNumber, items, changedBy = null }) {
   const results = [];
 
   for (const item of items) {
@@ -68,6 +99,8 @@ async function increaseStockForReceipt({ grnNumber, items }) {
       } catch (pushError) {
         console.error("[GRN_INVENTORY_CROSS_ACCOUNT_SYNC_FAILED]", pushError.message);
       }
+
+      await updateCostPrice({ resolvedSku, unitCost: Number(item.unit_cost), grnNumber, changedBy });
 
       results.push({ sku: resolvedSku, status: "success", old_stock_qty: oldQty, new_stock_qty: newQty });
     } catch (error) {

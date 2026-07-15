@@ -203,6 +203,11 @@ export const localProductsApi = {
       `/product-management/product-prices/sku/${safeValue(sku)}`
     ),
 
+  getCostHistoryBySku: (sku) =>
+    api.get(
+      `/product-management/product-prices/sku/${safeValue(sku)}/cost-history`
+    ),
+
   createPrice: (payload) =>
     api.post("/product-management/product-prices", payload),
 
