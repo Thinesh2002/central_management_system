@@ -19,6 +19,7 @@ import PriceDashboardPage from "./pages/price/PriceDashboardPage";
 import OrderManagementRoutes from "./routes/order_management/index";
 import SuppliersPage from "./pages/supplier_management/suppliers_page";
 import PurchaseOrdersPage from "./pages/supplier_management/purchase_orders_page";
+import GoodsReceivedPage from "./pages/supplier_management/goods_received_page";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./config/ProtectedRoute";
@@ -80,6 +81,15 @@ export default function App() {
         element={
           <ProtectedLayout>
             <PurchaseOrdersPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/goods-received"
+        element={
+          <ProtectedLayout>
+            <GoodsReceivedPage />
           </ProtectedLayout>
         }
       />

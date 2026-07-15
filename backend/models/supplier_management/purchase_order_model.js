@@ -26,6 +26,11 @@ const ALLOWED_TRANSITIONS = {
 // once approved it's considered sent to the supplier.
 const EDITABLE_STATUSES = new Set(["draft", "pending"]);
 
+// A GRN can only be raised against a PO that's actually been sent (or
+// already partially received) - draft/pending/cancelled/received have
+// nothing left to receive.
+const RECEIVABLE_STATUSES = new Set(["approved", "sent", "partially_received"]);
+
 const PO_NUMBER_PREFIX = "PO";
 
 function clean(value) {
@@ -355,4 +360,5 @@ module.exports = {
   updateStatus,
   softDelete,
   previewNextNumber,
+  RECEIVABLE_STATUSES,
 };

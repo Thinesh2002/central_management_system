@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ClipboardList, Loader2, Plus, Save, Search, Trash2, X } from "lucide-react";
+import { Check, ClipboardList, Loader2, PackageCheck, Plus, Save, Search, Trash2, X } from "lucide-react";
 
 import purchaseOrdersApi from "../../../config/sub_api/supplier_management_api/purchase_orders_api";
 import suppliersApi from "../../../config/sub_api/supplier_management_api/suppliers_api";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
+import grnApi from "../../../config/sub_api/supplier_management_api/grn_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
 import Loader from "../../../components/common/Loader";
 
 const EDITABLE_STATUSES = new Set(["draft", "pending"]);
+const RECEIVABLE_STATUSES = new Set(["approved", "sent", "partially_received"]);
 
 const STATUS_OPTIONS = [
   { value: "draft", label: "Draft" },
@@ -90,6 +92,12 @@ export default function PurchaseOrdersPage() {
   const [matches, setMatches] = useState({});
   const [searching, setSearching] = useState(null);
   const searchTimers = useRef({});
+
+  const [receiveOpen, setReceiveOpen] = useState(false);
+  const [receivingPo, setReceivingPo] = useState(null);
+  const [receiveLoading, setReceiveLoading] = useState(false);
+  const [receiveSaving, setReceiveSaving] = useState(false);
+  const [receiveForm, setReceiveForm] = useState({ received_date: todayInputValue(), notes: "", items: [] });
 
   const readOnly = editing ? !EDITABLE_STATUSES.has(editing.status) : false;
 
@@ -288,6 +296,82 @@ export default function PurchaseOrdersPage() {
     }
   }
 
+  async function openReceive(row) {
+    setReceiveOpen(true);
+    setReceiveLoading(true);
+    setReceivingPo(null);
+
+    try {
+      const res = await purchaseOrdersApi.getById(row.id);
+      const po = res?.data;
+      setReceivingPo(po);
+      setReceiveForm({
+        received_date: todayInputValue(),
+        notes: "",
+        items: (po?.items || [])
+          .map((item) => ({
+            purchase_order_item_id: item.id,
+            sku: item.sku,
+            product_name: item.product_name,
+            quantity_ordered: item.quantity_ordered,
+            quantity_already_received: item.quantity_received,
+            remaining: item.quantity_ordered - item.quantity_received,
+            quantity_to_receive: item.quantity_ordered - item.quantity_received,
+            unit_cost: item.unit_cost,
+          }))
+          .filter((item) => item.remaining > 0),
+      });
+    } catch (err) {
+      showToast(getApiError(err, "Failed to load purchase order"), { type: "error" });
+      setReceiveOpen(false);
+    } finally {
+      setReceiveLoading(false);
+    }
+  }
+
+  function setReceiveItemField(index, key, value) {
+    setReceiveForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
+    }));
+  }
+
+  async function submitReceive(event) {
+    event.preventDefault();
+    if (!receivingPo) return;
+
+    const itemsToReceive = receiveForm.items.filter((item) => Number(item.quantity_to_receive) > 0);
+
+    if (!itemsToReceive.length) {
+      showToast("Enter a quantity received for at least one line item.", { type: "error" });
+      return;
+    }
+
+    setReceiveSaving(true);
+
+    try {
+      await grnApi.create({
+        purchase_order_id: receivingPo.id,
+        received_date: receiveForm.received_date,
+        notes: receiveForm.notes,
+        items: itemsToReceive.map((item) => ({
+          purchase_order_item_id: item.purchase_order_item_id,
+          sku: item.sku,
+          quantity_received: Number(item.quantity_to_receive),
+          unit_cost: item.unit_cost,
+        })),
+      });
+
+      showToast("Goods received and stock updated.", { type: "success" });
+      setReceiveOpen(false);
+      await load();
+    } catch (err) {
+      showToast(getApiError(err, "Failed to record goods received"), { type: "error" });
+    } finally {
+      setReceiveSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -396,6 +480,16 @@ export default function PurchaseOrdersPage() {
                       >
                         {EDITABLE_STATUSES.has(row.status) ? <Save size={12} /> : <Search size={12} />}
                       </button>
+                      {RECEIVABLE_STATUSES.has(row.status) && (
+                        <button
+                          type="button"
+                          onClick={() => openReceive(row)}
+                          title="Receive Goods"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-emerald-900 bg-emerald-950 text-emerald-300 hover:bg-emerald-900"
+                        >
+                          <PackageCheck size={12} />
+                        </button>
+                      )}
                       {(row.status === "draft" || row.status === "cancelled") && (
                         <button
                           type="button"
@@ -659,6 +753,122 @@ export default function PurchaseOrdersPage() {
                   className="inline-flex h-8 items-center gap-1.5 rounded-md bg-orange-500 px-3 text-[12px] font-semibold text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save size={13} /> {saving ? "Saving..." : "Save Purchase Order"}
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
+      {receiveOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3" onClick={() => setReceiveOpen(false)}>
+          <form
+            onSubmit={submitReceive}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-linear-to-r from-emerald-950 via-[#0f1f1a] to-emerald-950 px-4 py-3">
+              <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-white">
+                <PackageCheck size={16} />
+                Receive Goods — {receivingPo?.po_number || ""}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setReceiveOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {receiveLoading ? (
+              <Loader label="Loading purchase order..." minHeight="160px" />
+            ) : (
+              <div className="space-y-4 p-4">
+                <p className="text-[12px] text-slate-400">
+                  Supplier: <span className="font-semibold text-slate-200">{receivingPo?.supplier_name}</span>
+                </p>
+
+                <label className="space-y-1">
+                  <span className="text-[10px] font-semibold uppercase text-slate-500">Received Date</span>
+                  <input
+                    type="date"
+                    value={receiveForm.received_date}
+                    onChange={(e) => setReceiveForm((prev) => ({ ...prev, received_date: e.target.value }))}
+                    className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-medium text-slate-100 outline-none focus:border-emerald-400"
+                  />
+                </label>
+
+                {!receiveForm.items.length ? (
+                  <p className="rounded-md border border-slate-800 bg-[#070b16] px-3 py-4 text-center text-[12px] text-slate-500">
+                    Everything on this purchase order has already been received.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto rounded-md border border-slate-800">
+                    <table className="w-full text-left text-[11px]">
+                      <thead className="bg-slate-900/60 text-[10px] uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-2 py-1.5 font-medium">SKU</th>
+                          <th className="px-2 py-1.5 font-medium">Ordered</th>
+                          <th className="px-2 py-1.5 font-medium">Received</th>
+                          <th className="px-2 py-1.5 font-medium">Remaining</th>
+                          <th className="px-2 py-1.5 font-medium">Receive Now</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {receiveForm.items.map((item, index) => (
+                          <tr key={item.purchase_order_item_id}>
+                            <td className="px-2 py-1.5">
+                              <p className="font-mono font-semibold text-slate-100">{item.sku}</p>
+                              <p className="truncate text-slate-500">{item.product_name}</p>
+                            </td>
+                            <td className="px-2 py-1.5 text-slate-300">{item.quantity_ordered}</td>
+                            <td className="px-2 py-1.5 text-slate-300">{item.quantity_already_received}</td>
+                            <td className="px-2 py-1.5 text-slate-300">{item.remaining}</td>
+                            <td className="px-2 py-1.5">
+                              <input
+                                type="number"
+                                min="0"
+                                max={item.remaining}
+                                value={item.quantity_to_receive}
+                                onChange={(e) => setReceiveItemField(index, "quantity_to_receive", e.target.value)}
+                                className="h-7 w-20 rounded-md border border-slate-700 bg-[#070b16] px-2 text-[11px] text-slate-100 outline-none focus:border-emerald-400"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <label className="space-y-1">
+                  <span className="text-[10px] font-semibold uppercase text-slate-500">Notes</span>
+                  <textarea
+                    rows={2}
+                    value={receiveForm.notes}
+                    onChange={(e) => setReceiveForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className="w-full rounded-md border border-slate-700 bg-[#070b16] px-3 py-2 text-[12px] text-slate-100 outline-none focus:border-emerald-400"
+                  />
+                </label>
+              </div>
+            )}
+
+            <div className="sticky bottom-0 flex justify-end gap-2 border-t border-slate-800 bg-[#0b1220] px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setReceiveOpen(false)}
+                className="h-8 rounded-md border border-slate-700 px-3 text-[12px] font-semibold text-slate-300"
+              >
+                Cancel
+              </button>
+              {!!receiveForm.items.length && (
+                <button
+                  type="submit"
+                  disabled={receiveSaving}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-emerald-600 px-3 text-[12px] font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <PackageCheck size={13} /> {receiveSaving ? "Saving..." : "Confirm Receipt"}
                 </button>
               )}
             </div>

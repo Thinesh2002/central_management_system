@@ -220,6 +220,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "SUPPLIER MANAGEMENT",
+    page_key: "grn",
+    page_name: "Goods Received Notes",
+    path: "/goods-received",
+    icon: "Boxes",
+    exact: true,
+  },
+  {
     section: "SETTINGS",
     page_key: "notifications",
     page_name: "Notifications",

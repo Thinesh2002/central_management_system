@@ -48,6 +48,7 @@ const darazFinanceRoutes = require("./routes/daraz/finance_management/daraz_fina
 const notificationRoutes = require("./routes/notifications/notification_routes");
 const supplierRoutes = require("./routes/supplier_management/supplier_routes");
 const purchaseOrderRoutes = require("./routes/supplier_management/purchase_order_routes");
+const grnRoutes = require("./routes/supplier_management/grn_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -228,6 +229,7 @@ app.use("/api/daraz/finance", darazFinanceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
+app.use("/api/grn", grnRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
