@@ -5,6 +5,7 @@ const priceRuleModel = require("../../models/product_management/product/price_ru
 const skuMappingModel = require("../../models/product_management/sku_mapping/sku_mapping_model");
 const inventoryLogModel = require("../../models/order_management/inventory_log_model");
 const darazInventorySyncService = require("../daraz/inventory/daraz_inventory_sync_service");
+const wooInventorySyncService = require("../woo/inventory/woo_inventory_sync_service");
 
 // Price Rule Engine, "suggest only": recomputes suggested_sale_price /
 // suggested_daraz_price / suggested_woo_price from the new cost using
@@ -139,6 +140,17 @@ async function increaseStockForReceipt({ grnNumber, items, changedBy = null }) {
         });
       } catch (pushError) {
         console.error("[GRN_INVENTORY_CROSS_ACCOUNT_SYNC_FAILED]", pushError.message);
+      }
+
+      try {
+        await wooInventorySyncService.pushSkuStockToWoo({
+          sku: resolvedSku,
+          quantity: newQty,
+          source: "grn_received",
+          userId: changedBy,
+        });
+      } catch (pushError) {
+        console.error("[GRN_WOO_STOCK_SYNC_FAILED]", pushError.message);
       }
 
       await updateCostPrice({ resolvedSku, unitCost: Number(item.unit_cost), grnNumber, changedBy });

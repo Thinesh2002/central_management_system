@@ -127,9 +127,63 @@ async function getCategories(credentials, query = {}) {
   };
 }
 
+async function getProductVariations(credentials, productId, query = {}) {
+  const client = createWooClient(credentials);
+
+  const response = await client.get(`/products/${productId}/variations`, {
+    params: {
+      page: query.page || 1,
+      per_page: query.per_page || 100,
+    },
+  });
+
+  return {
+    data: response.data,
+    total: Number(response.headers["x-wp-total"] || 0),
+    total_pages: Number(response.headers["x-wp-totalpages"] || 0),
+  };
+}
+
+async function createProduct(credentials, payload = {}) {
+  const client = createWooClient(credentials);
+
+  try {
+    const response = await client.post("/products", payload);
+    return response.data;
+  } catch (error) {
+    throw Object.assign(new Error(getWooError(error).message), { woo: getWooError(error) });
+  }
+}
+
+async function updateProduct(credentials, productId, payload = {}) {
+  const client = createWooClient(credentials);
+
+  try {
+    const response = await client.put(`/products/${productId}`, payload);
+    return response.data;
+  } catch (error) {
+    throw Object.assign(new Error(getWooError(error).message), { woo: getWooError(error) });
+  }
+}
+
+async function updateProductVariation(credentials, productId, variationId, payload = {}) {
+  const client = createWooClient(credentials);
+
+  try {
+    const response = await client.put(`/products/${productId}/variations/${variationId}`, payload);
+    return response.data;
+  } catch (error) {
+    throw Object.assign(new Error(getWooError(error).message), { woo: getWooError(error) });
+  }
+}
+
 module.exports = {
   cleanStoreUrl,
   testConnection,
   getProducts,
   getCategories,
+  getProductVariations,
+  createProduct,
+  updateProduct,
+  updateProductVariation,
 };

@@ -96,6 +96,10 @@ const {
   startDarazPriceReconciliationJob,
 } = require("./jobs/daraz/pricing/daraz_price_reconciliation_job");
 
+const {
+  startWooProductSyncJob,
+} = require("./jobs/woo/product/woo_product_sync_job");
+
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
@@ -292,6 +296,7 @@ async function startServer() {
     startJob("LOW_STOCK_CHECK_JOB", startLowStockCheckJob);
     startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
     startJob("DARAZ_PRICE_RECONCILIATION_JOB", startDarazPriceReconciliationJob);
+    startJob("WOO_PRODUCT_SYNC_JOB", startWooProductSyncJob);
   });
 }
 

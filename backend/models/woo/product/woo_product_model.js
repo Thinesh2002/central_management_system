@@ -554,6 +554,44 @@ async function getSyncedWooProductDetail(accountId, wooProductId) {
   };
 }
 
+// Mirrors daraz_inventory_sync_model.findDarazListingsBySku - a simple
+// product's push target is its own woo_product_id (no variation_id); a
+// variable product's SKU-bearing unit is a variation, pushed against
+// its parent woo_product_id + woo_variation_id.
+async function findWooListingsBySku(sku) {
+  const sellerSku = String(sku || "").trim();
+  if (!sellerSku) return [];
+
+  const [rows] = await productPool.query(
+    `SELECT * FROM (
+       SELECT
+         wp.account_id,
+         wp.woo_product_id,
+         NULL AS woo_variation_id,
+         wp.sku,
+         wp.stock_quantity AS current_stock_quantity,
+         wp.regular_price AS current_price
+       FROM woo_products wp
+       WHERE LOWER(wp.sku) = LOWER(?)
+
+       UNION ALL
+
+       SELECT
+         wv.account_id,
+         wv.woo_product_id,
+         wv.woo_variation_id,
+         wv.sku,
+         wv.stock_quantity AS current_stock_quantity,
+         wv.regular_price AS current_price
+       FROM woo_product_variants wv
+       WHERE LOWER(wv.sku) = LOWER(?)
+     ) matches`,
+    [sellerSku, sellerSku]
+  );
+
+  return rows;
+}
+
 module.exports = {
   upsertWooProduct,
   upsertWooVariation,
@@ -564,4 +602,5 @@ module.exports = {
   getDueWooAccounts,
   listSyncedWooProducts,
   getSyncedWooProductDetail,
+  findWooListingsBySku,
 };
