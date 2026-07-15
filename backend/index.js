@@ -27,6 +27,7 @@ const attributeValueRoutes = require("./routes/product_management/attribute/attr
 
 const marketplaceRoutes = require("./routes/marketplace/marketplace_routes");
 const accountController = require("./controllers/marketplace/account_controller");
+const darazWebhookController = require("./controllers/daraz/order_management/daraz_webhook_controller");
 
 const darazProductSyncRoutes = require("./routes/daraz/product_management/daraz_product_sync_route");
 const darazTransferRoutes = require("./routes/daraz/product_management/daraz_transfer_route");
@@ -217,6 +218,14 @@ app.get(
 app.get(
   "/api/daraz/oauth/callback",
   accountController.handleDarazOAuthCallback
+);
+
+// Public, no `protect` - Daraz's push notification can't carry a JWT,
+// verified by HMAC signature inside the controller instead. See
+// daraz_webhook_controller.js for the trust model.
+app.post(
+  "/api/daraz/webhooks/orders",
+  darazWebhookController.handleOrderWebhook
 );
 
 app.use("/api/daraz-products", darazProductSyncRoutes);

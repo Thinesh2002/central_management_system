@@ -2,6 +2,7 @@ const logModel = require("../models/logModel");
 const inventoryLogModel = require("../models/order_management/inventory_log_model");
 const titleOptimizerLogModel = require("../models/daraz/product_management/daraz_title_optimizer_log_model");
 const priceReconciliationModel = require("../models/daraz/pricing/daraz_price_reconciliation_model");
+const webhookLogModel = require("../models/daraz/order_management/daraz_webhook_log_model");
 const accountModel = require("../models/marketplace/account_model");
 const userModel = require("../models/userModel");
 
@@ -61,6 +62,15 @@ async function getPriceReconciliationLogs(req, res) {
   return res.json({ success: true, logs });
 }
 
+async function getDarazWebhookLogs(req, res) {
+  const logs = await webhookLogModel.listRecent({
+    status: req.query.status,
+    limit: req.query.limit || 200,
+  });
+
+  return res.json({ success: true, logs });
+}
+
 module.exports = {
   getLogs,
   getLoginLogs,
@@ -68,4 +78,5 @@ module.exports = {
   getInventoryLogs,
   getTitleOptimizerLogs,
   getPriceReconciliationLogs,
+  getDarazWebhookLogs,
 };

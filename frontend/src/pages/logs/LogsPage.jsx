@@ -11,6 +11,7 @@ import {
   Boxes,
   RotateCcw,
   Sparkles,
+  Webhook,
   X,
 } from "lucide-react";
 import api, { getApiError } from "../../config/api";
@@ -25,6 +26,7 @@ const TABS = [
   { key: "inventory", label: "Inventory Logs", icon: Boxes },
   { key: "title_optimizer", label: "Title Optimizer Logs", icon: Sparkles },
   { key: "price_reconciliation", label: "Price Reconciliation", icon: DollarSign },
+  { key: "daraz_webhooks", label: "Daraz Webhooks", icon: Webhook },
   { key: "system", label: "System Logs", icon: Monitor },
   { key: "sync", label: "Sync Logs", icon: RotateCcw },
 ];
@@ -349,6 +351,69 @@ function PriceReconciliationLogsTable({ rows, loading }) {
   );
 }
 
+function webhookStatusClass(status) {
+  if (status === "processed") return "border-emerald-900 bg-emerald-950 text-emerald-300";
+  if (status === "received") return "border-slate-700 bg-slate-800/60 text-slate-400";
+  return "border-red-900 bg-red-950 text-red-300";
+}
+
+function DarazWebhookLogsTable({ rows, loading }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="bg-slate-950">
+          <tr>
+            {["Date", "Order ID", "Account", "Signature", "Status", "Message"].map((header) => (
+              <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-slate-800 bg-slate-900">
+          {rows.map((row) => (
+            <tr key={row.id} className="hover:bg-slate-800/70">
+              <td className="whitespace-nowrap px-3 py-2.5 text-[12px] text-slate-300">
+                {formatDate(row.created_at)}
+              </td>
+              <td className="px-3 py-2.5 font-mono text-[12px] text-slate-200">{row.order_id || "-"}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.account_id || "-"}</td>
+              <td className="px-3 py-2.5 text-[12px]">
+                {row.signature_valid === null ? (
+                  <span className="text-slate-500">-</span>
+                ) : row.signature_valid ? (
+                  <span className="text-emerald-400">Valid</span>
+                ) : (
+                  <span className="text-red-400">Invalid</span>
+                )}
+              </td>
+              <td className="px-3 py-2.5">
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${webhookStatusClass(row.status)}`}
+                >
+                  {row.status}
+                </span>
+              </td>
+              <td className="max-w-[320px] px-3 py-2.5">
+                <span className="line-clamp-1 text-[11px] text-slate-400">{row.message || "-"}</span>
+              </td>
+            </tr>
+          ))}
+
+          {!rows.length && (
+            <tr>
+              <td colSpan="6" className="px-3 py-10 text-center text-[12px] text-slate-400">
+                {loading ? "Loading webhook logs..." : "No webhook calls received yet."}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function TitleImpactModal({ logId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -614,6 +679,9 @@ export default function LogsPage() {
   const [priceReconciliationLoading, setPriceReconciliationLoading] = useState(false);
   const [runningReconciliation, setRunningReconciliation] = useState(false);
 
+  const [darazWebhookLogs, setDarazWebhookLogs] = useState([]);
+  const [darazWebhookLoading, setDarazWebhookLoading] = useState(false);
+
   async function loadOrderInventoryLogs() {
     setOrderInventoryLoading(true);
 
@@ -673,6 +741,19 @@ export default function LogsPage() {
     }
   }
 
+  async function loadDarazWebhookLogs() {
+    setDarazWebhookLoading(true);
+
+    try {
+      const { data } = await api.get("/logs/daraz-webhooks?limit=200");
+      setDarazWebhookLogs(toArray(data));
+    } catch {
+      setDarazWebhookLogs([]);
+    } finally {
+      setDarazWebhookLoading(false);
+    }
+  }
+
   async function loadLogs() {
     setLogsLoading(true);
     setLogsError("");
@@ -717,6 +798,11 @@ export default function LogsPage() {
       return;
     }
 
+    if (activeTab === "daraz_webhooks") {
+      loadDarazWebhookLogs();
+      return;
+    }
+
     if (activeTab === "inventory") {
       loadOrderInventoryLogs();
     }
@@ -731,6 +817,7 @@ export default function LogsPage() {
     loadOrderInventoryLogs();
     loadTitleOptimizerLogs();
     loadPriceReconciliationLogs();
+    loadDarazWebhookLogs();
   }, []);
 
   const inventoryLogs = useMemo(() => logs.filter(isInventoryRow), [logs]);
@@ -766,6 +853,8 @@ export default function LogsPage() {
       ? syncLoading
       : activeTab === "price_reconciliation"
       ? priceReconciliationLoading
+      : activeTab === "daraz_webhooks"
+      ? darazWebhookLoading
       : logsLoading;
 
   return (
@@ -865,6 +954,8 @@ export default function LogsPage() {
                 {activeTab === "title_optimizer" && `Showing ${titleOptimizerLogs.length} scan and title-change records.`}
                 {activeTab === "price_reconciliation" &&
                   `Showing ${priceReconciliationLogs.length} price correction records. Runs nightly at 01:00 Colombo, comparing internal Daraz target prices against Daraz's live cache and correcting drift.`}
+                {activeTab === "daraz_webhooks" &&
+                  `Showing ${darazWebhookLogs.length} inbound webhook calls. Every call is logged regardless of outcome so a signature or payload mismatch is diagnosable once the webhook URL is registered in Daraz's app console.`}
                 {activeTab === "system" && `Showing latest ${logs.length} log records.`}
                 {activeTab === "sync" && `Showing latest ${syncRuns.length} Daraz sync runs.`}
               </p>
@@ -882,6 +973,9 @@ export default function LogsPage() {
           )}
           {activeTab === "price_reconciliation" && (
             <PriceReconciliationLogsTable rows={priceReconciliationLogs} loading={priceReconciliationLoading} />
+          )}
+          {activeTab === "daraz_webhooks" && (
+            <DarazWebhookLogsTable rows={darazWebhookLogs} loading={darazWebhookLoading} />
           )}
           {activeTab === "system" && <SystemLogsTable rows={logs} loading={logsLoading} />}
           {activeTab === "sync" && <SyncLogsTable rows={syncRuns} loading={syncLoading} />}

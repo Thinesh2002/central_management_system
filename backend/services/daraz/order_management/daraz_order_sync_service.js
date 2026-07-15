@@ -6,6 +6,49 @@ const orderInventoryDeductionService = require("../../order_management/order_inv
 
 const PAGE_SIZE = 100;
 
+// Upserts one raw Daraz order + its items, deducting stock only for items
+// newly seen this call. Shared by the polling loop below and by the
+// webhook receiver (daraz_webhook_controller.js), so an order synced in
+// via a push notification goes through the exact same idempotent path a
+// polled order does — no separate/duplicated processing logic.
+async function processOneOrder({ account, credentials, order }) {
+  const localOrder = await darazOrderSyncModel.upsertOrder(order, account);
+  let itemCount = 0;
+
+  try {
+    const itemsResponse = await darazOrderApiService.getOrderItems({
+      account,
+      credentials,
+      orderId: order.order_id,
+    });
+
+    const items = itemsResponse?.data?.data || [];
+    const newlyCreatedItems = await darazOrderSyncModel.upsertItems(items, localOrder.id);
+    itemCount = items.length;
+
+    for (const newItem of newlyCreatedItems) {
+      try {
+        await orderInventoryDeductionService.deductStockForNewItem({
+          source: "daraz",
+          sourceOrderId: order.order_number || order.order_id,
+          orderItemId: newItem.order_item_id,
+          sku: newItem.sku,
+          qty: newItem.qty,
+        });
+      } catch (deductionError) {
+        console.error(
+          `[DARAZ_ORDER_SYNC] Inventory deduction failed for order ${order.order_id} item ${newItem.order_item_id}:`,
+          deductionError.message
+        );
+      }
+    }
+  } catch (itemError) {
+    console.error(`[DARAZ_ORDER_SYNC] Failed to fetch items for order ${order.order_id}:`, itemError.message);
+  }
+
+  return { localOrder, item_count: itemCount };
+}
+
 async function fetchDarazOrders({ account, credentials, sinceDate }) {
   let offset = 0;
   let countTotal = Infinity;
@@ -26,42 +69,8 @@ async function fetchDarazOrders({ account, credentials, sinceDate }) {
     countTotal = Number(data.countTotal || orders.length);
 
     for (const order of orders) {
-      const localOrder = await darazOrderSyncModel.upsertOrder(order, account);
-
-      try {
-        const itemsResponse = await darazOrderApiService.getOrderItems({
-          account,
-          credentials,
-          orderId: order.order_id,
-        });
-
-        const items = itemsResponse?.data?.data || [];
-        const newlyCreatedItems = await darazOrderSyncModel.upsertItems(items, localOrder.id);
-        itemsFetched += items.length;
-
-        // Deduct local stock exactly once per order item — only for items
-        // that were newly synced this call, never on re-sync/status-change
-        // updates to an item we've already seen.
-        for (const newItem of newlyCreatedItems) {
-          try {
-            await orderInventoryDeductionService.deductStockForNewItem({
-              source: "daraz",
-              sourceOrderId: order.order_number || order.order_id,
-              orderItemId: newItem.order_item_id,
-              sku: newItem.sku,
-              qty: newItem.qty,
-            });
-          } catch (deductionError) {
-            console.error(
-              `[DARAZ_ORDER_SYNC] Inventory deduction failed for order ${order.order_id} item ${newItem.order_item_id}:`,
-              deductionError.message
-            );
-          }
-        }
-      } catch (itemError) {
-        console.error(`[DARAZ_ORDER_SYNC] Failed to fetch items for order ${order.order_id}:`, itemError.message);
-      }
-
+      const { item_count: itemCount } = await processOneOrder({ account, credentials, order });
+      itemsFetched += itemCount;
       ordersFetched += 1;
     }
 
@@ -70,6 +79,22 @@ async function fetchDarazOrders({ account, credentials, sinceDate }) {
   }
 
   return { orders_synced: ordersFetched, items_synced: itemsFetched };
+}
+
+// Webhook path: Daraz's push notification only tells us an order_id
+// changed, not the full order - fetch it fresh via the same authoritative
+// order/get API the poller effectively pages through, then reuse
+// processOneOrder unchanged.
+async function syncSingleOrderById({ account, credentials, orderId }) {
+  const response = await darazOrderApiService.getOrder({ account, credentials, orderId });
+  const order = response?.data?.data;
+
+  if (!order || !order.order_id) {
+    throw new Error(`Daraz order/get returned no order for order_id ${orderId}.`);
+  }
+
+  const { item_count: itemCount } = await processOneOrder({ account, credentials, order });
+  return { order_id: order.order_id, items_synced: itemCount };
 }
 
 function resolveSyncDays(settings) {
@@ -115,4 +140,10 @@ async function syncAllAccounts(accounts) {
   return { days, since: sinceDate, results };
 }
 
-module.exports = { syncAllAccounts, syncOneAccount, resolveSyncDays, fetchDarazOrders };
+module.exports = {
+  syncAllAccounts,
+  syncOneAccount,
+  resolveSyncDays,
+  fetchDarazOrders,
+  syncSingleOrderById,
+};

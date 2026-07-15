@@ -6,6 +6,7 @@ const {
   getInventoryLogs,
   getTitleOptimizerLogs,
   getPriceReconciliationLogs,
+  getDarazWebhookLogs,
 } = require("../controllers/logController");
 const { protect } = require("../middleware/auth");
 const { requirePermission } = require("../middleware/access");
@@ -18,5 +19,6 @@ router.get("/system", protect, requirePermission("logs", "view"), getSystemLogs)
 router.get("/inventory", protect, requirePermission("logs", "view"), getInventoryLogs);
 router.get("/title-optimizer", protect, requirePermission("logs", "view"), getTitleOptimizerLogs);
 router.get("/price-reconciliation", protect, requirePermission("logs", "view"), getPriceReconciliationLogs);
+router.get("/daraz-webhooks", protect, requirePermission("logs", "view"), getDarazWebhookLogs);
 
 module.exports = router;

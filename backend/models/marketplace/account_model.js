@@ -177,6 +177,27 @@ async function getAccountById(accountId) {
   return rows[0] || null;
 }
 
+// Webhook payloads identify the seller by seller_id, not our internal
+// account_id - this resolves which account (and platform) a Daraz push
+// notification belongs to.
+async function findBySellerId(sellerId) {
+  if (!sellerId) return null;
+
+  const [rows] = await db.query(
+    `
+    SELECT a.*, p.platform_code, p.platform_name
+    FROM accounts a
+    INNER JOIN platforms p ON p.id = a.platform_id
+    WHERE a.seller_id = ?
+      AND LOWER(p.platform_code) = 'daraz'
+    LIMIT 1
+    `,
+    [String(sellerId)]
+  );
+
+  return rows[0] || null;
+}
+
 async function getActiveDarazAccounts() {
   const [rows] = await db.query(
     `
@@ -354,6 +375,7 @@ module.exports = {
 
   getAllAccounts,
   getAccountById,
+  findBySellerId,
   getActiveDarazAccounts,
 
   findById,
