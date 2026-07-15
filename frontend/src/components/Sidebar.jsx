@@ -140,6 +140,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "REPORTS",
+    page_key: "price_rules",
+    page_name: "Price Rules",
+    path: "/price-rules",
+    icon: "SlidersHorizontal",
+    exact: true,
+  },
+  {
     section: "ORDER MANAGEMENT",
     page_key: "orders",
     page_name: "Orders",

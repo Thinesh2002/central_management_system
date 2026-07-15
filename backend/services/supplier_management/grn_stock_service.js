@@ -1,9 +1,48 @@
 const productInventoryModel = require("../../models/product_management/product/product_inventory_model");
 const productPriceModel = require("../../models/product_management/product/product_price_model");
 const priceHistoryModel = require("../../models/product_management/product/price_history_model");
+const priceRuleModel = require("../../models/product_management/product/price_rule_model");
 const skuMappingModel = require("../../models/product_management/sku_mapping/sku_mapping_model");
 const inventoryLogModel = require("../../models/order_management/inventory_log_model");
 const darazInventorySyncService = require("../daraz/inventory/daraz_inventory_sync_service");
+
+// Price Rule Engine, "suggest only": recomputes suggested_sale_price /
+// suggested_daraz_price / suggested_woo_price from the new cost using
+// whatever active rule matches the SKU's category (or the global rule)
+// per marketplace. Never touches the real sale_price/daraz_price/woo_price
+// fields - those stay manual until a human applies a suggestion on the
+// Price Dashboard. Swallows its own errors; a missing rule/category just
+// means no suggestion, not a failure.
+async function refreshSuggestedPrices({ resolvedSku, costPrice, changedBy }) {
+  try {
+    const categoryId = await priceRuleModel.resolveCategoryIdForSku(resolvedSku);
+
+    const [localRule, darazRule, wooRule] = await Promise.all([
+      priceRuleModel.resolveRule({ categoryId, marketplace: "local" }),
+      priceRuleModel.resolveRule({ categoryId, marketplace: "daraz" }),
+      priceRuleModel.resolveRule({ categoryId, marketplace: "woocommerce" }),
+    ]);
+
+    const suggestedSale = priceRuleModel.computeSuggestedPrice({ costPrice, rule: localRule });
+    const suggestedDaraz = priceRuleModel.computeSuggestedPrice({ costPrice, rule: darazRule });
+    const suggestedWoo = priceRuleModel.computeSuggestedPrice({ costPrice, rule: wooRule });
+
+    if (suggestedSale === null && suggestedDaraz === null && suggestedWoo === null) return;
+
+    await productPriceModel.updateBySku(
+      resolvedSku,
+      {
+        suggested_sale_price: suggestedSale,
+        suggested_daraz_price: suggestedDaraz,
+        suggested_woo_price: suggestedWoo,
+        suggested_at: new Date(),
+      },
+      { updated_by: changedBy }
+    );
+  } catch (error) {
+    console.error("[GRN_SUGGESTED_PRICE_REFRESH_FAILED]", { sku: resolvedSku, message: error.message });
+  }
+}
 
 // A GRN's unit_cost is the most reliable actual purchase cost there is -
 // push it into product_prices.cost_price and log the change, so the Price
@@ -29,6 +68,8 @@ async function updateCostPrice({ resolvedSku, unitCost, grnNumber, changedBy }) 
       new_value: unitCost,
       changed_by: changedBy,
     });
+
+    await refreshSuggestedPrices({ resolvedSku, costPrice: unitCost, changedBy });
   } catch (error) {
     console.error("[GRN_COST_PRICE_UPDATE_FAILED]", { grnNumber, sku: resolvedSku, message: error.message });
   }

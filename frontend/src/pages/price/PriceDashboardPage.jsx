@@ -42,6 +42,8 @@ export default function PriceDashboardPage(){
  async function searchProducts(){const q=clean(skuSearch); if(!q)return alert('First SKU search pannunga.'); const flat=await loadCatalog(q); setProductMatches(flat.filter(x=>[x.sku,x.product_sku,x.product_name,x.colour_name].join(' ').toLowerCase().includes(q.toLowerCase())).slice(0,30));}
  function selectProduct(p){setSelectedProduct(p); setForm(prev=>({...prev, sku:p.sku, product_sku:p.product_sku||p.sku, variant_sku:p.variant_sku||"", product_name:p.product_name||"", image_url:p.image_url||"", colour_name:p.colour_name||""})); setProductMatches([]);}
  function autoCalculate(){const productSelling=calcProductSelling(form.cost_price,form.profit_percent).toFixed(2); const daraz=calcDaraz(form.cost_price,form.profit_percent,form.daraz_fee_percent,form.advertising_percent,form.packing_percent).toFixed(2); setForm(p=>({...p,sale_price:productSelling,local_selling_price:productSelling,daraz_price:daraz,woo_price:productSelling}));}
+ const SUGGESTION_FIELD_MAP={local_selling_price:'suggested_sale_price',daraz_price:'suggested_daraz_price',woo_price:'suggested_woo_price'};
+ function applySuggestion(fieldName,suggestedValue){setForm(p=>({...p,[fieldName]:suggestedValue, ...(fieldName==='local_selling_price'?{sale_price:suggestedValue}:{})}));}
  async function submit(e){e.preventDefault();const s=clean(form.sku); if(!s)return alert('First SKU search panni product/variant select pannunga.'); const payload={...form, sku:s, product_sku:clean(form.product_sku)||s, variant_sku:clean(form.variant_sku), product_name:clean(form.product_name), image_url:clean(form.image_url), colour_name:clean(form.colour_name), cost_price:money(form.cost_price), sale_price:money(form.sale_price||form.local_selling_price), local_selling_price:money(form.local_selling_price||form.sale_price), daraz_price:money(form.daraz_price), woo_price:money(form.woo_price), packing_percent:money(form.packing_percent), profit_percent:money(form.profit_percent), daraz_fee_percent:money(form.daraz_fee_percent), advertising_percent:money(form.advertising_percent), currency:clean(form.currency)||'LKR'}; setSaving(true); try{const id=editing?.id||editing?.price_id; if(id) await localProductsApi.patchPrice(id,payload); else await localProductsApi.createPrice(payload); setModalOpen(false); showToast('Price saved successfully.'); await loadPrices();}catch(e){alert(getErrorMessage(e,'Unable to save price.'));}finally{setSaving(false);}}
  return (
   <div className="min-h-screen bg-[#070b16] p-3 text-slate-100">
@@ -198,12 +200,22 @@ export default function PriceDashboardPage(){
                 ["daraz_price", "Daraz Selling Price", "number"],
                 ["woo_price", "Woo Price", "number"],
                 ["currency", "Currency", "text"],
-              ].map(([n, l, t]) => (
-                <label key={n} className="space-y-1">
-                  <span className="text-[10px] font-semibold uppercase text-slate-500">{l}</span>
-                  <input type={t} value={form[n] ?? ""} onChange={(e) => setField(n, e.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-semibold text-slate-100 outline-none focus:border-emerald-400" />
-                </label>
-              ))}
+              ].map(([n, l, t]) => {
+                const suggestedField = SUGGESTION_FIELD_MAP[n];
+                const suggestedValue = suggestedField ? form[suggestedField] : null;
+                const showSuggestion = suggestedValue !== null && suggestedValue !== undefined && Number(suggestedValue) !== Number(form[n] || 0);
+                return (
+                  <label key={n} className="space-y-1">
+                    <span className="text-[10px] font-semibold uppercase text-slate-500">{l}</span>
+                    <input type={t} value={form[n] ?? ""} onChange={(e) => setField(n, e.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-semibold text-slate-100 outline-none focus:border-emerald-400" />
+                    {showSuggestion && (
+                      <button type="button" onClick={() => applySuggestion(n, suggestedValue)} className="flex items-center gap-1 text-[10px] font-semibold text-cyan-300 hover:text-cyan-200">
+                        Suggested: {fmt(suggestedValue)} <span className="underline">Apply</span>
+                      </button>
+                    )}
+                  </label>
+                );
+              })}
               <label className="space-y-1">
                 <span className="text-[10px] font-semibold uppercase text-slate-500">Status</span>
                 <select value={form.status || "active"} onChange={(e) => setField("status", e.target.value)} className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] px-3 text-[12px] font-semibold text-slate-100 outline-none focus:border-emerald-400">
