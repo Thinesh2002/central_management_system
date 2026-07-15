@@ -12,6 +12,18 @@ function requireMasterAdmin(req, res) {
   return true;
 }
 
+// Not master-admin gated - just a name lookup for other modules' supplier
+// pickers (e.g. Purchase Orders), which are delegable via Access Control.
+async function options(req, res) {
+  try {
+    const data = await supplierModel.listOptions();
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[SUPPLIER_OPTIONS_ERROR]", { message: error?.message });
+    return res.status(500).json({ success: false, message: "Failed to load suppliers." });
+  }
+}
+
 async function list(req, res) {
   if (!requireMasterAdmin(req, res)) return;
 
@@ -98,4 +110,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { list, getById, create, update, remove };
+module.exports = { list, options, getById, create, update, remove };

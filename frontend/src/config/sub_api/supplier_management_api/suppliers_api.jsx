@@ -18,6 +18,11 @@ const suppliersApi = {
     return response.data;
   },
 
+  async options() {
+    const response = await api.get("/suppliers/options");
+    return response.data;
+  },
+
   async getById(id) {
     const response = await api.get(`/suppliers/${id}`);
     return response.data;

@@ -18,6 +18,7 @@ import InventoryPage from "./pages/inventory/InventoryPage";
 import PriceDashboardPage from "./pages/price/PriceDashboardPage";
 import OrderManagementRoutes from "./routes/order_management/index";
 import SuppliersPage from "./pages/supplier_management/suppliers_page";
+import PurchaseOrdersPage from "./pages/supplier_management/purchase_orders_page";
 
 import Layout from "./components/Layout";
 import ProtectedRoute from "./config/ProtectedRoute";
@@ -70,6 +71,15 @@ export default function App() {
         element={
           <ProtectedLayout>
             <SuppliersPage />
+          </ProtectedLayout>
+        }
+      />
+
+      <Route
+        path="/purchase-orders"
+        element={
+          <ProtectedLayout>
+            <PurchaseOrdersPage />
           </ProtectedLayout>
         }
       />

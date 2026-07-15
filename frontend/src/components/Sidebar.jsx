@@ -212,6 +212,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "SUPPLIER MANAGEMENT",
+    page_key: "purchase_orders",
+    page_name: "Purchase Orders",
+    path: "/purchase-orders",
+    icon: "ClipboardList",
+    exact: true,
+  },
+  {
     section: "SETTINGS",
     page_key: "notifications",
     page_name: "Notifications",

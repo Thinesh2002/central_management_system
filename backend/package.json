@@ -27,7 +27,8 @@
     "patch-manual-order-enhancements": "node scripts/run-sql-file.js 23_manual_order_enhancements_patch.sql",
     "patch-manual-order-waybill-columns": "node scripts/run-sql-file.js 24_manual_order_waybill_columns_patch.sql",
     "patch-daraz-content-optimizer": "node scripts/run-sql-file.js 25_daraz_content_optimizer_patch.sql",
-    "patch-supplier-management": "node scripts/run-sql-file.js 26_supplier_management_patch.sql"
+    "patch-supplier-management": "node scripts/run-sql-file.js 26_supplier_management_patch.sql",
+    "patch-purchase-orders": "node scripts/run-sql-file.js 27_purchase_orders_patch.sql"
   },
   "author": "",
   "license": "ISC",

@@ -7,6 +7,18 @@ function clean(value) {
   return value === undefined || value === null ? null : String(value).trim() || null;
 }
 
+// Minimal, non-sensitive projection (id + name only) for other modules'
+// supplier pickers (e.g. Purchase Orders) - unlike list()/findById(), this
+// is not master-admin gated, since a supplier's name isn't the sensitive
+// part (contact info, payment terms, registration no are).
+async function listOptions() {
+  const [rows] = await db.query(
+    `SELECT id, name FROM suppliers WHERE deleted_at IS NULL AND status = 'active' ORDER BY name ASC`
+  );
+
+  return rows;
+}
+
 async function list({ status, search, limit = 100, offset = 0 } = {}) {
   const params = [];
   let whereSql = "WHERE deleted_at IS NULL";
@@ -138,4 +150,4 @@ async function softDelete(id) {
   return result.affectedRows > 0;
 }
 
-module.exports = { list, findById, create, update, softDelete };
+module.exports = { list, listOptions, findById, create, update, softDelete };
