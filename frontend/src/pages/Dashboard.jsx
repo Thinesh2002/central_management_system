@@ -14,6 +14,7 @@ import {
 import ordersApi from "../config/sub_api/order_management_api/orders_api";
 import localProductsApi from "../config/sub_api/product_management_api/local_products_api";
 import notificationsApi from "../config/sub_api/notifications_api";
+import darazContentOptimizerApi from "../config/sub_api/daraz_api/daraz_content_optimizer_api";
 import { getApiError } from "../config/api";
 import { getStoredUser } from "../config/auth";
 import { resolveImageUrl } from "./product_management/products/product_dashboard/utils/localProductsImageHelpers";
@@ -119,6 +120,8 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [inventoryRows, setInventoryRows] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [aiPendingCount, setAiPendingCount] = useState(0);
+  const [aiCriticalCount, setAiCriticalCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -147,6 +150,19 @@ export default function Dashboard() {
 
     const failed = results.find((item) => item.status === "rejected");
     if (failed) setError(getApiError(failed.reason));
+
+    // Fetched separately and fails silently - this is a supplementary
+    // widget, not core dashboard data, so a permission/network hiccup here
+    // shouldn't block or error out the rest of the dashboard.
+    try {
+      const aiRes = await darazContentOptimizerApi.listSuggestions({ status: "pending", limit: 500 });
+      const rows = aiRes?.data?.data || [];
+      setAiPendingCount(rows.length);
+      setAiCriticalCount(rows.filter((row) => (row.recommendations_json?.critical?.length || 0) > 0).length);
+    } catch {
+      setAiPendingCount(0);
+      setAiCriticalCount(0);
+    }
 
     setLoading(false);
   }
@@ -267,6 +283,12 @@ export default function Dashboard() {
             count={unreadCount}
             description="New alerts to review"
             to="/notifications"
+          />
+          <ActionCard
+            label="AI content reports pending review"
+            count={aiPendingCount}
+            description={`${aiCriticalCount} with critical issues`}
+            to="/product/daraz-products/content-optimizer"
           />
         </div>
 

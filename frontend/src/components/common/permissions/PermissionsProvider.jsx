@@ -84,3 +84,13 @@ export function useCanViewCostPrice() {
 
   return context.canViewCostPrice;
 }
+
+export function useIsMasterAdmin() {
+  const context = useContext(PermissionsContext);
+
+  if (!context) {
+    throw new Error("useIsMasterAdmin must be used within a PermissionsProvider");
+  }
+
+  return context.isMasterAdmin;
+}
