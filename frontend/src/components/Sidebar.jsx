@@ -33,6 +33,8 @@ import {
   Sparkles,
   Bell,
   Truck,
+  Monitor,
+  ShieldCheck,
 } from "lucide-react";
 
 const iconMap = {
@@ -61,9 +63,19 @@ const iconMap = {
   Sparkles,
   Bell,
   Truck,
+  Monitor,
+  ShieldCheck,
 };
 
 const staticMenu = [
+  {
+    section: "MAIN",
+    page_key: "dashboard",
+    page_name: "Dashboard",
+    path: "/dashboard",
+    icon: "LayoutDashboard",
+    exact: true,
+  },
   {
     section: "PRODUCT MANAGEMENT",
     page_key: "products",
@@ -108,6 +120,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "INVENTORY",
+    page_key: "inventory",
+    page_name: "Inventory",
+    path: "/inventory",
+    icon: "Boxes",
+    exact: false,
+  },
+  {
     section: "MARKETPLACE MANAGEMENT",
     page_key: "daraz_products",
     page_name: "Daraz Products",
@@ -116,10 +136,34 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "daraz_transfer",
+    page_name: "Daraz Transfer",
+    path: "/product/daraz-products/transfer",
+    icon: "CloudUpload",
+    exact: true,
+  },
+  {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "sync_logs",
+    page_name: "Daraz Sync Logs",
+    path: "/product/sync-logs",
+    icon: "DownloadCloud",
+    exact: true,
+  },
+  {
     section: "OPTIMIZATION",
     page_key: "daraz_title_optimizer",
     page_name: "Title Optimizer",
     path: "/product/daraz-products/title-optimizer",
+    icon: "Sparkles",
+    exact: true,
+  },
+  {
+    section: "OPTIMIZATION",
+    page_key: "ai_content_optimizer",
+    page_name: "AI Content Optimizer",
+    path: "/product/daraz-products/content-optimizer",
     icon: "Sparkles",
     exact: true,
   },
@@ -146,6 +190,14 @@ const staticMenu = [
     path: "/reports/sales",
     icon: "BarChart3",
     exact: true,
+  },
+  {
+    section: "REPORTS",
+    page_key: "pricing",
+    page_name: "Price Dashboard",
+    path: "/price",
+    icon: "DollarSign",
+    exact: false,
   },
   {
     section: "REPORTS",
@@ -249,6 +301,30 @@ const staticMenu = [
     page_name: "Notifications",
     path: "/notifications",
     icon: "Bell",
+    exact: true,
+  },
+  {
+    section: "SETTINGS",
+    page_key: "users",
+    page_name: "Users",
+    path: "/users",
+    icon: "Users",
+    exact: false,
+  },
+  {
+    section: "SETTINGS",
+    page_key: "access_control",
+    page_name: "Access Control",
+    path: "/access-control",
+    icon: "ShieldCheck",
+    exact: true,
+  },
+  {
+    section: "SETTINGS",
+    page_key: "logs",
+    page_name: "Logs",
+    path: "/logs",
+    icon: "Monitor",
     exact: true,
   },
 ];

@@ -35,7 +35,8 @@
     "patch-approval-center": "node scripts/run-sql-file.js 31_approval_center_patch.sql",
     "patch-price-reconciliation": "node scripts/run-sql-file.js 32_daraz_price_reconciliation_patch.sql",
     "patch-woo-inventory-sync": "node scripts/run-sql-file.js 33_woo_inventory_sync_patch.sql",
-    "patch-daraz-webhook": "node scripts/run-sql-file.js 34_daraz_webhook_patch.sql"
+    "patch-daraz-webhook": "node scripts/run-sql-file.js 34_daraz_webhook_patch.sql",
+    "patch-sidebar-pages": "node scripts/run-sql-file.js 35_sidebar_page_registration_patch.sql"
   },
   "author": "",
   "license": "ISC",
