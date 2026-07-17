@@ -69,14 +69,6 @@ const iconMap = {
 
 const staticMenu = [
   {
-    section: "MAIN",
-    page_key: "dashboard",
-    page_name: "Dashboard",
-    path: "/dashboard",
-    icon: "LayoutDashboard",
-    exact: true,
-  },
-  {
     section: "PRODUCT MANAGEMENT",
     page_key: "products",
     pageKeys: ["products", "local_products"],
@@ -133,22 +125,6 @@ const staticMenu = [
     page_name: "Daraz Products",
     path: "/product/daraz-products",
     icon: "ShoppingBag",
-    exact: true,
-  },
-  {
-    section: "MARKETPLACE MANAGEMENT",
-    page_key: "daraz_transfer",
-    page_name: "Daraz Transfer",
-    path: "/product/daraz-products/transfer",
-    icon: "CloudUpload",
-    exact: true,
-  },
-  {
-    section: "MARKETPLACE MANAGEMENT",
-    page_key: "sync_logs",
-    page_name: "Daraz Sync Logs",
-    path: "/product/sync-logs",
-    icon: "DownloadCloud",
     exact: true,
   },
   {
@@ -325,6 +301,14 @@ const staticMenu = [
     page_name: "Logs",
     path: "/logs",
     icon: "Monitor",
+    exact: true,
+  },
+  {
+    section: "SETTINGS",
+    page_key: "sync_logs",
+    page_name: "Daraz Sync Logs",
+    path: "/product/sync-logs",
+    icon: "DownloadCloud",
     exact: true,
   },
 ];
