@@ -70,6 +70,9 @@ const {
 const {
   startDarazOrderSyncJob,
 } = require("./jobs/daraz/order_management/daraz_order_sync_job");
+const {
+  startWooOrderSyncJob,
+} = require("./jobs/woo/order_management/woo_order_sync_job");
 
 const {
   startDarazFinanceSyncJob,
@@ -298,6 +301,7 @@ async function startServer() {
     startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
     startJob("DARAZ_INVENTORY_SYNC_JOB", startDarazInventorySyncJob);
     startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
+    startJob("WOO_ORDER_SYNC_JOB", startWooOrderSyncJob);
     startJob("DARAZ_FINANCE_SYNC_JOB", startDarazFinanceSyncJob);
     startJob("DARAZ_TITLE_OPTIMIZER_JOB", startDarazTitleOptimizerJob);
     startJob("DARAZ_TITLE_FULL_SCAN_JOB", startDarazTitleFullScanJob);

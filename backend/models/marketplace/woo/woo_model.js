@@ -237,6 +237,24 @@ async function createOrUpdateWooAccount(payload) {
   }
 }
 
+// Mirrors accountModel.listActiveDarazAccounts()'s shape, for the order
+// sync job to iterate. WooCommerce keys don't expire the way Daraz OAuth
+// tokens do, so there's no token_status condition here - just active,
+// non-paused accounts.
+async function listActiveWooAccounts() {
+  const [rows] = await pool.query(
+    `SELECT a.*, p.platform_code, p.platform_name
+     FROM accounts a
+     INNER JOIN platforms p ON p.id = a.platform_id
+     WHERE LOWER(p.platform_code) IN ('woocommerce', 'woo')
+       AND a.status = 'active'
+       AND a.connection_status != 'paused'
+     ORDER BY a.id ASC`
+  );
+
+  return rows;
+}
+
 async function listWooAccounts() {
   const [rows] = await pool.query(
     `SELECT
@@ -489,6 +507,7 @@ async function logApiRequest({
 module.exports = {
   createOrUpdateWooAccount,
   listWooAccounts,
+  listActiveWooAccounts,
   getWooCredentials,
   markWooConnection,
   logApiRequest,

@@ -107,6 +107,35 @@ async function getProducts(credentials, query = {}) {
   };
 }
 
+async function getOrders(credentials, query = {}) {
+  const client = createWooClient(credentials);
+
+  const response = await client.get("/orders", {
+    params: {
+      page: query.page || 1,
+      per_page: query.per_page || 50,
+      status: query.status || undefined,
+      after: query.after || undefined,
+      before: query.before || undefined,
+      modified_after: query.modifiedAfter || undefined,
+      orderby: query.orderby || "date",
+      order: query.order || "desc",
+    },
+  });
+
+  return {
+    data: response.data,
+    total: Number(response.headers["x-wp-total"] || 0),
+    total_pages: Number(response.headers["x-wp-totalpages"] || 0),
+  };
+}
+
+async function getOrder(credentials, orderId) {
+  const client = createWooClient(credentials);
+  const response = await client.get(`/orders/${orderId}`);
+  return response.data;
+}
+
 async function getCategories(credentials, query = {}) {
   const client = createWooClient(credentials);
 
@@ -186,4 +215,6 @@ module.exports = {
   createProduct,
   updateProduct,
   updateProductVariation,
+  getOrders,
+  getOrder,
 };
