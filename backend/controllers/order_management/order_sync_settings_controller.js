@@ -13,7 +13,15 @@ const updateSettings = asyncHandler(async (req, res) => {
 });
 
 const runNow = asyncHandler(async (req, res) => {
-  await darazOrderSyncJob.syncAllDarazOrders();
+  // Fire-and-forget - a full multi-account sync routinely runs past the
+  // frontend's request timeout, which was surfacing as a false "Request
+  // timed out" error even though the sync itself was working fine in the
+  // background. The response message already promised this ("check logs
+  // for status"); the await just never matched that.
+  darazOrderSyncJob.syncAllDarazOrders().catch((error) => {
+    console.error("[DARAZ_ORDER_SYNC] Manual run-now failed:", error.message);
+  });
+
   return res.json({ success: true, message: "Daraz order sync triggered. Check logs for status." });
 });
 
