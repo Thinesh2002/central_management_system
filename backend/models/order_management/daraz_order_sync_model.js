@@ -1,4 +1,5 @@
 const { createGenericModel, db } = require("./_shared/generic_table_model");
+const customerModel = require("./customer_model");
 
 const orderModel = createGenericModel("daraz_orders");
 const itemModel = createGenericModel("daraz_order_items");
@@ -7,12 +8,13 @@ function fullName(order = {}) {
   return [order.customer_first_name, order.customer_last_name].filter(Boolean).join(" ").trim() || null;
 }
 
-function mapOrderPayload(order = {}, account = {}) {
+function mapOrderPayload(order = {}, account = {}, customerId = null) {
   const shipping = order.address_shipping || {};
 
   return {
     account_id: account.id,
     account_code: account.account_code,
+    customer_id: customerId,
     order_number: order.order_number,
     daraz_order_id: order.order_id,
     order_date: order.created_at,
@@ -61,7 +63,17 @@ function mapItemPayload(item = {}, localOrderId) {
 
 async function upsertOrder(order, account) {
   const existingRows = await orderModel.findByColumn("daraz_order_id", order.order_id);
-  const payload = mapOrderPayload(order, account);
+  const shipping = order.address_shipping || {};
+
+  const customerId = await customerModel.findOrCreateFromMarketplaceOrder({
+    phone: shipping.phone,
+    name: fullName(order),
+    shipping,
+    sourceType: "DARAZ",
+    account,
+  });
+
+  const payload = mapOrderPayload(order, account, customerId);
 
   if (existingRows.length) {
     return orderModel.update(existingRows[0].id, payload);

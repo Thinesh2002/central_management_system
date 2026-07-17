@@ -5,6 +5,37 @@ const base = createGenericModel("customers", {
   defaultSort: "id",
 });
 
+// Marketplace sync jobs (Daraz, Woo) call this to link each order to a
+// customer row instead of only storing buyer info as flat text on the
+// order — mirrors the phone-based find-or-create already used by
+// createManualOrder() in order_model.js, so a buyer who orders through
+// both a marketplace and a manual order resolves to the same customer.
+async function findOrCreateFromMarketplaceOrder({ phone, name, shipping = {}, sourceType, account }) {
+  if (!phone) return null;
+
+  const [existingRows] = await db.query("SELECT id FROM customers WHERE phone = ? LIMIT 1", [phone]);
+  if (existingRows.length) return existingRows[0].id;
+
+  const created = await base.create({
+    customer_name: name || phone,
+    phone,
+    shipping_full_name: name || null,
+    shipping_phone: phone,
+    shipping_address_line1: shipping.address1 || null,
+    shipping_address_line2: shipping.address2 || null,
+    shipping_city: shipping.city || null,
+    shipping_postal_code: shipping.post_code || null,
+    shipping_country: shipping.country || undefined,
+    source_type: sourceType,
+    source_account_id: account?.id || null,
+    source_account_code: account?.account_code || null,
+    source_account_name: account?.account_name || null,
+    status: "ACTIVE",
+  });
+
+  return created?.id || null;
+}
+
 // customers.total_orders/total_spent are maintained by the external
 // order-sync pipeline and can drift out of date — compute both live from
 // the actual linked orders instead of trusting the stored columns.
@@ -145,4 +176,4 @@ async function findByIdWithOrders(id) {
   };
 }
 
-module.exports = { ...base, listWithLiveStats, findByIdWithOrders };
+module.exports = { ...base, listWithLiveStats, findByIdWithOrders, findOrCreateFromMarketplaceOrder };
