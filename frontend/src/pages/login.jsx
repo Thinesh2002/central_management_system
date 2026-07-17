@@ -112,7 +112,7 @@ export default function Login() {
 
             {/* Email / User ID */}
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
+              <label htmlFor="login-identifier" className="mb-2 block text-sm font-semibold text-slate-300">
                 Email / User ID
               </label>
 
@@ -123,6 +123,7 @@ export default function Login() {
                 />
 
                 <input
+                  id="login-identifier"
                   className="w-full rounded-xl border border-slate-700 bg-slate-950/70 py-3 pl-10 pr-4 text-sm font-medium text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   type="text"
                   name="identifier"
@@ -136,7 +137,7 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
+              <label htmlFor="login-password" className="mb-2 block text-sm font-semibold text-slate-300">
                 Password
               </label>
 
@@ -147,6 +148,7 @@ export default function Login() {
                 />
 
                 <input
+                  id="login-password"
                   className="w-full rounded-xl border border-slate-700 bg-slate-950/70 py-3 pl-10 pr-11 text-sm font-medium text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                   type={showPassword ? "text" : "password"}
                   name="password"
