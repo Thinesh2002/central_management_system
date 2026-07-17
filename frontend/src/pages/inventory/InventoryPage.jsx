@@ -160,7 +160,7 @@ export default function InventoryPage(){
     </div>
 
     {modalOpen && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm">
         <form onSubmit={submitForm} className="w-full max-w-5xl rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
           <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
             <h2 className="text-[14px] font-semibold text-white">{editing ? "Modify Inventory" : "Add Inventory"}</h2>

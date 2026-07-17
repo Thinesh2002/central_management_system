@@ -122,7 +122,7 @@ export default function GoodsReceivedPage() {
       )}
 
       {detailOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3" onClick={() => setDetailOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={() => setDetailOpen(false)}>
           <div
             onClick={(e) => e.stopPropagation()}
             className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl"

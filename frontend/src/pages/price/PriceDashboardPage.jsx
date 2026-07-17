@@ -151,7 +151,7 @@ export default function PriceDashboardPage(){
     </div>
 
     {modalOpen && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm">
         <form onSubmit={submit} className="w-full max-w-5xl rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
           <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
             <h2 className="text-[14px] font-semibold text-white">{editing ? "Modify Price" : "Add Price"}</h2>
@@ -243,7 +243,7 @@ export default function PriceDashboardPage(){
     )}
 
     {historyOpen && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3" onClick={() => setHistoryOpen(false)}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
         <div onClick={(e) => e.stopPropagation()} className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
             <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-white"><History size={15} /> Cost Price History — {historySku}</h2>

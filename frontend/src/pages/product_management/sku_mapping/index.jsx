@@ -553,7 +553,7 @@ export default function SkuMappingPage() {
       )}
 
       {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
             <ModalHeader
               title={modal.mode === "edit" ? "Edit SKU Mapping" : "Add SKU Mapping"}
@@ -620,7 +620,7 @@ export default function SkuMappingPage() {
       )}
 
       {deleteModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
             <ModalHeader
               title="Confirm Delete"

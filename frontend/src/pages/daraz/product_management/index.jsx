@@ -1768,7 +1768,7 @@ export default function DarazDashboardPage() {
       </div>
 
       {accountFilterOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-[860px] overflow-hidden rounded-md border border-zinc-700 bg-[#172235] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
               <div>
@@ -1925,7 +1925,7 @@ export default function DarazDashboardPage() {
       ) : null}
 
       {syncOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-[560px] rounded-sm border border-zinc-800/70 bg-[#050817] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
               <div>

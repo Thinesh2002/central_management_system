@@ -283,7 +283,7 @@ export default function SuppliersPage() {
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3" onClick={() => setModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={() => setModalOpen(false)}>
           <form
             onSubmit={submit}
             onClick={(e) => e.stopPropagation()}

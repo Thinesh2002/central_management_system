@@ -558,7 +558,7 @@ function TrackOrderModal({ open, onClose, order }) {
   const provider = firstItem.shipment_provider || order.shipment_provider;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="w-full max-w-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
           <div>

@@ -541,7 +541,7 @@ export default function ProductColourPage() {
       )}
 
       {colourModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
             <ModalHeader
               title={
@@ -653,7 +653,7 @@ export default function ProductColourPage() {
       )}
 
       {deleteModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
             <ModalHeader
               title="Confirm Delete"

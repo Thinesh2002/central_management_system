@@ -172,7 +172,7 @@ function SelectInput({ label, value, onChange, disabled, required, children }) {
 
 function ModalShell({ title, subtitle, onClose, children, wide }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm">
       <div
         className={`w-full ${wide ? "max-w-xl" : "max-w-md"} rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl`}
       >
