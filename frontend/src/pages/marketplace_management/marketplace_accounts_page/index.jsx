@@ -384,7 +384,7 @@ export default function MarketplaceAccountsPage() {
 
           <button
             type="button"
-            onClick={() => openOverlay("/marketplace/accounts/add")}
+            onClick={() => openOverlay("/marketplace/accounts/add", loadAccounts)}
             className="inline-flex h-8 items-center gap-1.5 rounded-md bg-orange-500 px-2.5 text-[11px] font-semibold text-white hover:bg-orange-400"
           >
             <Plus size={12} />
@@ -449,7 +449,7 @@ export default function MarketplaceAccountsPage() {
 
             <button
               type="button"
-              onClick={() => openOverlay("/marketplace/accounts/add")}
+              onClick={() => openOverlay("/marketplace/accounts/add", loadAccounts)}
               className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-orange-500 px-3 py-2 text-[12px] font-semibold text-white hover:bg-orange-400"
             >
               <Plus size={14} />
@@ -530,7 +530,7 @@ export default function MarketplaceAccountsPage() {
 
                           <button
                             type="button"
-                            onClick={() => openOverlay(`/marketplace/accounts/${accountId}`)}
+                            onClick={() => openOverlay(`/marketplace/accounts/${accountId}`, loadAccounts)}
                             title="View"
                             className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
                           >
@@ -539,7 +539,7 @@ export default function MarketplaceAccountsPage() {
 
                           <button
                             type="button"
-                            onClick={() => openOverlay(`/marketplace/accounts/${accountId}/edit`)}
+                            onClick={() => openOverlay(`/marketplace/accounts/${accountId}/edit`, loadAccounts)}
                             title="Edit"
                             className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
                           >

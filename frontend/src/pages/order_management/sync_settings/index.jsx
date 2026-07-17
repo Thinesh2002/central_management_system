@@ -111,13 +111,6 @@ export default function OrderSyncSettingsPage() {
         </p>
       </section>
 
-      <div className="flex items-center gap-1.5 rounded-md border border-amber-900 bg-amber-950 px-3 py-2 text-[11px] text-amber-300">
-        <AlertCircle size={13} />
-        The Daraz Order API isn't connected yet, so "Run Sync Now" won't pull real orders until that
-        integration is wired in — this page already saves and applies the day-range setting for when it
-        is.
-      </div>
-
       {error && (
         <div className="flex items-center gap-1.5 rounded-md border border-red-900 bg-red-950 px-3 py-2 text-[12px] text-red-300">
           <AlertCircle size={13} />

@@ -15,12 +15,24 @@ function withEmbedFlag(url) {
 
 export function PageOverlayProvider({ children }) {
   const [url, setUrl] = useState(null);
+  const [onCloseCallback, setOnCloseCallback] = useState(null);
 
-  const openOverlay = useCallback((targetUrl) => {
+  // Optional second arg: called once the overlay is closed - lets the page
+  // behind the overlay (e.g. an accounts list) refresh itself after the
+  // embedded add/edit page finishes, without the overlay having to know
+  // anything about what it's hosting.
+  const openOverlay = useCallback((targetUrl, onClose) => {
     setUrl(withEmbedFlag(targetUrl));
+    setOnCloseCallback(() => onClose || null);
   }, []);
 
-  const closeOverlay = useCallback(() => setUrl(null), []);
+  const closeOverlay = useCallback(() => {
+    setUrl(null);
+    setOnCloseCallback((current) => {
+      if (current) current();
+      return null;
+    });
+  }, []);
 
   return (
     <OverlayContext.Provider value={{ openOverlay, closeOverlay }}>

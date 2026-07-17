@@ -11,10 +11,12 @@ function mapOrderPayload(order = {}, account = {}) {
   const shipping = order.address_shipping || {};
 
   return {
+    account_id: account.id,
+    account_code: account.account_code,
     order_number: order.order_number,
     daraz_order_id: order.order_id,
     order_date: order.created_at,
-    order_status: (Array.isArray(order.statuses) && order.statuses[0]) || order.status || null,
+    order_status: (Array.isArray(order.statuses) && order.statuses[0]) || order.status || "unknown",
     account_name: account.account_name,
     buyer_name: fullName(order),
     grand_total: order.price,
