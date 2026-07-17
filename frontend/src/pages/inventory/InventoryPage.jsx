@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Edit3, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
+import { Edit3, ImageOff, Layers, Plus, RefreshCw, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
 import { useCanViewCostPrice } from "../../components/common/permissions/PermissionsProvider";
 import Loader from "../../components/common/Loader";
+import { usePageOverlay } from "../../components/common/page_overlay/PageOverlayProvider";
+import AddVariationModal from "../product_management/products/product_dashboard/components/AddVariationModal";
 
 const RAW_API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api").trim();
 const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
@@ -31,9 +33,10 @@ function ProductImage({src,name}){const url=imgUrl(src); return <div className="
 export default function InventoryPage(){
  const showToast=useToast();
  const canViewCostPrice=useCanViewCostPrice();
+ const { openOverlay } = usePageOverlay();
  const [searchParams]=useSearchParams();
- const [rows,setRows]=useState([]),[catalog,setCatalog]=useState([]),[prices,setPrices]=useState([]),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[syncAllLoading,setSyncAllLoading]=useState(false),[search,setSearch]=useState(()=>searchParams.get("search")||""),[modalOpen,setModalOpen]=useState(false),[editing,setEditing]=useState(null),[form,setForm]=useState(emptyForm),[skuSearch,setSkuSearch]=useState(""),[productLoading,setProductLoading]=useState(false),[productMatches,setProductMatches]=useState([]),[selectedProduct,setSelectedProduct]=useState(null);
- async function loadCatalog(q=""){setProductLoading(true); try{const res=await localProductsApi.getProducts({limit:200,search:q}); const flat=flattenCatalog(normalizeList(res)); if(!q)setCatalog(flat); return flat;}catch(e){console.warn("[INVENTORY_CATALOG_LOAD]",e); return [];}finally{setProductLoading(false);}}
+ const [rows,setRows]=useState([]),[catalog,setCatalog]=useState([]),[rawProducts,setRawProducts]=useState([]),[prices,setPrices]=useState([]),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[syncAllLoading,setSyncAllLoading]=useState(false),[search,setSearch]=useState(()=>searchParams.get("search")||""),[modalOpen,setModalOpen]=useState(false),[editing,setEditing]=useState(null),[form,setForm]=useState(emptyForm),[skuSearch,setSkuSearch]=useState(""),[productLoading,setProductLoading]=useState(false),[productMatches,setProductMatches]=useState([]),[selectedProduct,setSelectedProduct]=useState(null),[addVariationOpen,setAddVariationOpen]=useState(false);
+ async function loadCatalog(q=""){setProductLoading(true); try{const res=await localProductsApi.getProducts({limit:200,search:q}); const items=normalizeList(res); const flat=flattenCatalog(items); if(!q){setCatalog(flat);setRawProducts(items);} return flat;}catch(e){console.warn("[INVENTORY_CATALOG_LOAD]",e); return [];}finally{setProductLoading(false);}}
  async function loadInventory(){setLoading(true);try{const [inv,,priceRes]=await Promise.all([localProductsApi.getInventory({limit:500,sort_by:"updated_at",sort_dir:"DESC"}),loadCatalog(),localProductsApi.getPrices({limit:1000}).catch(()=>[])]);setRows(normalizeList(inv));setPrices(normalizeList(priceRes));}catch(e){alert(getErrorMessage(e,"Unable to load inventory."));}finally{setLoading(false);}}
  useEffect(()=>{loadInventory();},[]);
  const catalogMap=useMemo(()=>{const m=new Map(); catalog.forEach(p=>m.set(clean(p.sku).toLowerCase(),p)); return m;},[catalog]);
@@ -53,11 +56,24 @@ export default function InventoryPage(){
  return (
   <div className="min-h-screen bg-[#070b16] p-3 text-slate-100">
     <div className="mx-auto max-w-[1680px] space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <h1 className="text-xl font-bold text-white">Manage All Inventory</h1>
+
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setAddVariationOpen(true)} className="flex h-8 items-center gap-1.5 rounded-sm border border-slate-600 bg-[#334155] px-3 text-[12px] font-semibold text-slate-100 hover:bg-[#3f4d63]">
+            <Layers size={13} /> Add a variation
+          </button>
+          <button type="button" onClick={() => openOverlay("/product/local-products/create")} className="flex h-8 items-center gap-1.5 rounded-sm border border-slate-600 bg-[#334155] px-3 text-[12px] font-semibold text-slate-100 hover:bg-[#3f4d63]">
+            <Plus size={13} /> Add a product
+          </button>
+        </div>
+      </div>
+
       <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-4 py-3">
           <h3 className="flex items-center gap-2 text-[13px] font-semibold text-white">
             <Search size={15} className="text-orange-400" />
-            Inventory Dashboard
+            Inventory Overview
           </h3>
 
           <div className="flex items-center gap-2">
@@ -231,6 +247,14 @@ export default function InventoryPage(){
           </div>
         </form>
       </div>
+    )}
+
+    {addVariationOpen && (
+      <AddVariationModal
+        products={rawProducts}
+        productImages={[]}
+        onClose={() => setAddVariationOpen(false)}
+      />
     )}
   </div>
  );
