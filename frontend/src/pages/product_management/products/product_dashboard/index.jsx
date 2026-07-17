@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Layers, Plus } from "lucide-react";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
 import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
@@ -775,6 +776,27 @@ export default function LocalProductsDashboard() {
   return (
     <div className="min-h-screen bg-[#070b16] p-2 text-slate-100 lg:p-3">
       <div className="mx-auto max-w-[1680px] space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <h1 className="text-xl font-bold text-white">Manage All Inventory</h1>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAddVariationOpen(true)}
+              className="flex h-8 items-center gap-1.5 rounded-sm border border-slate-600 bg-[#334155] px-3 text-[12px] font-semibold text-slate-100 hover:bg-[#3f4d63]"
+            >
+              <Layers size={13} /> Add a variation
+            </button>
+            <button
+              type="button"
+              onClick={() => openOverlay("/product/local-products/create")}
+              className="flex h-8 items-center gap-1.5 rounded-sm border border-slate-600 bg-[#334155] px-3 text-[12px] font-semibold text-slate-100 hover:bg-[#3f4d63]"
+            >
+              <Plus size={13} /> Add a product
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-1 border-b border-slate-700">
           {VIEW_TABS.map((tabItem) => {
             const active = activeView === tabItem.key;
@@ -808,8 +830,6 @@ export default function LocalProductsDashboard() {
           onOpenFilter={openFilterModal}
           onClear={clearAllFilters}
           onOpenExport={() => setExportOpen(true)}
-          onAddProduct={() => openOverlay("/product/local-products/create")}
-          onAddVariation={() => setAddVariationOpen(true)}
           onOpenPriceDashboard={() => openOverlay("/price")}
           onOpenInventoryDashboard={() => openOverlay("/inventory")}
         />

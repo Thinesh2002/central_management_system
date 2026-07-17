@@ -1,4 +1,4 @@
-import { Boxes, Download, Filter, Layers, Plus, Search, Tag } from "lucide-react";
+import { Boxes, Download, Filter, Search, Tag } from "lucide-react";
 
 const DATE_OPTIONS = [
   { value: "all", label: "All Dates" },
@@ -34,8 +34,6 @@ export default function ProductFilterBar({
   activePopupFilterCount,
   onOpenFilter,
   onOpenExport,
-  onAddProduct,
-  onAddVariation,
   onOpenPriceDashboard,
   onOpenInventoryDashboard,
 }) {
@@ -62,24 +60,6 @@ export default function ProductFilterBar({
         </h3>
 
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onAddProduct}
-            className="flex h-5.5 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2 text-[9px] font-semibold text-white hover:bg-[#52657f]"
-          >
-            <Plus size={10} />
-            ADD PRODUCT
-          </button>
-
-          <button
-            type="button"
-            onClick={onAddVariation}
-            className="flex h-5.5 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2 text-[9px] font-semibold text-white hover:bg-[#52657f]"
-          >
-            <Layers size={10} />
-            ADD VARIATION
-          </button>
-
           <button
             type="button"
             onClick={onOpenExport}
