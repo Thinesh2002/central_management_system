@@ -16,8 +16,8 @@ export default function Login() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    identifier: "Thinesh",
-    password: "Admin@123",
+    identifier: "",
+    password: "",
   });
 
   const [loading, setLoading] = useState(false);
