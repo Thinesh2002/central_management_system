@@ -23,7 +23,7 @@ function FilterInput({ value, onChange, placeholder }) {
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="h-7 w-full border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:border-orange-400"
+      className="h-7 w-full border border-slate-600 bg-[#2b3441] px-2.5 text-[10px] font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:border-orange-400"
     />
   );
 }
@@ -56,8 +56,8 @@ export default function ProductFilterBar({
   return (
     <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 px-3 py-2">
-        <h3 className="flex items-center gap-1.5 text-[12px] font-semibold text-white">
-          <Search size={13} className="text-orange-400" />
+        <h3 className="flex items-center gap-1.5 text-[11px] font-semibold text-white">
+          <Search size={12} className="text-orange-400" />
           Search & Filter Local Products
         </h3>
 
@@ -65,45 +65,45 @@ export default function ProductFilterBar({
           <button
             type="button"
             onClick={onAddProduct}
-            className="flex h-6 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2.5 text-[10px] font-semibold text-white hover:bg-[#52657f]"
+            className="flex h-5.5 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2 text-[9px] font-semibold text-white hover:bg-[#52657f]"
           >
-            <Plus size={11} />
+            <Plus size={10} />
             ADD PRODUCT
           </button>
 
           <button
             type="button"
             onClick={onAddVariation}
-            className="flex h-6 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2.5 text-[10px] font-semibold text-white hover:bg-[#52657f]"
+            className="flex h-5.5 items-center gap-1 rounded-sm border border-slate-600 bg-[#44546b] px-2 text-[9px] font-semibold text-white hover:bg-[#52657f]"
           >
-            <Layers size={11} />
+            <Layers size={10} />
             ADD VARIATION
           </button>
 
           <button
             type="button"
             onClick={onOpenExport}
-            className="flex h-6 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-2.5 text-[10px] font-semibold text-white hover:bg-emerald-500"
+            className="flex h-5.5 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-2 text-[9px] font-semibold text-white hover:bg-emerald-500"
           >
-            <Download size={11} />
+            <Download size={10} />
             EXPORT CSV
           </button>
 
           <button
             type="button"
             onClick={onOpenPriceDashboard}
-            className="flex h-6 items-center gap-1 rounded-sm border border-emerald-500/40 bg-transparent px-2.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/10"
+            className="flex h-5.5 items-center gap-1 rounded-sm border border-emerald-500/40 bg-transparent px-2 text-[9px] font-semibold text-emerald-300 hover:bg-emerald-500/10"
           >
-            <Tag size={11} />
+            <Tag size={10} />
             PRICE DASHBOARD
           </button>
 
           <button
             type="button"
             onClick={onOpenInventoryDashboard}
-            className="flex h-6 items-center gap-1 rounded-sm border border-sky-500/40 bg-transparent px-2.5 text-[10px] font-semibold text-sky-300 hover:bg-sky-500/10"
+            className="flex h-5.5 items-center gap-1 rounded-sm border border-sky-500/40 bg-transparent px-2 text-[9px] font-semibold text-sky-300 hover:bg-sky-500/10"
           >
-            <Boxes size={11} />
+            <Boxes size={10} />
             INVENTORY DASHBOARD
           </button>
         </div>
@@ -115,7 +115,7 @@ export default function ProductFilterBar({
           <select
             value={filters.date_range || "all"}
             onChange={(event) => updateFilter("date_range", event.target.value)}
-            className="h-7 w-full cursor-pointer border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-white outline-none focus:border-orange-400"
+            className="h-7 w-full cursor-pointer border border-slate-600 bg-[#2b3441] px-2.5 text-[10px] font-medium text-white outline-none focus:border-orange-400"
           >
             {DATE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -164,9 +164,9 @@ export default function ProductFilterBar({
         <button
           type="button"
           onClick={onOpenFilter}
-          className="inline-flex h-7 cursor-pointer items-center justify-center gap-1.5 bg-indigo-500 px-3 text-[11px] font-semibold text-white transition hover:bg-indigo-400"
+          className="inline-flex h-7 cursor-pointer items-center justify-center gap-1.5 bg-indigo-500 px-3 text-[10px] font-semibold text-white transition hover:bg-indigo-400"
         >
-          <Filter size={12} />
+          <Filter size={11} />
           FILTERS
           {activePopupFilterCount > 0 && (
             <span className="bg-white/20 px-1.5 py-0.5 text-[9px]">
