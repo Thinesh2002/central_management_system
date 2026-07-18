@@ -5,6 +5,10 @@ const contentOptimizerLogModel = require("../../../models/daraz/product_manageme
 const contentScanService = require("../../../services/daraz/product_management/daraz_content_scan_service");
 const darazProductApiService = require("../../../services/marketplace/daraz_product_api_service");
 const darazProductSyncModel = require("../../../models/daraz/product_management/daraz_product_sync_model");
+const darazSalesLookupModel = require("../../../models/daraz/product_management/daraz_sales_lookup_model");
+
+const NEEDS_OPTIMIZATION_WINDOW_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Manual "Run Analysis" trigger - master admin only, matching the app's
 // existing ad hoc role-check convention (accessController.js/userController.js)
@@ -42,14 +46,37 @@ async function scan(req, res) {
 
 async function listSuggestions(req, res) {
   try {
-    const { account_id: accountId, status, scan_batch_id: scanBatchId, limit } = req.query || {};
+    const { account_id: accountId, status, scan_batch_id: scanBatchId, limit, needs_optimization: needsOptimization } =
+      req.query || {};
 
-    const data = await contentSuggestionModel.list({
+    const listParams = {
       account_id: accountId,
       status,
       scan_batch_id: scanBatchId,
       limit,
-    });
+    };
+
+    // "Needs Optimization" tab: suggestions generated in the last 30 days
+    // for SKUs that still have no sales in that same window - the ones the
+    // scan job keeps retrying because the AI content alone hasn't fixed
+    // whatever's not converting yet. Requires an account since sales are
+    // looked up by account_name.
+    if (String(needsOptimization).toLowerCase() === "true" && accountId) {
+      const account = await accountModel.getAccountById(accountId);
+
+      if (account) {
+        const sinceDate = new Date(Date.now() - NEEDS_OPTIMIZATION_WINDOW_DAYS * DAY_MS);
+        const recentlySoldSkus = await darazSalesLookupModel.getRecentlySoldSkus({
+          accountName: account.account_name,
+          sinceDate,
+        });
+
+        listParams.since_date = sinceDate;
+        listParams.exclude_seller_skus = Array.from(recentlySoldSkus);
+      }
+    }
+
+    const data = await contentSuggestionModel.list(listParams);
 
     return res.json({ success: true, data });
   } catch (error) {

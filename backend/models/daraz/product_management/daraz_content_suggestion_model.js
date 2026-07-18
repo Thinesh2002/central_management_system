@@ -104,7 +104,15 @@ async function findDetailById(id) {
   return rows[0] || null;
 }
 
-async function list({ account_id: accountId, status, scan_batch_id: scanBatchId, limit = 200, offset = 0 } = {}) {
+async function list({
+  account_id: accountId,
+  status,
+  scan_batch_id: scanBatchId,
+  limit = 200,
+  offset = 0,
+  since_date: sinceDate,
+  exclude_seller_skus: excludeSellerSkus,
+} = {}) {
   const params = [];
   let whereSql = "WHERE 1=1";
 
@@ -121,6 +129,19 @@ async function list({ account_id: accountId, status, scan_batch_id: scanBatchId,
   if (scanBatchId) {
     whereSql += " AND dcs.scan_batch_id = ?";
     params.push(scanBatchId);
+  }
+
+  // "Needs Optimization" view: still-analyzed-recently but not selling -
+  // same criteria the content scan job itself now uses to decide whether a
+  // product stays eligible for another optimization pass.
+  if (sinceDate) {
+    whereSql += " AND dcs.created_at >= ?";
+    params.push(sinceDate);
+  }
+
+  if (excludeSellerSkus?.length) {
+    whereSql += ` AND (dcs.seller_sku IS NULL OR dcs.seller_sku NOT IN (${excludeSellerSkus.map(() => "?").join(",")}))`;
+    params.push(...excludeSellerSkus);
   }
 
   const [rows] = await db.query(
@@ -160,15 +181,6 @@ async function findPendingProductIds(accountId) {
   return new Set(rows.map((row) => row.daraz_product_id));
 }
 
-async function findRecentSuggestionProductIds({ account_id: accountId, since_date: sinceDate }) {
-  const [rows] = await db.query(
-    `SELECT DISTINCT daraz_product_id FROM daraz_content_suggestions WHERE account_id = ? AND created_at >= ?`,
-    [accountId, sinceDate]
-  );
-
-  return new Set(rows.map((row) => row.daraz_product_id));
-}
-
 module.exports = {
   create,
   createError,
@@ -177,5 +189,4 @@ module.exports = {
   list,
   updateStatus,
   findPendingProductIds,
-  findRecentSuggestionProductIds,
 };

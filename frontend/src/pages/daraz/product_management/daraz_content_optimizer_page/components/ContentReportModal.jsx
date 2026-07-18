@@ -102,21 +102,6 @@ export default function ContentReportModal({ suggestionId, onClose, onChanged })
     }
   }
 
-  async function applyDescription() {
-    setActingSection("description");
-
-    try {
-      await darazContentOptimizerApi.applyDescription(suggestionId);
-      showToast("Description applied to Daraz.", { type: "success" });
-      await load();
-      onChanged?.();
-    } catch (err) {
-      showToast(getApiError(err, "Failed to apply description"), { type: "error" });
-    } finally {
-      setActingSection(null);
-    }
-  }
-
   async function reject() {
     setActingSection("reject");
 
@@ -136,7 +121,6 @@ export default function ContentReportModal({ suggestionId, onClose, onChanged })
   const recommendations = data?.recommendations_json || { critical: [], high: [], medium: [], low: [] };
   const checklist = data?.publishing_checklist_json || [];
   const attributeValidation = data?.attribute_validation_json || { missing: [], incorrect: [], duplicate: [] };
-  const descriptionSections = data?.description_sections_json || {};
   const originalHighlights = data?.original_highlights_json || [];
   const suggestedHighlights = data?.suggested_highlights_json || [];
   const extractedFeatures = data?.extracted_features_json || [];
@@ -227,65 +211,6 @@ export default function ContentReportModal({ suggestionId, onClose, onChanged })
                 </div>
               </Section>
 
-              <Section
-                title="Description"
-                right={
-                  <div className="flex items-center gap-1.5">
-                    <CopyButton value={data?.suggested_description} />
-                    <button
-                      type="button"
-                      onClick={applyDescription}
-                      disabled={actingSection === "description" || !data?.suggested_description_html}
-                      className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-900 bg-emerald-950 px-2.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-900 disabled:opacity-50"
-                    >
-                      {actingSection === "description" ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                      Apply to Daraz
-                    </button>
-                  </div>
-                }
-              >
-                <p className="mb-1 text-[11px] text-slate-500">AI Suggested (rendered preview)</p>
-                <div
-                  className="max-h-56 overflow-y-auto rounded-md border border-slate-800 bg-white p-3 text-[12px] text-slate-900"
-                  dangerouslySetInnerHTML={{ __html: data?.suggested_description_html || "<p>-</p>" }}
-                />
-              </Section>
-
-              {(descriptionSections.warranty || descriptionSections.packageIncludes || descriptionSections.careInstructions || descriptionSections.faq?.length) && (
-                <Section title="Additional Sections">
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {descriptionSections.warranty && (
-                      <div>
-                        <p className="text-[11px] font-semibold text-slate-400">Warranty</p>
-                        <p className="text-[12px] text-slate-300">{descriptionSections.warranty}</p>
-                      </div>
-                    )}
-                    {descriptionSections.packageIncludes && (
-                      <div>
-                        <p className="text-[11px] font-semibold text-slate-400">Package Includes</p>
-                        <p className="text-[12px] text-slate-300">{descriptionSections.packageIncludes}</p>
-                      </div>
-                    )}
-                    {descriptionSections.careInstructions && (
-                      <div>
-                        <p className="text-[11px] font-semibold text-slate-400">Care Instructions</p>
-                        <p className="text-[12px] text-slate-300">{descriptionSections.careInstructions}</p>
-                      </div>
-                    )}
-                  </div>
-                  {descriptionSections.faq?.length > 0 && (
-                    <div className="mt-2 space-y-1.5">
-                      <p className="text-[11px] font-semibold text-slate-400">FAQ</p>
-                      {descriptionSections.faq.map((item, index) => (
-                        <div key={index} className="text-[12px]">
-                          <p className="font-semibold text-slate-200">Q: {item.question}</p>
-                          <p className="text-slate-400">A: {item.answer}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Section>
-              )}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <Section title="Extracted Features">

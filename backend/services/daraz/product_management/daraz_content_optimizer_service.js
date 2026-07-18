@@ -4,18 +4,22 @@ const { callGeminiWithRetry } = require("../../ai/gemini_retry");
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 const TRANSIENT_RETRIES = 2;
 
-// One combined call generates highlights/description/features/keywords/
-// qualitative scores together - same input data serves all of them, and
-// a bulk scan of hundreds of products makes 5 separate calls per product
-// costly in both latency and API spend for no real accuracy benefit.
-const SYSTEM_PROMPT = `You are a Daraz (Southeast/South Asian e-commerce marketplace) listing content specialist analyzing one existing product listing and producing improved content plus a qualitative content-quality assessment.
+// One combined call generates highlights/features/keywords/qualitative
+// scores together - same input data serves all of them, and a bulk scan
+// of hundreds of products makes several separate calls per product costly
+// in both latency and API spend for no real accuracy benefit.
+//
+// Deliberately does NOT generate a description - product descriptions on
+// this account are written and illustrated by hand (real photos, real
+// copy), so an AI-written description would either go unused or need to
+// be stripped of images the model can't actually provide. AI stays scoped
+// to what it can do well without a human rewrite pass: the title and the
+// highlight bullets.
+const SYSTEM_PROMPT = `You are a Daraz (Southeast/South Asian e-commerce marketplace) listing content specialist analyzing one existing product listing and producing improved highlight bullets plus a qualitative content-quality assessment.
 
 Rules:
 - Only use facts present in the given product data (title, existing description, category, brand, attributes). Never invent specifications, materials, dimensions, certifications, or claims not supported by what's given.
-- Highlights: 5-8 short, benefit-oriented, customer-facing bullet points. No duplicate information between them. Mobile-friendly length (under ~90 characters each).
-- Description: Daraz-compatible HTML using only <p>, <ul>, <li>, <strong>, <h4> tags (no <html>/<body>/<script>/inline styles). 3-5 short paragraphs plus a bullet list of key specs. Also provide a plain-text version with tags stripped.
-- Warranty/package-includes/care-instructions sections: only write these if the given data supports a real answer; otherwise return an empty string for that field - do not invent warranty terms or package contents.
-- FAQ: 2-4 realistic buyer questions with honest answers grounded in the given data only.
+- Highlights: exactly 5-8 short, benefit-oriented, customer-facing bullet points, eBay-style ("Item Specifics" tone: one concrete fact or benefit per bullet, not marketing fluff). No duplicate information between them. Mobile-friendly length (under ~90 characters each). Lead each with the concrete fact/benefit, not a generic adjective.
 - Extracted features: only fields you can confidently infer from the given title/description/attributes (material, color, weight, dimensions, voltage, power, capacity, compatibility, package contents, warranty, certification, country of origin). Omit any field you cannot support with real evidence - do not guess.
 - Keywords: a mix of primary, secondary, long-tail, and buyer-intent search terms a real buyer would type, each with a priority (high/medium/low) and a one-line recommendation on where/how to use it. Do not invent search-volume or competition numbers - you don't have real search data, only give qualitative priority.
 - Scores (0-100 integers, be a strict, honest grader - do not default to high numbers): seo (keyword usage/placement quality in the current title+description), conversion (how compelling/benefit-driven the current content reads to a buyer, not a real conversion-rate prediction), readability (sentence/paragraph clarity), grammar (current title+description's grammatical correctness), keyword (keyword diversity/relevance already present in current content).
@@ -26,19 +30,6 @@ const OUTPUT_SCHEMA = {
   properties: {
     highlights: { type: "array", items: { type: "string" } },
     highlights_reasoning: { type: "string" },
-    description_html: { type: "string" },
-    description_plain: { type: "string" },
-    warranty_section: { type: "string" },
-    package_includes: { type: "string" },
-    care_instructions: { type: "string" },
-    faq: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: { question: { type: "string" }, answer: { type: "string" } },
-        required: ["question", "answer"],
-      },
-    },
     extracted_features: {
       type: "array",
       items: {
@@ -72,14 +63,7 @@ const OUTPUT_SCHEMA = {
       required: ["seo", "conversion", "readability", "grammar", "keyword"],
     },
   },
-  required: [
-    "highlights",
-    "description_html",
-    "description_plain",
-    "extracted_features",
-    "keywords",
-    "scores",
-  ],
+  required: ["highlights", "extracted_features", "keywords", "scores"],
 };
 
 // Daraz's attribute key for a "Highlights"/"Key Features" bullet-point
@@ -162,18 +146,22 @@ async function generateContentSuggestion(product) {
 
   const parsed = JSON.parse(text);
 
+  // Description fields are intentionally always empty now - the model no
+  // longer generates them (see the SYSTEM_PROMPT note above). Left in the
+  // return shape so callers/DB columns/UI that still reference them don't
+  // need to change, they just stay blank instead of AI-written.
   return {
     originalHighlights: getExistingHighlights(product),
     suggestedHighlights: parsed.highlights || [],
     highlightsReasoning: parsed.highlights_reasoning || "",
     originalDescription: product.short_description || "",
-    suggestedDescription: parsed.description_plain || "",
-    suggestedDescriptionHtml: parsed.description_html || "",
+    suggestedDescription: "",
+    suggestedDescriptionHtml: "",
     descriptionSections: {
-      warranty: parsed.warranty_section || "",
-      packageIncludes: parsed.package_includes || "",
-      careInstructions: parsed.care_instructions || "",
-      faq: parsed.faq || [],
+      warranty: "",
+      packageIncludes: "",
+      careInstructions: "",
+      faq: [],
     },
     extractedFeatures: parsed.extracted_features || [],
     keywords: parsed.keywords || [],

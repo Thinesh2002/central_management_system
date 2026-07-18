@@ -19,6 +19,11 @@ const STATUS_TABS = [
   { value: "", label: "All" },
 ];
 
+// Not a real `status` column value - this tab asks the backend for a
+// different query entirely (recently-analyzed SKUs with no sales in the
+// same window), so it's handled separately from the STATUS_TABS above.
+const NEEDS_OPTIMIZATION_TAB = { value: "needs_optimization", label: "Needs Optimization" };
+
 const PAGE_SIZE = 50;
 
 function extractAccounts(res) {
@@ -116,14 +121,23 @@ export default function DarazContentOptimizerPage() {
     loadAccounts();
   }, []);
 
+  const isNeedsOptimizationTab = status === NEEDS_OPTIMIZATION_TAB.value;
+
   async function loadSuggestions(limitOverride) {
+    if (isNeedsOptimizationTab && !accountId) {
+      setSuggestions([]);
+      setError("Select a Daraz account above to see its \"Needs Optimization\" list.");
+      return;
+    }
+
     setLoadingSuggestions(true);
     setError("");
 
     try {
       const res = await darazContentOptimizerApi.listSuggestions({
         account_id: accountId || undefined,
-        status: status || undefined,
+        status: isNeedsOptimizationTab ? undefined : status || undefined,
+        needs_optimization: isNeedsOptimizationTab ? true : undefined,
         limit: limitOverride || pageLimit,
       });
       setSuggestions(res?.data?.data || []);
@@ -256,6 +270,17 @@ export default function DarazContentOptimizerPage() {
             {tab.label}
           </button>
         ))}
+
+        <button
+          type="button"
+          onClick={() => setStatus(NEEDS_OPTIMIZATION_TAB.value)}
+          title="Analyzed in the last 30 days with no sales in that window - candidates the scan job keeps retrying"
+          className={`ml-2 border-l border-slate-800 px-3 py-1.5 text-[12px] font-medium transition ${
+            isNeedsOptimizationTab ? "border-b-2 border-amber-400 text-amber-300" : "text-slate-500 hover:text-slate-300"
+          }`}
+        >
+          {NEEDS_OPTIMIZATION_TAB.label}
+        </button>
       </div>
 
       {loadingSuggestions ? (

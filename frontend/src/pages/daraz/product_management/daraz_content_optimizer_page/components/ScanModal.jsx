@@ -14,7 +14,6 @@ function getAccountName(account = {}) {
 export default function ScanModal({ accounts, onClose, onDone, showToast }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [limit, setLimit] = useState(50);
-  const [staleOnly, setStaleOnly] = useState(false);
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState([]);
   const [error, setError] = useState("");
@@ -51,7 +50,6 @@ export default function ScanModal({ accounts, onClose, onDone, showToast }) {
         const res = await darazContentOptimizerApi.scan({
           accountId,
           limit: Number(limit) || 50,
-          mode: staleOnly ? "stale" : "manual",
         });
         const result = res?.data?.data;
         outcomes.push({
@@ -124,17 +122,12 @@ export default function ScanModal({ accounts, onClose, onDone, showToast }) {
                 className="h-8 w-16 rounded-md border border-slate-700 bg-slate-900 px-2 text-[12px] text-slate-200 outline-none"
               />
             </label>
-
-            <label className="flex items-center gap-1.5 text-[12px] text-slate-200">
-              <input
-                type="checkbox"
-                checked={staleOnly}
-                onChange={(e) => setStaleOnly(e.target.checked)}
-                className="accent-orange-500"
-              />
-              Only stale listings (no sales in last 30 days)
-            </label>
           </div>
+
+          <p className="mb-3 text-[11px] text-slate-500">
+            Products that already sold in the last 30 days are skipped automatically — analysis only runs on listings
+            that still need help.
+          </p>
 
           <div className="mb-3 flex items-center justify-between">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">

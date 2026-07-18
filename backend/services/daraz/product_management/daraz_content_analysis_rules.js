@@ -134,11 +134,9 @@ function buildRecommendations({ product, generated, attributeValidation, scores 
   if ((generated?.keywords?.length || 0) === 0) high.push("No search keywords identified for this listing");
   if (attributeValidation.duplicate.length) high.push(`Duplicate attribute keys: ${attributeValidation.duplicate.join(", ")}`);
 
-  if (stripHtml(product.short_description).length < MIN_DESCRIPTION_CHARS) medium.push("Description is short - consider using the AI-generated version");
-  if (!generated?.descriptionSections?.faq?.length) medium.push("No FAQ section - buyers often check this before purchasing");
+  if (stripHtml(product.short_description).length < MIN_DESCRIPTION_CHARS) medium.push("Description is short - descriptions are written/uploaded manually, AI does not generate them");
 
   if (countImages(product) < MIN_IMAGES + 3) low.push("Add a few more product images (lifestyle/usage angles)");
-  if (!generated?.descriptionSections?.careInstructions) low.push("No care instructions provided");
 
   return { critical, high, medium, low };
 }

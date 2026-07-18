@@ -11,6 +11,7 @@ const analysisRules = require("./daraz_content_analysis_rules");
 const contentSuggestionModel = require("../../../models/daraz/product_management/daraz_content_suggestion_model");
 const contentOptimizerLogModel = require("../../../models/daraz/product_management/daraz_content_optimizer_log_model");
 const darazCatalogApiService = require("../../marketplace/daraz_catalog_api_service");
+const darazSalesLookupModel = require("../../../models/daraz/product_management/daraz_sales_lookup_model");
 
 const SCAN_CONCURRENCY = 1;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -148,16 +149,22 @@ async function scanAccountForContentOptimization({
   const rawCandidates = await darazProductSyncModel.listPreview({ account_id: accountId, limit, offset: 0 });
   const candidateProducts = rawCandidates.filter(isEligibleForContentAnalysis);
 
-  const [pendingProductIds, recentSuggestionProductIds] = await Promise.all([
+  // Recency-based cooldown is deliberately replaced with a sales-based one:
+  // a listing that already got a suggestion recently but still isn't
+  // selling needs *more* optimization attempts, not fewer, while a listing
+  // that's actively selling shouldn't be touched regardless of how long
+  // ago its content was last generated - matches daraz_title_scan_service's
+  // "stale" mode, which already does this for titles.
+  const [pendingProductIds, recentlySoldSkus] = await Promise.all([
     contentSuggestionModel.findPendingProductIds(accountId),
-    contentSuggestionModel.findRecentSuggestionProductIds({
-      account_id: accountId,
-      since_date: new Date(Date.now() - staleDays * DAY_MS),
+    darazSalesLookupModel.getRecentlySoldSkus({
+      accountName: account.account_name,
+      sinceDate: new Date(Date.now() - staleDays * DAY_MS),
     }),
   ]);
 
   const products = candidateProducts.filter(
-    (product) => !pendingProductIds.has(product.id) && !recentSuggestionProductIds.has(product.id)
+    (product) => !pendingProductIds.has(product.id) && !(product.seller_sku && recentlySoldSkus.has(product.seller_sku))
   );
 
   let succeeded = 0;
