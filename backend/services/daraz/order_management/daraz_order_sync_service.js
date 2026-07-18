@@ -99,6 +99,7 @@ async function syncSingleOrderById({ account, credentials, orderId }) {
 
 function resolveSyncDays(settings) {
   const candidateKeys = [
+    "fetch_order_days",
     "sync_days",
     "days_back",
     "lookback_days",

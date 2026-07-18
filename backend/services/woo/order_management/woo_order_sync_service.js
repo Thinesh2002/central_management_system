@@ -9,7 +9,7 @@ const PAGE_SIZE = 50;
 // Same shared order_sync_settings row Daraz's own sync job reads from -
 // "how many days back to sync" isn't a per-marketplace concept.
 function resolveSyncDays(settings) {
-  const candidateKeys = ["sync_days", "days_back", "lookback_days", "sync_range_days", "order_sync_days"];
+  const candidateKeys = ["fetch_order_days", "sync_days", "days_back", "lookback_days", "sync_range_days", "order_sync_days"];
 
   for (const key of candidateKeys) {
     const value = Number(settings?.[key]);
