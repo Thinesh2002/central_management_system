@@ -88,16 +88,6 @@ function filterOrders(orders, filters, query, status) {
     if (filters.minTotal && total < Number(filters.minTotal)) return false;
     if (filters.maxTotal && total > Number(filters.maxTotal)) return false;
 
-    const orderDate = order.order_date ? new Date(order.order_date) : null;
-
-    if (filters.dateFrom && orderDate && orderDate < new Date(filters.dateFrom)) return false;
-
-    if (filters.dateTo && orderDate) {
-      const dateTo = new Date(filters.dateTo);
-      dateTo.setHours(23, 59, 59, 999);
-      if (orderDate > dateTo) return false;
-    }
-
     return true;
   });
 }
@@ -143,7 +133,11 @@ export default function OrdersPage() {
 
     try {
       const [ordersRes, optionsRes] = await Promise.all([
-        ordersApi.listOrders({ limit: 1000 }),
+        ordersApi.listOrders({
+          limit: 1000,
+          date_from: filters.dateFrom || undefined,
+          date_to: filters.dateTo || undefined,
+        }),
         ordersApi.filterOptions().catch(() => ({ data: {} })),
       ]);
 
@@ -157,9 +151,14 @@ export default function OrdersPage() {
     }
   }
 
+  // Date range is applied server-side (order_model.js's listUnified) since
+  // it's the one filter that needs to reach past whatever's in the current
+  // 1000-row client-side page - refetch whenever it changes instead of
+  // only filtering what's already in memory.
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.dateFrom, filters.dateTo]);
 
   const counts = useMemo(() => countByStatus(orders), [orders]);
 
