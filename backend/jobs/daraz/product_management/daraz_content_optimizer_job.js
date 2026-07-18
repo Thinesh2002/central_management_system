@@ -46,7 +46,7 @@ async function runFullCatalogContentScanForAllAccounts() {
 function startDarazContentOptimizerJob() {
   cron.schedule("0 0 * * *", runFullCatalogContentScanForAllAccounts, { timezone: "Asia/Colombo" });
   console.log(
-    "[DARAZ_CONTENT_OPTIMIZER_JOB] Scheduler started. Full-catalog AI content analysis nightly at 00:00 Colombo (skips anything analyzed in the last 30 days)."
+    "[DARAZ_CONTENT_OPTIMIZER_JOB] Scheduler started. Full-catalog AI content analysis nightly at 00:00 Colombo (skips SKUs with sales in the last 30 days)."
   );
 }
 
