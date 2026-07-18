@@ -35,6 +35,7 @@ import {
   Truck,
   Monitor,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 
 const iconMap = {
@@ -65,6 +66,7 @@ const iconMap = {
   Truck,
   Monitor,
   ShieldCheck,
+  Globe,
 };
 
 const staticMenu = [
@@ -153,10 +155,11 @@ const staticMenu = [
   },
   {
     section: "MARKETPLACE MANAGEMENT",
-    page_key: "woo_products",
-    page_name: "WooCommerce Products",
-    path: "/product/woo-products",
-    icon: "Store",
+    page_key: "products",
+    pageKeys: ["products", "local_products"],
+    page_name: "Website Products",
+    path: "/product/local-products",
+    icon: "Globe",
     exact: true,
   },
   {
