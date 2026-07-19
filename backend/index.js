@@ -17,6 +17,8 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const productModelRoutes = require("./routes/product_management/product_model/product_model_routes");
 const productColourRoutes = require("./routes/product_management/product_colour/product_colour_routes");
+const productSizeRoutes = require("./routes/product_management/product_size/product_size_routes");
+const productContentBlockRoutes = require("./routes/product_management/product_content_block/product_content_block_routes");
 const skuMappingRoutes = require("./routes/product_management/sku_mapping/sku_mapping_routes");
 const localProductManagementRoutes = require("./routes/product_management/product/product_management_routes");
 const productVariantRoutes = require("./routes/product_management/product/product_variants_routes");
@@ -203,6 +205,8 @@ app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/product-management/models", productModelRoutes);
 app.use("/api/product-management/colours", productColourRoutes);
+app.use("/api/product-management/sizes", productSizeRoutes);
+app.use("/api/product-management/content-blocks", productContentBlockRoutes);
 app.use("/api/product-management/sku-mappings", skuMappingRoutes);
 app.use("/api/product-management", localProductManagementRoutes);
 app.use("/api/product/product-variants", productVariantRoutes);

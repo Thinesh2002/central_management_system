@@ -25,6 +25,7 @@ export function getName(item, type = "") {
     ],
     model: ["model_name", "product_model_name", "name", "title", "label"],
     colour: ["colour_name", "color_name", "name", "title", "label"],
+    size: ["size_name", "name", "title", "label"],
   };
 
   return (
@@ -39,6 +40,7 @@ export function getName(item, type = "") {
     item.product_model_name ||
     item.colour_name ||
     item.color_name ||
+    item.size_name ||
     item.attribute_name ||
     item.value ||
     item.label ||
@@ -59,6 +61,7 @@ export function getCode(item, type = "") {
     ],
     model: ["model_code", "product_model_code", "code"],
     colour: ["colour_code", "color_code", "hex_code", "code"],
+    size: ["size_code", "code"],
   };
 
   return (
@@ -73,6 +76,7 @@ export function getCode(item, type = "") {
     item.colour_code ||
     item.color_code ||
     item.hex_code ||
+    item.size_code ||
     item.sku_code ||
     getName(item, type)
   );
@@ -111,7 +115,7 @@ export function generateProductSku({ category, subCategory, model }) {
   return `${cat}${sub}${mod}`;
 }
 
-export function generateVariantSku({ category, subCategory, model, colour }) {
+export function generateVariantSku({ category, subCategory, model, colour, size }) {
   const cat = makeCode(
     getCode(category, "category") || getName(category, "category")
   );
@@ -127,7 +131,9 @@ export function generateVariantSku({ category, subCategory, model, colour }) {
     getCode(colour, "colour") || getName(colour, "colour")
   );
 
-  return `${cat}${sub}${mod}${col}`;
+  const siz = size ? makeCode(getCode(size, "size") || getName(size, "size")) : "";
+
+  return `${cat}${sub}${mod}${col}${siz}`;
 }
 
 export function normalizeList(response) {

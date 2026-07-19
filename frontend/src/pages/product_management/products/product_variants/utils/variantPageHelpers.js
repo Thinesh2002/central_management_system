@@ -85,12 +85,12 @@ export function getVariantSku(variant = {}) {
 }
 
 export function getVariantName(variant = {}) {
-  return (
-    variant.colour_name ||
-    variant.color_name ||
-    variant.variant_name ||
-    "Variant"
-  );
+  const colourName = variant.colour_name || variant.color_name || "";
+  const sizeName = variant.size_name || "";
+
+  if (colourName && sizeName) return `${colourName} / ${sizeName}`;
+
+  return colourName || sizeName || variant.variant_name || "Variant";
 }
 
 export function getVariantPrice(variant = {}) {

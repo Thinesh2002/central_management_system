@@ -290,6 +290,12 @@ export default function VariantViewPage() {
                   {variant?.colour_name || "No Colour"}
                 </span>
 
+                {variant?.size_name && (
+                  <span className="inline-flex items-center rounded-full bg-slate-700/60 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-200 ring-1 ring-slate-600/50">
+                    {variant.size_name}
+                  </span>
+                )}
+
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
                     (variant?.status || "active") === "active"

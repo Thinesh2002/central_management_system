@@ -39,10 +39,11 @@ function rowBelongsToProduct(row, productId) {
   return possibleIds.some((value) => String(value) === String(productId));
 }
 
-function buildVariantTitle(product, colour) {
+function buildVariantTitle(product, colour, size) {
   const colourName = getName(colour, "colour") || colour?.colour || colour?.color || "Variant";
+  const sizeName = getName(size, "size");
   const productTitle = product?.title || product?.name || product?.product_name || "Product";
-  return `${productTitle} - ${colourName}`;
+  return sizeName ? `${productTitle} - ${colourName} - ${sizeName}` : `${productTitle} - ${colourName}`;
 }
 
 export default function VariantBasicPage() {
@@ -55,6 +56,7 @@ export default function VariantBasicPage() {
   const [saving, setSaving] = useState(false);
   const [product, setProduct] = useState(null);
   const [colours, setColours] = useState([]);
+  const [sizes, setSizes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [models, setModels] = useState([]);
@@ -62,6 +64,8 @@ export default function VariantBasicPage() {
     id: "",
     colour_id: "",
     colour_name: "",
+    size_id: "",
+    size_name: "",
     variant_name: "",
     variant_sku: "",
     status: "active",
@@ -87,13 +91,19 @@ export default function VariantBasicPage() {
     [colours, form.colour_id]
   );
 
+  const selectedSize = useMemo(
+    () => sizes.find((item) => String(item.id) === String(form.size_id)),
+    [sizes, form.size_id]
+  );
+
   async function loadData() {
     setLoading(true);
 
     try {
-      const [productRes, colourRes, categoryRes, subCategoryRes, modelRes] = await Promise.all([
+      const [productRes, colourRes, sizeRes, categoryRes, subCategoryRes, modelRes] = await Promise.all([
         localProductsApi.getProductById(productId),
         localProductsApi.getColours().catch(() => []),
+        localProductsApi.getSizes().catch(() => []),
         localProductsApi.getCategories({ limit: 100 }).catch(() => []),
         localProductsApi.getSubCategories({ limit: 500 }).catch(() => []),
         localProductsApi.getProductModels({ limit: 1000 }).catch(() => []),
@@ -101,6 +111,7 @@ export default function VariantBasicPage() {
 
       setProduct(unwrapOne(productRes));
       setColours(normalizeList(colourRes));
+      setSizes(normalizeList(sizeRes));
       setCategories(normalizeList(categoryRes));
       setSubCategories(normalizeList(subCategoryRes));
       setModels(normalizeList(modelRes));
@@ -119,6 +130,8 @@ export default function VariantBasicPage() {
             id: getRecordId(variant),
             colour_id: variant.colour_id || "",
             colour_name: variant.colour_name || "",
+            size_id: variant.size_id || "",
+            size_name: variant.size_name || "",
             variant_name: variant.variant_name || "",
             variant_sku: variant.variant_sku || variant.sku || "",
             status: variant.status || "active",
@@ -137,14 +150,16 @@ export default function VariantBasicPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, variantId]);
 
-  function generateSku(colourId = form.colour_id) {
+  function generateSku(colourId = form.colour_id, sizeId = form.size_id) {
     const colour = colours.find((item) => String(item.id) === String(colourId));
+    const size = sizes.find((item) => String(item.id) === String(sizeId));
 
     return generateVariantSku({
       category: selectedCategory,
       subCategory: selectedSubCategory,
       model: selectedModel,
       colour,
+      size,
     });
   }
 
@@ -155,8 +170,20 @@ export default function VariantBasicPage() {
       ...prev,
       colour_id: value,
       colour_name: getName(colour) || prev.colour_name,
-      variant_name: prev.variant_name || buildVariantTitle(product, colour),
-      variant_sku: prev.variant_sku || generateSku(value),
+      variant_name: prev.variant_name || buildVariantTitle(product, colour, selectedSize),
+      variant_sku: prev.variant_sku || generateSku(value, prev.size_id),
+    }));
+  }
+
+  function handleSizeChange(value) {
+    const size = sizes.find((item) => String(item.id) === String(value));
+
+    setForm((prev) => ({
+      ...prev,
+      size_id: value,
+      size_name: getName(size, "size") || prev.size_name,
+      variant_name: prev.variant_name || buildVariantTitle(product, selectedColour, size),
+      variant_sku: prev.variant_sku || generateSku(prev.colour_id, value),
     }));
   }
 
@@ -176,9 +203,11 @@ export default function VariantBasicPage() {
       const payload = {
         product_id: productId,
         variant_sku: sku,
-        variant_name: form.variant_name || buildVariantTitle(product, selectedColour),
+        variant_name: form.variant_name || buildVariantTitle(product, selectedColour, selectedSize),
         colour_id: form.colour_id || null,
         colour_name: form.colour_name || getName(selectedColour) || "",
+        size_id: form.size_id || null,
+        size_name: form.size_name || getName(selectedSize, "size") || "",
         status: form.status || "active",
         created_by: getCurrentUserId(),
         updated_by: getCurrentUserId(),
@@ -246,6 +275,24 @@ export default function VariantBasicPage() {
                 {colours.map((item) => (
                   <option key={item.id} value={item.id}>
                     {getName(item)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-400">
+                Size
+              </span>
+              <select
+                value={form.size_id}
+                onChange={(event) => handleSizeChange(event.target.value)}
+                className="h-11 w-full border border-slate-700 bg-[#0a101d] px-3 text-sm font-semibold text-slate-100 outline-none focus:border-orange-400"
+              >
+                <option value="">Select size</option>
+                {sizes.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {getName(item, "size")}
                   </option>
                 ))}
               </select>

@@ -9,6 +9,7 @@ import CategoryCreatePage from "../../pages/product_management/category/create_c
 import CategoryViewPage from "../../pages/product_management/category/View_category/index";
 import CategoryEditPage from "../../pages/product_management/category/edit_category_page/index";
 import ColourPage from "../../pages/product_management/colour/index";
+import SizePage from "../../pages/product_management/size/index";
 import SkuMappingPage from "../../pages/product_management/sku_mapping/index";
 
 import LocalProductViewPage from "../../pages/product_management/products/product_detail_page/index";
@@ -20,6 +21,7 @@ import LocalProductAddPage from "../../pages/product_management/products/add_pro
 import LocalProductBasicPage from "../../pages/product_management/products/LocalProductBasicPage";
 import LocalProductPriceInventoryPage from "../../pages/product_management/products/LocalProductInventoryPage";
 import LocalProductAttributesPage from "../../pages/product_management/products/LocalProductAttributesPage";
+import LocalProductContentBuilderPage from "../../pages/product_management/products/LocalProductContentBuilderPage";
 import LocalProductVariantsPage from "../../pages/product_management/products/product_variants/index";
 import LocalProductImagesPage from "../../pages/product_management/products/LocalProductImagesPage";
 import VariantBasicPage from "../../pages/product_management/products/product_variants/variant_pages/VariantBasicPage";
@@ -105,6 +107,15 @@ export default function ProductManagementRoutes() {
       <Route path="/colours" element={<Navigate to="/product/colours" replace />} />
 
       <Route
+        path="/product/sizes"
+        element={
+          <ProtectedProductPage>
+            <SizePage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
         path="/product/local-products"
         element={
           <ProtectedProductPage>
@@ -179,6 +190,15 @@ export default function ProductManagementRoutes() {
         element={
           <ProtectedProductPage>
             <LocalProductAttributesPage />
+          </ProtectedProductPage>
+        }
+      />
+
+      <Route
+        path="/product/local-products/edit/:productId/content-builder"
+        element={
+          <ProtectedProductPage>
+            <LocalProductContentBuilderPage />
           </ProtectedProductPage>
         }
       />
