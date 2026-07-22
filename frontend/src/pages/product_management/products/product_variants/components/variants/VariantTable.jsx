@@ -3,6 +3,7 @@ import { usePagePermission } from "../../../../../../components/common/permissio
 import Loader from "../../../../../../components/common/Loader";
 import {
   getRecordId,
+  getVariantName,
   getVariantSku,
   getVariantStock,
 } from "../../utils/variantPageHelpers";
@@ -60,8 +61,7 @@ export default function VariantTable({ loading, variants, onView, onEdit, onDele
       <table className="w-full min-w-[900px] text-sm">
         <thead className="border-b border-slate-800 bg-[#0a101d] text-left text-xs font-black uppercase tracking-wide text-slate-400">
           <tr>
-            <th className="w-[130px] px-3 py-3">Colour</th>
-            <th className="w-[110px] px-3 py-3">Size</th>
+            <th className="w-[150px] px-3 py-3">Colour</th>
             <th className="w-[220px] px-3 py-3">SKU</th>
             <th className="w-[260px] px-3 py-3">Title</th>
             <th className="w-[150px] px-3 py-3">Selling Price</th>
@@ -79,13 +79,7 @@ export default function VariantTable({ loading, variants, onView, onEdit, onDele
                 <tr key={variantId} className="hover:bg-slate-900/40">
                   <td className="px-3 py-3">
                     <span className="border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-bold text-slate-300">
-                      {safeText(variant.colour_name || variant.color_name, "-")}
-                    </span>
-                  </td>
-
-                  <td className="px-3 py-3">
-                    <span className="border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs font-bold text-slate-300">
-                      {safeText(variant.size_name, "-")}
+                      {safeText(getVariantName(variant))}
                     </span>
                   </td>
 
@@ -148,7 +142,7 @@ export default function VariantTable({ loading, variants, onView, onEdit, onDele
             })
           ) : (
             <tr>
-              <td colSpan="7" className="px-3 py-10 text-center text-slate-500">
+              <td colSpan="6" className="px-3 py-10 text-center text-slate-500">
                 No variants yet. Click Add Variant to create child SKU.
               </td>
             </tr>

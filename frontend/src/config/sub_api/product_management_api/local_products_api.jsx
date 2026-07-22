@@ -78,9 +78,6 @@ export const localProductsApi = {
       params
     ),
 
-  getSizes: (params = {}) =>
-    tryGet(["/product-management/sizes", "/product/sizes"], params),
-
   getAttributes: (params = {}) =>
     tryGet(["/product-management/attributes", "/product/attributes"], params),
 
@@ -321,24 +318,6 @@ export const localProductsApi = {
 
   getImages: (params = {}) =>
     api.get("/product-management/product-images", { params }),
-
-  getContentBlocks: (productId) =>
-    api.get("/product-management/content-blocks", { params: { product_id: productId } }),
-
-  createContentBlock: (payload) =>
-    api.post("/product-management/content-blocks", payload),
-
-  updateContentBlock: (id, payload) =>
-    api.put(`/product-management/content-blocks/${safeValue(id)}`, payload),
-
-  deleteContentBlock: (id) =>
-    api.delete(`/product-management/content-blocks/${safeValue(id)}`),
-
-  reorderContentBlocks: (productId, orderedIds) =>
-    api.put("/product-management/content-blocks/reorder", {
-      product_id: productId,
-      ordered_ids: orderedIds,
-    }),
 
   uploadImage: (formData) =>
     api.post("/product-management/product-images", formData, {

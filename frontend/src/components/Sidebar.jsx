@@ -36,7 +36,6 @@ import {
   Monitor,
   ShieldCheck,
   Globe,
-  Ruler,
 } from "lucide-react";
 
 const iconMap = {
@@ -68,7 +67,6 @@ const iconMap = {
   Monitor,
   ShieldCheck,
   Globe,
-  Ruler,
 };
 
 const staticMenu = [
@@ -105,14 +103,6 @@ const staticMenu = [
     page_name: "Colours",
     path: "/product/colours",
     icon: "Palette",
-    exact: true,
-  },
-  {
-    section: "PRODUCT MANAGEMENT",
-    page_key: "sizes",
-    page_name: "Sizes",
-    path: "/product/sizes",
-    icon: "Ruler",
     exact: true,
   },
   {
