@@ -11,8 +11,6 @@ import DarazCreateProductPage from "../../../pages/daraz/product_management/dara
 import DarazTransferProductPage from "../../../pages/daraz/product_management/daraz_transfer_product_page/index";
 import DarazTransferPreviewPage from "../../../pages/daraz/product_management/daraz_transfer_preview_page/index";
 import DarazTitleOptimizerPage from "../../../pages/daraz/product_management/daraz_title_optimizer_page/index";
-import DarazContentOptimizerPage from "../../../pages/daraz/product_management/daraz_content_optimizer_page/index";
-import ApprovalCenterPage from "../../../pages/daraz/product_management/approval_center_page/index";
 import DarazProductLogsPage from "../../../pages/daraz/daraz_logs/daraz_sync_logs_page";
 
 function ProtectedProductPage({ children }) {
@@ -90,24 +88,6 @@ export default function DarazProductRoutes() {
         element={
           <ProtectedProductPage>
             <DarazTitleOptimizerPage />
-          </ProtectedProductPage>
-        }
-      />
-
-      <Route
-        path="/product/daraz-products/content-optimizer"
-        element={
-          <ProtectedProductPage>
-            <DarazContentOptimizerPage />
-          </ProtectedProductPage>
-        }
-      />
-
-      <Route
-        path="/approval-center"
-        element={
-          <ProtectedProductPage>
-            <ApprovalCenterPage />
           </ProtectedProductPage>
         }
       />

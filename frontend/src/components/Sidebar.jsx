@@ -138,22 +138,6 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "OPTIMIZATION",
-    page_key: "ai_content_optimizer",
-    page_name: "AI Content Optimizer",
-    path: "/product/daraz-products/content-optimizer",
-    icon: "Sparkles",
-    exact: true,
-  },
-  {
-    section: "OPTIMIZATION",
-    page_key: "approval_center",
-    page_name: "Approval Center",
-    path: "/approval-center",
-    icon: "ListChecks",
-    exact: true,
-  },
-  {
     section: "MARKETPLACE MANAGEMENT",
     page_key: "products",
     pageKeys: ["products", "local_products"],
