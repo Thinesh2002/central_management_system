@@ -760,7 +760,15 @@ export default function DarazDashboardPage() {
     return rows.filter((row) => {
       const searchOk = !q || row.searchText.includes(q);
       const idOk = !idQ || String(row.listingId || "").toLowerCase().includes(idQ);
-      const skuOk = !skuQ || String(row.sku || "").toLowerCase().includes(skuQ);
+
+      // row.sku is the original ("wrong") Daraz seller SKU - a search also
+      // needs to match the mapped correct SKU (SKU Mapping page), otherwise
+      // searching by the SKU you actually mapped to never finds anything.
+      const mappedSku = skuMappingByWrong[row.sku]?.correct_sku || "";
+      const skuOk =
+        !skuQ ||
+        String(row.sku || "").toLowerCase().includes(skuQ) ||
+        mappedSku.toLowerCase().includes(skuQ);
 
       const accountOk =
         selectedAccountIds.length === 0 ||
@@ -791,6 +799,7 @@ export default function DarazDashboardPage() {
     customEndDate,
     selectedAccountIds,
     activeTab,
+    skuMappingByWrong,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
