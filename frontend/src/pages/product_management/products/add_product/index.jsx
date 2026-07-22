@@ -104,6 +104,16 @@ function getModelId(item = {}) {
   );
 }
 
+function getModelSubCategoryId(item = {}) {
+  return (
+    item.sub_category_id ??
+    item.subCategoryId ??
+    item.product_sub_category_id ??
+    item.productSubCategoryId ??
+    ""
+  );
+}
+
 function getCurrentUserId() {
   const user = getStoredUser?.();
   return user?.id || user?.user_id || user?.user_uid || 1;
@@ -214,6 +224,14 @@ export default function LocalProductAddPage() {
       (item) => getSubCategoryCode(item) === categoryCode
     );
   }, [subCategories, form.category_id, selectedCategory]);
+
+  const filteredModels = useMemo(() => {
+    if (!form.sub_category_id) return [];
+
+    return models.filter(
+      (item) => String(getModelSubCategoryId(item)) === String(form.sub_category_id)
+    );
+  }, [models, form.sub_category_id]);
 
   useEffect(() => {
     if (!form.category_id || !form.sub_category_id || !form.model_id) return;
@@ -375,6 +393,7 @@ export default function LocalProductAddPage() {
                     ...prev,
                     category_id: value,
                     sub_category_id: "",
+                    model_id: "",
                     sku: "",
                     slug: "",
                   }))
@@ -401,6 +420,7 @@ export default function LocalProductAddPage() {
                   setForm((prev) => ({
                     ...prev,
                     sub_category_id: value,
+                    model_id: "",
                     sku: "",
                     slug: "",
                   }))
@@ -435,10 +455,10 @@ export default function LocalProductAddPage() {
                   }))
                 }
                 required
-                disabled={mastersLoading}
+                disabled={!form.sub_category_id || mastersLoading}
               >
                 <option value="">Select model</option>
-                {models.map((item, index) => {
+                {filteredModels.map((item, index) => {
                   const modelId = getModelId(item);
 
                   return (
