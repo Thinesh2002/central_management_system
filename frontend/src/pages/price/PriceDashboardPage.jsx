@@ -256,7 +256,7 @@ export default function PriceDashboardPage(){
               <Loader label="Loading cost history..." minHeight="120px" />
             ) : !historyRows.length ? (
               <p className="rounded-md border border-slate-800 bg-[#070b16] px-3 py-6 text-center text-[12px] text-slate-500">
-                No cost price changes recorded yet for this SKU. Cost history is logged automatically when goods are received against a purchase order.
+                No cost price changes recorded yet for this SKU. Cost history is logged automatically whenever a different cost price is saved on the Inventory Dashboard.
               </p>
             ) : (
               <div className="overflow-x-auto rounded-md border border-slate-800">

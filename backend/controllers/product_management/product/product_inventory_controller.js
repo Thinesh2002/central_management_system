@@ -2,6 +2,8 @@ const asyncHandler = require("../../../middleware/async_handler.js");
 const model = require("../../../models/product_management/product/product_inventory_model.js");
 const productLogModel = require("../../../models/product_management/product/product_log_model.js");
 const darazInventorySyncService = require("../../../services/daraz/inventory/daraz_inventory_sync_service.js");
+const wooInventorySyncService = require("../../../services/woo/inventory/woo_inventory_sync_service.js");
+const inventoryCostPriceService = require("../../../services/product_management/inventory_cost_price_service.js");
 
 const TABLE_LABEL = "Product inventory";
 
@@ -88,6 +90,49 @@ function queueInventorySyncToDaraz(req, saved) {
   return { queued: true, message: "Daraz stock sync queued in background." };
 }
 
+// Moved here from the (now-removed) GRN receiving flow - manual stock
+// updates on the Inventory Dashboard now push to Woo the same way GRN
+// receipts used to.
+function queueInventorySyncToWoo(req, saved) {
+  const shouldSync = String(
+    req?.body?.sync_woo ?? req?.body?.syncWoo ?? req?.query?.sync_woo ?? "true"
+  ).toLowerCase() !== "false";
+
+  if (!shouldSync || !saved?.sku) {
+    return { queued: false, skipped: true, message: "Woo stock sync skipped." };
+  }
+
+  wooInventorySyncService
+    .pushSkuStockToWoo({
+      sku: saved.sku,
+      quantity: saved.stock_qty ?? saved.total_stock ?? saved.quantity ?? 0,
+      source: "inventory_update",
+      userId: getUserId(req),
+    })
+    .catch((error) => {
+      console.error("[INVENTORY_WOO_STOCK_SYNC_ERROR]", { sku: saved.sku, message: error?.message });
+    });
+
+  return { queued: true, message: "Woo stock sync queued in background." };
+}
+
+// Moved here from the (now-removed) GRN receiving flow - if the caller
+// supplies a cost_price alongside the stock update (i.e. "I just received
+// stock at this price"), log it the same way a GRN line item used to:
+// update product_prices.cost_price, log to price_history, refresh
+// suggested prices. Fire-and-forget, never blocks the inventory save.
+function queueCostPriceUpdate(req, saved) {
+  const costPrice = req?.body?.cost_price;
+
+  if (costPrice === undefined || costPrice === null || costPrice === "" || !saved?.sku) return;
+
+  inventoryCostPriceService
+    .updateCostPrice({ sku: saved.sku, unitCost: costPrice, changedBy: getUserId(req) })
+    .catch((error) => {
+      console.error("[INVENTORY_COST_PRICE_QUEUE_ERROR]", { sku: saved.sku, message: error?.message });
+    });
+}
+
 async function writeProductLog(req, action, recordId, beforeData, afterData) {
   const userId = getUserId(req);
   const sku = afterData?.sku || beforeData?.sku || req?.params?.sku || req?.body?.sku || null;
@@ -169,6 +214,8 @@ const create = asyncHandler(async (req, res) => {
   );
 
   const darazSync = queueInventorySyncToDaraz(req, saved);
+  const wooSync = queueInventorySyncToWoo(req, saved);
+  queueCostPriceUpdate(req, saved);
 
   return sendSuccess(
     res,
@@ -177,7 +224,7 @@ const create = asyncHandler(async (req, res) => {
       ? `${TABLE_LABEL} updated successfully`
       : `${TABLE_LABEL} created successfully`,
     saved,
-    { daraz_sync: darazSync }
+    { daraz_sync: darazSync, woo_sync: wooSync }
   );
 });
 
@@ -201,9 +248,12 @@ const update = asyncHandler(async (req, res) => {
   );
 
   const darazSync = queueInventorySyncToDaraz(req, updated);
+  const wooSync = queueInventorySyncToWoo(req, updated);
+  queueCostPriceUpdate(req, updated);
 
   return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated, {
     daraz_sync: darazSync,
+    woo_sync: wooSync,
   });
 });
 
@@ -236,9 +286,12 @@ const updateBySku = asyncHandler(async (req, res) => {
   );
 
   const darazSync = queueInventorySyncToDaraz(req, updated);
+  const wooSync = queueInventorySyncToWoo(req, updated);
+  queueCostPriceUpdate(req, updated);
 
   return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated, {
     daraz_sync: darazSync,
+    woo_sync: wooSync,
   });
 });
 

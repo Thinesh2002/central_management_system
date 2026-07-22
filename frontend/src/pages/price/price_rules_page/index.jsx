@@ -189,7 +189,7 @@ export default function PriceRulesPage() {
             Price Rules
           </h1>
           <p className="text-[13px] text-slate-500">
-            Suggests a selling price per marketplace from cost + margin whenever a GRN updates a SKU's cost.
+            Suggests a selling price per marketplace from cost + margin whenever the Inventory Dashboard updates a SKU's cost price.
             Suggestions never overwrite a manually-set price — apply them from the Price Dashboard.
           </p>
         </div>
