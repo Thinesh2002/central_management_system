@@ -48,12 +48,38 @@ async function getOrderItemIds(order) {
   return orderItemIds;
 }
 
+// Some accounts/orders require an explicit shipping_allocate_type on the
+// pack call (Daraz rejects the request with "mandatory... not supplied"
+// otherwise) - rather than guessing a value, ask Daraz's own
+// shipment/providers/get for this exact order, which returns the correct
+// allocate type (and, if the seller has real courier choices, the
+// provider list) for that order specifically. Best-effort: if this lookup
+// itself fails, fall through and let the pack call proceed without it -
+// some accounts/orders don't require it at all.
+async function getShippingAllocateType({ account, credentials, order, orderItemIds }) {
+  try {
+    const response = await fulfillmentService.getShipmentProviders({
+      account,
+      credentials,
+      orders: [{ order_id: order.daraz_order_id, order_item_ids: orderItemIds }],
+    });
+
+    const result = darazResultOf(response);
+    const data = pick(result, ["data"]) || result || {};
+    return pick(data, ["shipping_allocate_type", "shippingAllocateType"]) || null;
+  } catch (error) {
+    console.error(`[DARAZ_PACK] Shipment providers lookup failed for order ${order.id}:`, error.message);
+    return null;
+  }
+}
+
 // Pack an order: needs Daraz's own order_id (daraz_order_id) plus every
 // line item's Daraz order_item_id. If this table's item-id column can't be
 // found, refuse rather than send an empty/guessed item list to a live
 // seller account.
 async function runPack({ account, credentials, order }) {
   const orderItemIds = await getOrderItemIds(order);
+  const shippingAllocateType = await getShippingAllocateType({ account, credentials, order, orderItemIds });
 
   const response = await fulfillmentService.packOrder({
     account,
@@ -64,6 +90,7 @@ async function runPack({ account, credentials, order }) {
         order_item_list: orderItemIds,
       },
     ],
+    shippingAllocateType,
   });
 
   const result = darazResultOf(response);
@@ -192,10 +219,11 @@ async function runAction({ action, account, credentials, order, invoiceNumber })
     }
 
     case "get_shipment_providers": {
+      const orderItemIds = await getOrderItemIds(order);
       const response = await fulfillmentService.getShipmentProviders({
         account,
         credentials,
-        orders: [{ order_id: order.daraz_order_id }],
+        orders: [{ order_id: order.daraz_order_id, order_item_ids: orderItemIds }],
       });
       return { response };
     }
