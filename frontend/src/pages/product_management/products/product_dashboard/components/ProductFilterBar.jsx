@@ -10,7 +10,7 @@ const DATE_OPTIONS = [
 
 function FieldLabel({ children }) {
   return (
-    <span className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-300">
+    <span className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-300">
       <span className="h-1.5 w-1.5 bg-orange-500" />
       {children}
     </span>
@@ -23,7 +23,7 @@ function FilterInput({ value, onChange, placeholder }) {
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="h-7 w-full border border-slate-600 bg-[#2b3441] px-2.5 text-[10px] font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:border-orange-400"
+      className="h-7 w-full border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:border-orange-400"
     />
   );
 }
@@ -63,27 +63,27 @@ export default function ProductFilterBar({
           <button
             type="button"
             onClick={onOpenExport}
-            className="flex h-5.5 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-2 text-[9px] font-semibold text-white hover:bg-emerald-500"
+            className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-2.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
           >
-            <Download size={10} />
+            <Download size={11} />
             EXPORT CSV
           </button>
 
           <button
             type="button"
             onClick={onOpenPriceDashboard}
-            className="flex h-5.5 items-center gap-1 rounded-sm border border-emerald-500/40 bg-transparent px-2 text-[9px] font-semibold text-emerald-300 hover:bg-emerald-500/10"
+            className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-transparent px-2.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/10"
           >
-            <Tag size={10} />
+            <Tag size={11} />
             PRICE DASHBOARD
           </button>
 
           <button
             type="button"
             onClick={onOpenInventoryDashboard}
-            className="flex h-5.5 items-center gap-1 rounded-sm border border-sky-500/40 bg-transparent px-2 text-[9px] font-semibold text-sky-300 hover:bg-sky-500/10"
+            className="flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-transparent px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/10"
           >
-            <Boxes size={10} />
+            <Boxes size={11} />
             INVENTORY DASHBOARD
           </button>
         </div>
@@ -95,7 +95,7 @@ export default function ProductFilterBar({
           <select
             value={filters.date_range || "all"}
             onChange={(event) => updateFilter("date_range", event.target.value)}
-            className="h-7 w-full cursor-pointer border border-slate-600 bg-[#2b3441] px-2.5 text-[10px] font-medium text-white outline-none focus:border-orange-400"
+            className="h-7 w-full cursor-pointer border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-white outline-none focus:border-orange-400"
           >
             {DATE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -144,12 +144,12 @@ export default function ProductFilterBar({
         <button
           type="button"
           onClick={onOpenFilter}
-          className="inline-flex h-5.5 cursor-pointer items-center justify-center gap-1 rounded-sm bg-indigo-500 px-2 text-[9px] font-semibold text-white transition hover:bg-indigo-400"
+          className="inline-flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-sm bg-indigo-500 px-3 text-[11px] font-semibold text-white transition hover:bg-indigo-400"
         >
-          <Filter size={10} />
+          <Filter size={12} />
           FILTERS
           {activePopupFilterCount > 0 && (
-            <span className="bg-white/20 px-1 py-0.5 text-[8px]">
+            <span className="bg-white/20 px-1.5 py-0.5 text-[10px]">
               {activePopupFilterCount}
             </span>
           )}

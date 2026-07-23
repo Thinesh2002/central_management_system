@@ -60,7 +60,7 @@ export default function FilterModal({
                     key={tab.key}
                     type="button"
                     onClick={() => setDraftView(tab.key)}
-                    className={`group inline-flex h-7 cursor-pointer items-center gap-1.5 border-b-2 px-1 text-[11px] font-semibold transition ${
+                    className={`group inline-flex h-8 cursor-pointer items-center gap-1.5 border-b-2 px-1 text-[12px] font-semibold transition ${
                       isActive
                         ? "border-orange-400 text-orange-300"
                         : "border-transparent text-slate-400 hover:border-slate-500 hover:text-white"
@@ -157,7 +157,7 @@ export default function FilterModal({
               setDraftFilters(EMPTY_FILTERS);
               setDraftView("all");
             }}
-            className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-[#0b1220] px-3 text-[11px] font-semibold text-slate-300 transition hover:text-white"
+            className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-[#0b1220] px-3 text-[12px] font-semibold text-slate-300 transition hover:text-white"
           >
             Clear Filters
           </button>
@@ -165,7 +165,7 @@ export default function FilterModal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-[#22344d] px-3 text-[11px] font-semibold text-white transition hover:bg-[#2a405d]"
+            className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md border border-slate-600 bg-[#22344d] px-3 text-[12px] font-semibold text-white transition hover:bg-[#2a405d]"
           >
             Close
           </button>
@@ -173,7 +173,7 @@ export default function FilterModal({
           <button
             type="button"
             onClick={onApply}
-            className="inline-flex h-7 cursor-pointer items-center justify-center rounded-md bg-orange-500 px-4 text-[11px] font-semibold text-white transition hover:bg-orange-400"
+            className="inline-flex h-8 cursor-pointer items-center justify-center rounded-md bg-orange-500 px-4 text-[12px] font-semibold text-white transition hover:bg-orange-400"
           >
             Apply Filters
           </button>
