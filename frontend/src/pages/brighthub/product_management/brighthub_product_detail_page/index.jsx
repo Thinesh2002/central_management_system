@@ -59,6 +59,7 @@ export default function BrightHubProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
 
   const raw = useMemo(() => parseJson(product?.raw_json, {}), [product]);
   const images = useMemo(() => {
@@ -67,7 +68,13 @@ export default function BrightHubProductDetailPage() {
   }, [product, raw]);
   const usageImages = useMemo(() => (Array.isArray(raw.usage_images) ? raw.usage_images : []), [raw]);
 
-  const mainImage = raw.image_main_url || images?.[0]?.image_url;
+  const galleryImages = useMemo(() => [...images, ...usageImages], [images, usageImages]);
+  const defaultImage = raw.image_main_url || images?.[0]?.image_url || "";
+  const mainImage = selectedImageUrl || defaultImage;
+
+  useEffect(() => {
+    setSelectedImageUrl("");
+  }, [product]);
 
   async function loadProduct() {
     try {
@@ -176,49 +183,31 @@ export default function BrightHubProductDetailPage() {
               <img
                 src={mainImage}
                 alt={product.name || "Website product"}
-                className="mx-auto mb-4 h-40 w-40 rounded-2xl border border-white/10 bg-white object-contain"
+                className="mb-3 aspect-square w-full rounded-2xl border border-white/10 bg-white object-contain"
               />
             ) : (
-              <div className="mx-auto mb-4 flex h-40 w-40 items-center justify-center rounded-2xl border border-white/10 bg-[#070B14] text-slate-500">
-                <ImageIcon size={32} />
+              <div className="mb-3 flex aspect-square w-full items-center justify-center rounded-2xl border border-white/10 bg-[#070B14] text-slate-500">
+                <ImageIcon size={42} />
               </div>
             )}
 
-            {images.length === 0 ? (
+            {galleryImages.length === 0 ? (
               <p className="text-sm text-slate-500">No product images found.</p>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {images.map((image) => (
-                  <a
-                    key={image.id}
-                    href={image.image_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block overflow-hidden rounded-xl border border-white/10 bg-[#070B14]"
+              <div className="grid grid-cols-5 gap-2">
+                {galleryImages.map((image, index) => (
+                  <button
+                    key={image.id || index}
+                    type="button"
+                    onClick={() => setSelectedImageUrl(image.image_url)}
+                    className={`block cursor-pointer overflow-hidden rounded-lg border bg-white ${
+                      mainImage === image.image_url ? "border-yellow-400" : "border-white/10 hover:border-yellow-400/50"
+                    }`}
                   >
-                    <img src={image.image_url} alt={product.name || "Website image"} className="aspect-square w-full object-cover" />
-                  </a>
+                    <img src={image.image_url} alt={product.name || "Website image"} className="aspect-square w-full object-contain" />
+                  </button>
                 ))}
               </div>
-            )}
-
-            {usageImages.length > 0 && (
-              <>
-                <p className="mb-2 mt-4 text-xs font-medium uppercase text-slate-500">Usage Images</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {usageImages.map((image) => (
-                    <a
-                      key={image.id}
-                      href={image.image_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block overflow-hidden rounded-xl border border-white/10 bg-[#070B14]"
-                    >
-                      <img src={image.image_url} alt="Usage" className="aspect-square w-full object-cover" />
-                    </a>
-                  ))}
-                </div>
-              </>
             )}
           </section>
 
