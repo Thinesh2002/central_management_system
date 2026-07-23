@@ -63,7 +63,7 @@ async function buildAccountReport(account, sinceDate, dateFromStr, dateToStr) {
   };
 }
 
-async function runBiweeklyListingReport() {
+async function runListingSalesReport() {
   const accounts = await accountModel.listActiveDarazAccounts();
 
   const sinceDate = new Date(Date.now() - REPORT_WINDOW_DAYS * DAY_MS);
@@ -77,7 +77,7 @@ async function runBiweeklyListingReport() {
       const report = await buildAccountReport(account, sinceDate, dateFromStr, dateToStr);
       accountReports.push(report);
     } catch (error) {
-      console.error(`[DARAZ_BIWEEKLY_REPORT] Failed for account ${account.id}:`, error.message);
+      console.error(`[DARAZ_LISTING_SALES_REPORT] Failed for account ${account.id}:`, error.message);
       accountReports.push({
         account_id: account.id,
         account_name: account.account_name,
@@ -110,4 +110,4 @@ async function runBiweeklyListingReport() {
   };
 }
 
-module.exports = { runBiweeklyListingReport, REPORT_WINDOW_DAYS };
+module.exports = { runListingSalesReport, REPORT_WINDOW_DAYS };
