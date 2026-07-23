@@ -67,19 +67,19 @@ function ImageDetailModal({ image, onClose }) {
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+        className="flex w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-purple-500/40 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900 px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <Images size={17} className="text-orange-300" />
+            <Images size={17} className="text-purple-200" />
             <h3 className="text-sm font-semibold text-white">Image Details</h3>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
           >
             <X size={16} />
           </button>
