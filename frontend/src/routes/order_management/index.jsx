@@ -1,5 +1,5 @@
 import React from "react";
-import { Route } from "react-router-dom";
+import { Navigate, Route } from "react-router-dom";
 
 import Layout from "../../components/Layout";
 import ProtectedRoute from "../../config/ProtectedRoute";
@@ -13,7 +13,8 @@ import OrderDetailPage from "../../pages/order_management/orders/view/index";
 import CreateManualOrderPage from "../../pages/order_management/orders/create/index";
 import OrderSyncSettingsPage from "../../pages/order_management/sync_settings/index";
 import MessageTemplatesPage from "../../pages/order_management/message_templates/index";
-import DarazFinancePage from "../../pages/order_management/daraz_finance/index";
+import DarazIncomePage from "../../pages/order_management/daraz_finance/DarazIncomePage";
+import DarazTransactionsPage from "../../pages/order_management/daraz_finance/DarazTransactionsPage";
 
 function ProtectedOrderPage({ children }) {
   return (
@@ -108,13 +109,25 @@ export default function OrderManagementRoutes() {
       />
 
       <Route
-        path="/order-management/finance"
+        path="/order-management/finance/income"
         element={
           <ProtectedOrderPage>
-            <DarazFinancePage />
+            <DarazIncomePage />
           </ProtectedOrderPage>
         }
       />
+
+      <Route
+        path="/order-management/finance/transactions"
+        element={
+          <ProtectedOrderPage>
+            <DarazTransactionsPage />
+          </ProtectedOrderPage>
+        }
+      />
+
+      {/* Old single-page path redirects to the new default tab */}
+      <Route path="/order-management/finance" element={<Navigate to="/order-management/finance/transactions" replace />} />
     </>
   );
 }

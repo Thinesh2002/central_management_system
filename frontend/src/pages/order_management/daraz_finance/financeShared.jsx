@@ -1,33 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
-  AlertTriangle,
-  Banknote,
-  ChevronLeft,
-  ChevronRight,
-  DollarSign,
   HelpCircle,
   ImageOff,
   Loader2,
-  PiggyBank,
   RefreshCw,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
   X,
 } from "lucide-react";
 
 import darazFinanceApi from "../../../config/sub_api/daraz_api/daraz_finance_api";
-import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
 import Loader from "../../../components/common/Loader";
 
-const TABS = [
-  { key: "transactions", label: "Transactions" },
-  { key: "income", label: "Income" },
-];
-
-const DATE_PRESETS = [
+export const DATE_PRESETS = [
   { key: "7d", label: "Last 7 Days" },
   { key: "30d", label: "Last 30 Days" },
   { key: "90d", label: "Last 90 Days" },
@@ -36,13 +21,11 @@ const DATE_PRESETS = [
   { key: "all", label: "All Time" },
 ];
 
-const PAGE_SIZE = 50;
-
-function toISODate(date) {
+export function toISODate(date) {
   return date.toISOString().slice(0, 10);
 }
 
-function getPresetRange(preset) {
+export function getPresetRange(preset) {
   const now = new Date();
 
   if (preset === "7d") {
@@ -77,7 +60,71 @@ function getPresetRange(preset) {
   return { from: "", to: "" };
 }
 
-function extractAccounts(res) {
+export function formatInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// Dashboard date-range filter: "all/today/.../custom" preset -> {start, end}
+// (YYYY-MM-DD strings, empty = unbounded), used for client-side filtering
+// of an already-loaded batch of rows (same pattern as the Daraz Products page).
+export function getDashboardDateRange(preset, customStartDate, customEndDate) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (preset === "all") return { start: "", end: "" };
+
+  if (preset === "today") {
+    const date = formatInputDate(today);
+    return { start: date, end: date };
+  }
+
+  if (preset === "yesterday") {
+    const date = new Date(today);
+    date.setDate(date.getDate() - 1);
+    const formatted = formatInputDate(date);
+    return { start: formatted, end: formatted };
+  }
+
+  if (preset === "last_7_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 6);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  if (preset === "last_30_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 29);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  if (preset === "last_60_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 59);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  if (preset === "last_90_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 89);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  return { start: customStartDate, end: customEndDate };
+}
+
+export function isDateInRange(dateKey, range) {
+  if (!range.start && !range.end) return true;
+  if (!dateKey) return false;
+  if (range.start && dateKey < range.start) return false;
+  if (range.end && dateKey > range.end) return false;
+  return true;
+}
+
+export function extractAccounts(res) {
   const payload = res?.data;
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.data)) return payload.data;
@@ -85,15 +132,15 @@ function extractAccounts(res) {
   return [];
 }
 
-function getAccountId(account = {}) {
+export function getAccountId(account = {}) {
   return account.id || account.account_id;
 }
 
-function getAccountName(account = {}) {
+export function getAccountName(account = {}) {
   return account.account_name || account.account_code || `#${getAccountId(account)}`;
 }
 
-function money(value) {
+export function money(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return value ?? "-";
   return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -102,18 +149,18 @@ function money(value) {
 // Fees/refunds are stored as negative deductions, but shown under "cost"
 // labels (Fees Total, Refunds) where a negative sign reads as confusing --
 // the label already conveys it's a deduction, so display the magnitude.
-function moneyAbs(value) {
+export function moneyAbs(value) {
   return money(Math.abs(Number(value) || 0));
 }
 
-function formatDate(value) {
+export function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleString();
 }
 
-function StatCard({ icon: Icon, label, value, tone = "slate", hint }) {
+export function StatCard({ icon: Icon, label, value, tone = "slate", hint }) {
   const tones = {
     slate: "border-white/10 bg-[#0D1322] text-slate-200",
     green: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -144,12 +191,82 @@ function StatCard({ icon: Icon, label, value, tone = "slate", hint }) {
   );
 }
 
-function OrderTransactionsModal({ orderNo, accountId, onClose }) {
+// Filter-bar grid: Date Range select (+ optional custom From/To) followed by
+// up to three text-search fields. Mirrors the Daraz Products search/filter
+// bar layout so Income/Transactions look and behave the same way.
+export function FinanceFilterBar({ title, datePreset, onDatePresetChange, customStartDate, onCustomStartChange, customEndDate, onCustomEndChange, fields = [] }) {
+  const isCustom = datePreset === "custom";
+
+  return (
+    <div className="rounded-md border border-zinc-700/60 bg-[#1c2838] shadow-sm shadow-black/20">
+      <div className="flex items-center justify-between border-b border-zinc-700/60 px-3 py-2">
+        <h2 className="text-[13px] font-semibold text-white">{title}</h2>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 px-3 py-2 xl:grid-cols-12">
+        <div className="xl:col-span-2">
+          <label className="mb-1 block text-[11px] font-semibold uppercase text-zinc-300">Date Range</label>
+          <select
+            value={datePreset}
+            onChange={(event) => onDatePresetChange(event.target.value)}
+            className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none focus:border-orange-400"
+          >
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="last_7_days">Last 7 Days</option>
+            <option value="last_30_days">Last 30 Days</option>
+            <option value="last_60_days">Last 60 Days</option>
+            <option value="last_90_days">Last 90 Days</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+        </div>
+
+        {isCustom && (
+          <>
+            <div className="xl:col-span-2">
+              <label className="mb-1 block text-[11px] font-semibold uppercase text-zinc-300">From</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(event) => onCustomStartChange(event.target.value)}
+                className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none focus:border-orange-400"
+              />
+            </div>
+            <div className="xl:col-span-2">
+              <label className="mb-1 block text-[11px] font-semibold uppercase text-zinc-300">To</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(event) => onCustomEndChange(event.target.value)}
+                className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none focus:border-orange-400"
+              />
+            </div>
+          </>
+        )}
+
+        {fields.map((field) => (
+          <div key={field.key} className="xl:col-span-2">
+            <label className="mb-1 block text-[11px] font-semibold uppercase text-zinc-300">{field.label}</label>
+            <input
+              value={field.value}
+              onChange={(event) => field.onChange(event.target.value)}
+              placeholder={field.placeholder}
+              className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none placeholder:text-zinc-500 focus:border-orange-400"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function OrderTransactionsModal({ orderNo, accountId, onClose }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (!orderNo) return;
 
     async function load() {
@@ -253,7 +370,7 @@ function OrderTransactionsModal({ orderNo, accountId, onClose }) {
   );
 }
 
-function SyncModal({ accounts, onClose, onDone }) {
+export function SyncModal({ accounts, onClose, onDone }) {
   const showToast = useToast();
   const [selectedIds, setSelectedIds] = useState([]);
   const [syncPayouts, setSyncPayouts] = useState(true);
@@ -484,305 +601,4 @@ function SyncModal({ accounts, onClose, onDone }) {
   );
 }
 
-export default function DarazFinancePage() {
-  const [accounts, setAccounts] = useState([]);
-  const [accountId, setAccountId] = useState("");
-  const [tab, setTab] = useState("transactions");
-  const [page, setPage] = useState(1);
-
-  const [payouts, setPayouts] = useState([]);
-  const [orderGroups, setOrderGroups] = useState([]);
-  const [orderGroupsTotal, setOrderGroupsTotal] = useState(0);
-  const [payoutSummary, setPayoutSummary] = useState(null);
-  const [transactionSummary, setTransactionSummary] = useState(null);
-  const [openOrderNo, setOpenOrderNo] = useState(null);
-  const [syncModalOpen, setSyncModalOpen] = useState(false);
-
-  const [loadingAccounts, setLoadingAccounts] = useState(true);
-  const [loadingData, setLoadingData] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    async function loadAccounts() {
-      try {
-        setLoadingAccounts(true);
-        const res = await marketplaceApi.getAccounts({ platform_code: "DARAZ" });
-        setAccounts(extractAccounts(res));
-      } catch (err) {
-        setError(getApiError(err, "Failed to load Daraz accounts"));
-      } finally {
-        setLoadingAccounts(false);
-      }
-    }
-
-    loadAccounts();
-  }, []);
-
-  useEffect(() => {
-    setPage(1);
-  }, [accountId, tab]);
-
-  async function loadData() {
-    setLoadingData(true);
-    setError("");
-
-    const baseParams = { account_id: accountId || undefined };
-
-    try {
-      if (tab === "income") {
-        const [listRes, summaryRes] = await Promise.all([
-          darazFinanceApi.listPayouts({ ...baseParams, limit: 200 }),
-          darazFinanceApi.getPayoutSummary(baseParams),
-        ]);
-        setPayouts(listRes?.data?.data || []);
-        setPayoutSummary(summaryRes?.data?.data || null);
-      } else {
-        const [listRes, summaryRes] = await Promise.all([
-          darazFinanceApi.listTransactionOrderGroups({ ...baseParams, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-          darazFinanceApi.getTransactionSummary(baseParams),
-        ]);
-        setOrderGroups(listRes?.data?.data || []);
-        setOrderGroupsTotal(listRes?.data?.total || 0);
-        setTransactionSummary(summaryRes?.data?.data || null);
-      }
-    } catch (err) {
-      setError(getApiError(err, "Failed to load finance data"));
-    } finally {
-      setLoadingData(false);
-    }
-  }
-
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId, tab, page]);
-
-  const totalPages = Math.max(Math.ceil(orderGroupsTotal / PAGE_SIZE), 1);
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-medium text-slate-100">
-            <DollarSign size={20} />
-            Daraz Finance
-          </h1>
-          <p className="text-[13px] text-slate-500">
-            Payout statements (auto-synced every 6h) and transaction details (auto-synced every 1h).
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setSyncModalOpen(true)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md bg-orange-500 px-3 text-[12px] font-semibold text-white hover:bg-orange-400"
-        >
-          <RefreshCw size={13} />
-          Sync Accounts
-        </button>
-      </div>
-
-      {error && (
-        <div className="rounded-md border border-red-900 bg-red-950 px-3 py-2 text-[13px] text-red-300">
-          {error}
-        </div>
-      )}
-
-      {/* Filter section */}
-      <div className="flex flex-wrap items-center gap-2 border border-slate-800 bg-[#0b1220] p-2.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Filters:</span>
-
-        <select
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          disabled={loadingAccounts}
-          className="h-7 rounded-md border border-slate-700 bg-slate-900 px-2 text-[11px] text-slate-200 outline-none"
-        >
-          <option value="">All Accounts</option>
-          {accounts.map((account) => (
-            <option key={getAccountId(account)} value={getAccountId(account)}>
-              {getAccountName(account)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex gap-1 border-b border-slate-800">
-        {TABS.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setTab(item.key)}
-            className={`h-8 border-b-2 px-3 text-[12px] font-semibold ${
-              tab === item.key
-                ? "border-orange-400 text-orange-300"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "income" ? (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-          <StatCard
-            icon={Wallet}
-            label="Opening Balance"
-            value={money(payoutSummary?.latest_opening_balance)}
-            tone="slate"
-            hint="Your account balance at the start of the most recent statement in this filter."
-          />
-          <StatCard
-            icon={PiggyBank}
-            label="Closing Balance"
-            value={money(payoutSummary?.latest_closing_balance)}
-            tone="blue"
-            hint="Your account balance at the end of the most recent statement — what Daraz owes you (or you owe Daraz) right now."
-          />
-          <StatCard icon={TrendingUp} label="Item Revenue" value={money(payoutSummary?.total_item_revenue)} tone="green" hint="Total sales revenue across statements in this filter." />
-          <StatCard icon={TrendingDown} label="Fees Total" value={moneyAbs(payoutSummary?.total_fees)} tone="red" hint="Total platform/commission fees charged by Daraz in this filter." />
-          <StatCard icon={Banknote} label="Refunds" value={moneyAbs(payoutSummary?.total_refunds)} tone="orange" hint="Total amount refunded to customers in this filter." />
-          <StatCard icon={AlertTriangle} label="Guarantee Deposit" value={moneyAbs(payoutSummary?.total_guarantee_deposit)} tone="slate" hint="Deposit Daraz holds/releases as a seller guarantee." />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatCard icon={TrendingUp} label="Total Income" value={money(transactionSummary?.total_income)} tone="green" hint="Sum of all positive transaction amounts (sales, credits) in this filter." />
-          <StatCard icon={TrendingDown} label="Total Expense" value={money(transactionSummary?.total_expense)} tone="red" hint="Sum of all negative transaction amounts (fees, deductions) in this filter." />
-          <StatCard icon={DollarSign} label="Net Sales" value={money(transactionSummary?.net_sales)} tone="blue" hint="Income minus expense — your net result for this filter." />
-          <StatCard icon={AlertTriangle} label="Total Penalties" value={money(transactionSummary?.total_penalties)} tone="orange" hint="Transactions flagged as a penalty/fine by Daraz." />
-        </div>
-      )}
-
-      {loadingData ? (
-        <Loader label="Loading finance data..." minHeight="240px" />
-      ) : tab === "income" ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-800 bg-slate-950">
-          <table className="min-w-full divide-y divide-slate-800 text-[12px]">
-            <thead className="bg-slate-900">
-              <tr>
-                {["Statement", "Opening", "Closing", "Payout", "Fees Total", "Refunds", "Created"].map((header) => (
-                  <th key={header} className="px-3 py-2 text-left font-normal uppercase tracking-wide text-slate-500">
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {!payouts.length && (
-                <tr>
-                  <td colSpan="7" className="px-3 py-6 text-center text-slate-500">
-                    No payout statements in this date range.
-                  </td>
-                </tr>
-              )}
-              {payouts.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-900">
-                  <td className="px-3 py-2 font-mono text-slate-300">{row.statement_number}</td>
-                  <td className="px-3 py-2 text-slate-300">{money(row.opening_balance)}</td>
-                  <td className="px-3 py-2 text-slate-300">{money(row.closing_balance)}</td>
-                  <td className="px-3 py-2 font-semibold text-slate-100">{row.payout}</td>
-                  <td className="px-3 py-2 text-slate-300">{moneyAbs(row.fees_total)}</td>
-                  <td className="px-3 py-2 text-slate-300">{moneyAbs(row.refunds)}</td>
-                  <td className="px-3 py-2 text-slate-400">{formatDate(row.daraz_created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto rounded-lg border border-slate-800 bg-slate-950">
-            <table className="min-w-full divide-y divide-slate-800 text-[12px]">
-              <thead className="bg-slate-900">
-                <tr>
-                  {["", "Order No", "Product", "Lines", "Net Amount", "Latest Date"].map((header) => (
-                    <th key={header} className="px-3 py-2 text-left font-normal uppercase tracking-wide text-slate-500">
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {!orderGroups.length && (
-                  <tr>
-                    <td colSpan="6" className="px-3 py-6 text-center text-slate-500">
-                      No transactions in this date range.
-                    </td>
-                  </tr>
-                )}
-                {orderGroups.map((group) => (
-                  <tr key={group.order_no} className="hover:bg-slate-900">
-                    <td className="px-3 py-2">
-                      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded border border-slate-700 bg-white">
-                        {group.thumbnail_url ? (
-                          <img src={group.thumbnail_url} alt={group.product_title || "Order"} className="h-full w-full object-contain" />
-                        ) : (
-                          <ImageOff size={14} className="text-slate-400" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setOpenOrderNo(group.order_no)}
-                        className="cursor-pointer font-mono text-orange-300 underline decoration-dotted hover:text-orange-200"
-                        title="View all transactions for this order"
-                      >
-                        {group.order_no}
-                      </button>
-                    </td>
-                    <td className="max-w-60 truncate px-3 py-2 text-slate-300">{group.product_title || "-"}</td>
-                    <td className="px-3 py-2 text-slate-300">{group.line_count}</td>
-                    <td className={`px-3 py-2 font-semibold ${Number(group.net_amount) < 0 ? "text-red-400" : "text-emerald-400"}`}>
-                      {money(group.net_amount)}
-                    </td>
-                    <td className="px-3 py-2 text-slate-400">{group.latest_date || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {orderGroupsTotal > PAGE_SIZE && (
-            <div className="flex items-center justify-between border border-slate-800 bg-[#0b1220] px-3 py-2">
-              <p className="text-[11px] text-slate-500">
-                Page {page} of {totalPages} · {orderGroupsTotal} orders
-              </p>
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={page <= 1}
-                  className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 text-[11px] text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <ChevronLeft size={13} /> Prev
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={page >= totalPages}
-                  className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 text-[11px] text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Next <ChevronRight size={13} />
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {openOrderNo && (
-        <OrderTransactionsModal orderNo={openOrderNo} accountId={accountId} onClose={() => setOpenOrderNo(null)} />
-      )}
-
-      {syncModalOpen && (
-        <SyncModal
-          accounts={accounts}
-          onClose={() => setSyncModalOpen(false)}
-          onDone={loadData}
-        />
-      )}
-    </div>
-  );
-}
+export { ImageOff };

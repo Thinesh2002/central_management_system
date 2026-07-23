@@ -154,7 +154,9 @@ async function listOrderGroups({ account_id, date_from, date_to, limit = 100, of
        COUNT(*) AS line_count,
        SUM(amount) AS net_amount,
        MAX(transaction_date) AS latest_date,
-       MAX(id) AS latest_id
+       MAX(id) AS latest_id,
+       GROUP_CONCAT(DISTINCT NULLIF(seller_sku, '') SEPARATOR ', ') AS seller_skus,
+       GROUP_CONCAT(DISTINCT NULLIF(lazada_sku, '') SEPARATOR ', ') AS lazada_skus
      FROM daraz_finance_transactions
      ${whereSql}
      GROUP BY order_no

@@ -36,6 +36,7 @@ import {
   Monitor,
   ShieldCheck,
   Globe,
+  Wallet,
 } from "lucide-react";
 
 const iconMap = {
@@ -67,6 +68,7 @@ const iconMap = {
   Monitor,
   ShieldCheck,
   Globe,
+  Wallet,
 };
 
 const staticMenu = [
@@ -204,10 +206,20 @@ const staticMenu = [
   },
   {
     section: "FINANCE",
-    page_key: "daraz_finance",
-    page_name: "Daraz Finance",
-    path: "/order-management/finance",
+    page_key: "daraz_finance_transactions",
+    pageKeys: ["daraz_finance_transactions", "daraz_finance"],
+    page_name: "Transactions",
+    path: "/order-management/finance/transactions",
     icon: "DollarSign",
+    exact: true,
+  },
+  {
+    section: "FINANCE",
+    page_key: "daraz_finance_income",
+    pageKeys: ["daraz_finance_income", "daraz_finance"],
+    page_name: "Income",
+    path: "/order-management/finance/income",
+    icon: "Wallet",
     exact: true,
   },
   {
