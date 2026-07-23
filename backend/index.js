@@ -82,6 +82,10 @@ const {
   startDarazTitleFullScanJob,
 } = require("./jobs/daraz/product_management/daraz_title_full_scan_job");
 
+const {
+  startDarazBiweeklyReportJob,
+} = require("./jobs/daraz/product_management/daraz_biweekly_report_job");
+
 const { startLowStockCheckJob } = require("./jobs/inventory/low_stock_check_job");
 
 const {
@@ -293,6 +297,7 @@ async function startServer() {
     startJob("DARAZ_FINANCE_SYNC_JOB", startDarazFinanceSyncJob);
     startJob("DARAZ_TITLE_OPTIMIZER_JOB", startDarazTitleOptimizerJob);
     startJob("DARAZ_TITLE_FULL_SCAN_JOB", startDarazTitleFullScanJob);
+    startJob("DARAZ_BIWEEKLY_REPORT_JOB", startDarazBiweeklyReportJob);
     startJob("LOW_STOCK_CHECK_JOB", startLowStockCheckJob);
     startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
     startJob("DARAZ_PRICE_RECONCILIATION_JOB", startDarazPriceReconciliationJob);
