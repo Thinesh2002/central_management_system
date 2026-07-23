@@ -14,6 +14,7 @@ import ProductManagementRoutes from "./routes/product_management/index";
 import MarketplaceManagementRoutes from "./routes/marketplace_management/index";
 import DarazProductRoute from "./routes/Daraz/product_management/index";
 import WooProductsRoutes from "./routes/woo/product_management/index";
+import BrightHubProductRoutes from "./routes/brighthub/product_management/index";
 import InventoryPage from "./pages/inventory/InventoryPage";
 import PriceDashboardPage from "./pages/price/PriceDashboardPage";
 import OrderManagementRoutes from "./routes/order_management/index";
@@ -201,6 +202,8 @@ export default function App() {
       />
 
       {WooProductsRoutes()}
+
+      {BrightHubProductRoutes()}
 
       {OrderManagementRoutes()}
 

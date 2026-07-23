@@ -52,6 +52,16 @@ export const marketplaceApi = {
 
   getWooCategories: (accountId, params = {}) =>
     api.get(`${BASE_PATH}/woo/accounts/${accountId}/categories`, { params }),
+
+  // BrightHub
+  connectBrightHubAccount: (payload) =>
+    api.post(`${BASE_PATH}/brighthub/connect`, payload),
+
+  getBrightHubAccounts: () =>
+    api.get(`${BASE_PATH}/brighthub/accounts`),
+
+  testBrightHubAccount: (accountId) =>
+    api.post(`${BASE_PATH}/brighthub/accounts/${accountId}/test`),
 };
 
 export default marketplaceApi;

@@ -132,6 +132,14 @@ const staticMenu = [
     exact: true,
   },
   {
+    section: "MARKETPLACE MANAGEMENT",
+    page_key: "brighthub_products",
+    page_name: "BrightHub Products",
+    path: "/product/brighthub-products",
+    icon: "Store",
+    exact: true,
+  },
+  {
     section: "OPTIMIZATION",
     page_key: "daraz_title_optimizer",
     page_name: "Title Optimizer",

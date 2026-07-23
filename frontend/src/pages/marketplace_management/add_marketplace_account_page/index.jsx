@@ -35,6 +35,8 @@ const initialForm = {
 
   consumer_key: "",
   consumer_secret: "",
+
+  api_key: "",
 };
 
 const inputClass =
@@ -45,6 +47,10 @@ function normalizePlatform(value) {
 
   if (text === "WOO" || text === "WOOCOMMERCE") {
     return "WOO";
+  }
+
+  if (text === "BRIGHTHUB") {
+    return "BRIGHTHUB";
   }
 
   return "DARAZ";
@@ -75,6 +81,7 @@ export default function AddMarketplaceAccountPage() {
   const platform = normalizePlatform(form.platform_code);
   const isDaraz = platform === "DARAZ";
   const isWoo = platform === "WOO";
+  const isBrightHub = platform === "BRIGHTHUB";
 
   const generatedUidPreview = useMemo(() => {
     return makeAccountUid(platform, form.country_code, form.account_code);
@@ -95,7 +102,11 @@ export default function AddMarketplaceAccountPage() {
       platform_code: nextPlatform,
       account_uid: "",
       api_base_url:
-        nextPlatform === "DARAZ" ? "https://api.daraz.lk/rest" : "",
+        nextPlatform === "DARAZ"
+          ? "https://api.daraz.lk/rest"
+          : nextPlatform === "BRIGHTHUB"
+          ? "https://admin.brighthub.lk/api/v1"
+          : "",
       store_url: nextPlatform === "WOO" ? prev.store_url : "",
       seller_id: nextPlatform === "DARAZ" ? prev.seller_id : "",
       seller_email: nextPlatform === "DARAZ" ? prev.seller_email : "",
@@ -109,6 +120,7 @@ export default function AddMarketplaceAccountPage() {
         nextPlatform === "DARAZ" ? prev.refresh_token_expires_at : "",
       consumer_key: nextPlatform === "WOO" ? prev.consumer_key : "",
       consumer_secret: nextPlatform === "WOO" ? prev.consumer_secret : "",
+      api_key: nextPlatform === "BRIGHTHUB" ? prev.api_key : "",
     }));
   }
 
@@ -135,6 +147,10 @@ export default function AddMarketplaceAccountPage() {
       if (!form.consumer_secret.trim()) {
         return "WooCommerce consumer secret is required.";
       }
+    }
+
+    if (isBrightHub) {
+      if (!form.api_key.trim()) return "BrightHub API key is required.";
     }
 
     return "";
@@ -177,6 +193,17 @@ export default function AddMarketplaceAccountPage() {
     };
   }
 
+  function buildBrightHubPayload() {
+    return {
+      platform_code: "BRIGHTHUB",
+      account_name: form.account_name.trim() || "BrightHub Website",
+      account_code: form.account_code.trim() || "BRIGHTHUB_MAIN",
+      country_code: form.country_code.trim().toUpperCase() || "LK",
+      api_base_url: form.api_base_url.trim() || "https://admin.brighthub.lk/api/v1",
+      api_key: form.api_key.trim(),
+    };
+  }
+
   async function handleTestWooConnection() {
     const validationError = validateForm();
 
@@ -206,6 +233,35 @@ export default function AddMarketplaceAccountPage() {
     }
   }
 
+  async function handleTestBrightHubConnection() {
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setTesting(true);
+      setError("");
+      setMessage("");
+
+      await marketplaceApi.connectBrightHubAccount(buildBrightHubPayload());
+
+      setMessage("BrightHub connected successfully. Account saved.");
+      navigate("/marketplace/accounts");
+    } catch (err) {
+      setError(
+        err?.friendlyMessage ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "BrightHub connection failed. Please check the API key."
+      );
+    } finally {
+      setTesting(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -223,6 +279,8 @@ export default function AddMarketplaceAccountPage() {
 
       if (isWoo) {
         await marketplaceApi.connectWooAccount(buildWooPayload());
+      } else if (isBrightHub) {
+        await marketplaceApi.connectBrightHubAccount(buildBrightHubPayload());
       } else {
         await marketplaceApi.createAccount(buildDarazPayload());
       }
@@ -295,6 +353,7 @@ export default function AddMarketplaceAccountPage() {
                 >
                   <option value="DARAZ">Daraz</option>
                   <option value="WOO">WooCommerce</option>
+                  <option value="BRIGHTHUB">BrightHub</option>
                 </select>
               </Field>
 
@@ -394,6 +453,17 @@ export default function AddMarketplaceAccountPage() {
                 </Field>
               )}
 
+              {isBrightHub && (
+                <Field label="API Base URL" className="md:col-span-2">
+                  <input
+                    value={form.api_base_url}
+                    onChange={(e) => updateField("api_base_url", e.target.value)}
+                    placeholder="https://admin.brighthub.lk/api/v1"
+                    className={inputClass}
+                  />
+                </Field>
+              )}
+
               <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#070B14] px-4 py-3 text-sm text-slate-300 md:col-span-2">
                 <input
                   type="checkbox"
@@ -414,7 +484,11 @@ export default function AddMarketplaceAccountPage() {
 
               <div>
                 <h2 className="font-semibold text-white">
-                  {isDaraz ? "Daraz API Credentials" : "WooCommerce API Keys"}
+                  {isDaraz
+                    ? "Daraz API Credentials"
+                    : isWoo
+                    ? "WooCommerce API Keys"
+                    : "BrightHub API Key"}
                 </h2>
                 <p className="text-xs text-slate-400">
                   Secret values should not be shown after saving.
@@ -422,7 +496,19 @@ export default function AddMarketplaceAccountPage() {
               </div>
             </div>
 
-            {isDaraz ? (
+            {isBrightHub ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="API Key" className="md:col-span-2">
+                  <SecretInput
+                    value={form.api_key}
+                    show={showConsumerSecret}
+                    setShow={setShowConsumerSecret}
+                    onChange={(value) => updateField("api_key", value)}
+                    placeholder="bh_live_xxxxxxxxx"
+                  />
+                </Field>
+              </div>
+            ) : isDaraz ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="App Key">
                   <input
@@ -528,6 +614,8 @@ export default function AddMarketplaceAccountPage() {
                 <p className="text-xs text-slate-400">
                   {isWoo
                     ? "Woo account will be tested before save."
+                    : isBrightHub
+                    ? "BrightHub account will be tested before save."
                     : "Create Daraz account and save credentials."}
                 </p>
               </div>
@@ -546,6 +634,22 @@ export default function AddMarketplaceAccountPage() {
                   <ShieldCheck size={16} />
                 )}
                 Test & Save Woo
+              </button>
+            )}
+
+            {isBrightHub && (
+              <button
+                type="button"
+                onClick={handleTestBrightHubConnection}
+                disabled={testing || saving}
+                className="mb-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 text-[12px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {testing ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <ShieldCheck size={16} />
+                )}
+                Test & Save BrightHub
               </button>
             )}
 
@@ -572,11 +676,13 @@ export default function AddMarketplaceAccountPage() {
 
               <div>
                 <h3 className="font-semibold text-yellow-200">
-                  {isWoo ? "WooCommerce Note" : "Daraz Token Note"}
+                  {isWoo ? "WooCommerce Note" : isBrightHub ? "BrightHub Note" : "Daraz Token Note"}
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-yellow-100/80">
                   {isWoo
                     ? "WooCommerce does not use refresh token. Store URL, consumer key and consumer secret are enough."
+                    : isBrightHub
+                    ? "BrightHub uses a single API key (X-API-Key header) — no secret or refresh token needed."
                     : "Daraz refresh token expiry needs seller reauthorization."}
                 </p>
               </div>

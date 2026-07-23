@@ -37,6 +37,7 @@ const darazInventorySyncRoutes = require("./routes/daraz/inventory/daraz_invento
 const darazCatalogRoutes = require("./routes/marketplace/daraz_catalog_route");
 const darazSellerMetricsRoutes = require("./routes/daraz/marketplace_management/daraz_seller_metrics_routes");
 const wooRoutes = require("./routes/woo/woo_route");
+const brighthubRoutes = require("./routes/brighthub/brighthub_route");
 
 const skuReportRoutes = require("./routes/order_management/sku_report_routes");
 const orderCustomersRoutes = require("./routes/order_management/customers_routes");
@@ -99,6 +100,10 @@ const {
 const {
   startWooProductSyncJob,
 } = require("./jobs/woo/product/woo_product_sync_job");
+
+const {
+  startBrightHubProductSyncJob,
+} = require("./jobs/brighthub/product/brighthub_product_sync_job");
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -235,6 +240,7 @@ app.use("/api/daraz-inventory", darazInventorySyncRoutes);
 app.use("/api/daraz-catalog", darazCatalogRoutes);
 app.use("/api/daraz/seller-metrics", darazSellerMetricsRoutes);
 app.use("/api/marketplace/woo", wooRoutes);
+app.use("/api/marketplace/brighthub", brighthubRoutes);
 
 app.use("/api/order-management/sku-report", skuReportRoutes);
 app.use("/api/order-management/customers", orderCustomersRoutes);
@@ -302,6 +308,7 @@ async function startServer() {
     startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
     startJob("DARAZ_PRICE_RECONCILIATION_JOB", startDarazPriceReconciliationJob);
     startJob("WOO_PRODUCT_SYNC_JOB", startWooProductSyncJob);
+    startJob("BRIGHTHUB_PRODUCT_SYNC_JOB", startBrightHubProductSyncJob);
   });
 }
 
