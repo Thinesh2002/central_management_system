@@ -45,7 +45,7 @@ export default function AddVariationModal({ products = [], productImages, onClos
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
       <div className="flex w-full max-w-[560px] flex-col overflow-hidden rounded-md border border-zinc-700 bg-[#172235] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
           <div className="flex items-center gap-2.5">
             <Layers size={17} className="text-purple-200" />
             <div>

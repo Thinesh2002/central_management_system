@@ -37,10 +37,10 @@ export function ConfirmProvider({ children }) {
           onClick={() => settle(false)}
         >
           <div
-            className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-purple-500/40 bg-slate-950 shadow-2xl shadow-black/50"
+            className="flex w-full max-w-md flex-col overflow-hidden rounded-2xl border border-[#653bb3]/20 bg-slate-950 shadow-2xl shadow-black/50"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-3.5">
+            <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-5 py-3.5">
               <div className="flex items-center gap-2.5">
                 <AlertTriangle size={17} className="text-purple-200" />
                 <h3 className="text-sm font-semibold text-white">{state.title}</h3>

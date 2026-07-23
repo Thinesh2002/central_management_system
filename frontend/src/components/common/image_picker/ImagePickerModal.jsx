@@ -62,7 +62,7 @@ export default function ImagePickerModal({ open, onClose, onSelect }) {
         className="flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden border border-slate-700 bg-[#243b57] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-4 text-white">
+        <div className="flex items-center justify-between bg-[#653bb3] px-5 py-4 text-white">
           <div className="flex items-center gap-3">
             <Search size={20} />
             <p className="text-base font-black">Select Image</p>

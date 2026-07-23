@@ -360,7 +360,7 @@ function ExtraImagesPopup({
         className="w-full max-w-5xl border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
           <div>
             <p className="text-sm font-black text-white">{title}</p>
             <p className="text-xs font-semibold text-purple-200/80">Sub images</p>

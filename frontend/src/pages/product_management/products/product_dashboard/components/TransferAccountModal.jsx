@@ -70,7 +70,7 @@ export default function TransferAccountModal({ product, onClose }) {
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
       <div className="w-full max-w-[560px] overflow-hidden rounded-md border border-zinc-700 bg-[#172235] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
           <div>
             <h3 className="text-[15px] font-semibold text-white">Transfer to Daraz</h3>
             <p className="mt-0.5 text-[12px] text-purple-200/80">

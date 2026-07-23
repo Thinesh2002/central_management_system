@@ -63,7 +63,7 @@ function ImageZoomModal({ image, onClose }) {
         className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
           <h3 className="truncate text-[15px] font-semibold text-white">Product Image</h3>
 
           <button
@@ -76,7 +76,7 @@ function ImageZoomModal({ image, onClose }) {
         </div>
 
         <div className="flex justify-center bg-[#0b1220] px-4 py-4">
-          <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-purple-500/40 bg-white p-3">
+          <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-[#653bb3]/20 bg-white p-3">
             <img src={image.src} alt={image.title || ""} className="max-h-[60vh] max-w-full object-contain" />
           </div>
         </div>
@@ -173,10 +173,10 @@ function ScanModal({ accounts, onClose, onDone, showToast }) {
       onClick={() => !running && onClose()}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden border border-purple-500/40 bg-slate-950 shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden border border-[#653bb3]/20 bg-slate-950 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
           <div>
             <h3 className="text-[14px] font-semibold text-white">Scan for Title Optimization</h3>
             <p className="text-[11px] text-purple-200/80">Pick one or more Daraz accounts to scan.</p>

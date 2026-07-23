@@ -300,10 +300,10 @@ export function OrderTransactionsModal({ orderNo, accountId, onClose }) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden border border-purple-500/40 bg-slate-950 shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden border border-[#653bb3]/20 bg-slate-950 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
           <div className="min-w-0">
             <h3 className="truncate text-[14px] font-semibold text-white">Order {orderNo}</h3>
             <p className="text-[11px] text-purple-200/80">
@@ -467,10 +467,10 @@ export function SyncModal({ accounts, onClose, onDone }) {
       onClick={() => !running && onClose()}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden border border-purple-500/40 bg-slate-950 shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden border border-[#653bb3]/20 bg-slate-950 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
           <div>
             <h3 className="text-[14px] font-semibold text-white">Sync Daraz Finance</h3>
             <p className="text-[11px] text-purple-200/80">Pick accounts, scope and date range.</p>

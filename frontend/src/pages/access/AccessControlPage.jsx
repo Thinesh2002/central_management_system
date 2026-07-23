@@ -507,7 +507,7 @@ export default function AccessControlPage() {
       {openPageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
-            <div className="flex items-center justify-between rounded-t-2xl border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-5 py-4">
+            <div className="flex items-center justify-between rounded-t-2xl border-b border-white/10 bg-[#653bb3] px-5 py-4">
               <div>
                 <h3 className="text-lg font-bold text-white">Add New Page</h3>
                 <p className="text-sm text-purple-200/80">

@@ -282,7 +282,7 @@ export default function PriceRulesPage() {
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-xl rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl"
           >
-            <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+            <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-[#653bb3] px-4 py-3">
               <h2 className="text-[14px] font-semibold text-white">{editing ? "Edit Price Rule" : "New Price Rule"}</h2>
               <button
                 type="button"

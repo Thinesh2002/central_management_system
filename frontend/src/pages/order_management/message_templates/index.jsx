@@ -79,7 +79,7 @@ function TemplateModal({ open, initial, onClose, onSave }) {
         className="w-full max-w-xl border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
           <h3 className="text-[13px] font-semibold text-white">
             {form.id ? "Edit Template" : "New Template"}
           </h3>

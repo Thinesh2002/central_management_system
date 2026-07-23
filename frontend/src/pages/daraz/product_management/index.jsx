@@ -1781,7 +1781,7 @@ export default function DarazDashboardPage() {
       {accountFilterOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-[860px] overflow-hidden rounded-md border border-zinc-700 bg-[#172235] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
               <div>
                 <h3 className="text-[15px] font-semibold text-white">Daraz Account Filter</h3>
                 <p className="mt-0.5 text-[12px] text-purple-200/80">Select Daraz accounts.</p>
@@ -1901,7 +1901,7 @@ export default function DarazDashboardPage() {
             className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
               <h3 className="truncate text-[15px] font-semibold text-white">Product Image</h3>
 
               <button
@@ -1914,7 +1914,7 @@ export default function DarazDashboardPage() {
             </div>
 
             <div className="flex justify-center bg-[#0b1220] px-4 py-4">
-              <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-purple-500/40 bg-white p-3">
+              <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-[#653bb3]/20 bg-white p-3">
                 <img
                   src={imagePreview.image}
                   alt={imagePreview.title}
@@ -1938,7 +1938,7 @@ export default function DarazDashboardPage() {
       {syncOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
           <div className="w-full max-w-[560px] rounded-sm border border-zinc-800/70 bg-[#050817] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
               <div>
                 <h3 className="text-[15px] font-semibold text-white">Select Daraz Accounts to Sync</h3>
                 <p className="mt-0.5 text-[12px] text-purple-200/80">Selected accounts will sync.</p>

@@ -9,7 +9,7 @@ export default function ImagePreviewModal({ image, onClose }) {
         className="w-full max-w-lg border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-2.5">
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-2.5">
           <div className="min-w-0">
             <p className="truncate text-[12px] font-semibold text-white">{image.orderNo}</p>
             <p className="truncate text-[11px] text-purple-200/80">{image.title}</p>

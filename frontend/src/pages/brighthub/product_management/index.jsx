@@ -710,7 +710,7 @@ export default function BrightHubProductDashboardPage() {
             className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex shrink-0 items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
               <h3 className="truncate text-[15px] font-semibold text-white">Product Image</h3>
 
               <button
@@ -723,7 +723,7 @@ export default function BrightHubProductDashboardPage() {
             </div>
 
             <div className="flex justify-center bg-[#0b1220] px-4 py-4">
-              <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-purple-500/40 bg-white p-3">
+              <div className="flex max-h-[65vh] w-full items-center justify-center overflow-hidden border border-[#653bb3]/20 bg-white p-3">
                 <img src={imagePreview.image} alt={imagePreview.title} className="max-h-[60vh] max-w-full object-contain" />
               </div>
             </div>

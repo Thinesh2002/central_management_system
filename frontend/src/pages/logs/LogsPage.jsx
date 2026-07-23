@@ -454,7 +454,7 @@ function TitleImpactModal({ logId, onClose }) {
         className="w-full max-w-lg overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+        <div className="flex items-center justify-between bg-[#653bb3] px-4 py-3">
           <h3 className="text-[15px] font-semibold text-white">Title Change Impact</h3>
           <button
             type="button"

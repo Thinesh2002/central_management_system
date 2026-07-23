@@ -108,7 +108,7 @@ function TextArea({ label, value, onChange, disabled }) {
 
 function ModalHeader({ title, onClose }) {
   return (
-    <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4 py-3">
+    <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-[#653bb3] px-4 py-3">
       <div>
         <h3 className="text-[15px] font-normal text-white">{title}</h3>
         <p className="text-[12px] text-purple-200/80">

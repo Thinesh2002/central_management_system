@@ -87,10 +87,10 @@ export default function WaybillTrackingModal({ open, onClose, order }) {
       onClick={onClose}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-purple-500/40 bg-slate-950"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#653bb3]/20 bg-slate-950"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-purple-500/30 bg-linear-to-r from-purple-950 via-[#1a1033] to-purple-950 px-4">
+        <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-[#653bb3]/15 bg-[#653bb3] px-4">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-purple-300">
             <Truck size={15} />
             Track My Order
@@ -99,7 +99,7 @@ export default function WaybillTrackingModal({ open, onClose, order }) {
             type="button"
             onClick={onClose}
             title="Close"
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-500/40 bg-purple-500/10 text-purple-200 transition hover:bg-purple-500/25 hover:text-white"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#653bb3]/20 bg-purple-500/10 text-purple-200 transition hover:bg-purple-500/25 hover:text-white"
           >
             <X size={14} />
           </button>
