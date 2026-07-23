@@ -176,11 +176,11 @@ export default function BrightHubProductDetailPage() {
               <img
                 src={mainImage}
                 alt={product.name || "Website product"}
-                className="mb-4 aspect-square w-full rounded-2xl border border-white/10 object-cover"
+                className="mx-auto mb-4 h-40 w-40 rounded-2xl border border-white/10 bg-white object-contain"
               />
             ) : (
-              <div className="mb-4 flex aspect-square w-full items-center justify-center rounded-2xl border border-white/10 bg-[#070B14] text-slate-500">
-                <ImageIcon size={42} />
+              <div className="mx-auto mb-4 flex h-40 w-40 items-center justify-center rounded-2xl border border-white/10 bg-[#070B14] text-slate-500">
+                <ImageIcon size={32} />
               </div>
             )}
 
