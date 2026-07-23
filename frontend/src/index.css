@@ -17,8 +17,15 @@ body {
   background: #f8fafc;
 }
 
-button, input, select {
-  font: inherit;
+/* Layered (not plain/unlayered) so Tailwind utility classes like
+   text-[12px] or font-semibold placed directly on a button/input/select
+   still win — unlayered CSS beats every @layer regardless of
+   specificity, which was silently overriding every button's own
+   font-size/font-weight utility class app-wide. */
+@layer base {
+  button, input, select {
+    font: inherit;
+  }
 }
 
 /* Clickable elements always show a pointer cursor, site-wide,
