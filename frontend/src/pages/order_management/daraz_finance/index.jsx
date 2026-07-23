@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Banknote,
@@ -23,8 +23,8 @@ import { useToast } from "../../../components/common/toast/ToastProvider";
 import Loader from "../../../components/common/Loader";
 
 const TABS = [
-  { key: "payouts", label: "Payouts" },
   { key: "transactions", label: "Transactions" },
+  { key: "income", label: "Income" },
 ];
 
 const DATE_PRESETS = [
@@ -97,6 +97,13 @@ function money(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return value ?? "-";
   return number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Fees/refunds are stored as negative deductions, but shown under "cost"
+// labels (Fees Total, Refunds) where a negative sign reads as confusing --
+// the label already conveys it's a deduction, so display the magnitude.
+function moneyAbs(value) {
+  return money(Math.abs(Number(value) || 0));
 }
 
 function formatDate(value) {
@@ -480,8 +487,7 @@ function SyncModal({ accounts, onClose, onDone }) {
 export default function DarazFinancePage() {
   const [accounts, setAccounts] = useState([]);
   const [accountId, setAccountId] = useState("");
-  const [tab, setTab] = useState("payouts");
-  const [datePreset, setDatePreset] = useState("30d");
+  const [tab, setTab] = useState("transactions");
   const [page, setPage] = useState(1);
 
   const [payouts, setPayouts] = useState([]);
@@ -495,8 +501,6 @@ export default function DarazFinancePage() {
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState("");
-
-  const dateRange = useMemo(() => getPresetRange(datePreset), [datePreset]);
 
   useEffect(() => {
     async function loadAccounts() {
@@ -516,16 +520,16 @@ export default function DarazFinancePage() {
 
   useEffect(() => {
     setPage(1);
-  }, [accountId, tab, datePreset]);
+  }, [accountId, tab]);
 
   async function loadData() {
     setLoadingData(true);
     setError("");
 
-    const baseParams = { account_id: accountId || undefined, date_from: dateRange.from || undefined, date_to: dateRange.to || undefined };
+    const baseParams = { account_id: accountId || undefined };
 
     try {
-      if (tab === "payouts") {
+      if (tab === "income") {
         const [listRes, summaryRes] = await Promise.all([
           darazFinanceApi.listPayouts({ ...baseParams, limit: 200 }),
           darazFinanceApi.getPayoutSummary(baseParams),
@@ -551,7 +555,7 @@ export default function DarazFinancePage() {
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountId, tab, datePreset, page]);
+  }, [accountId, tab, page]);
 
   const totalPages = Math.max(Math.ceil(orderGroupsTotal / PAGE_SIZE), 1);
 
@@ -601,23 +605,6 @@ export default function DarazFinancePage() {
             </option>
           ))}
         </select>
-
-        <div className="flex flex-wrap gap-1">
-          {DATE_PRESETS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setDatePreset(item.key)}
-              className={`h-7 rounded-md border px-2.5 text-[11px] font-semibold ${
-                datePreset === item.key
-                  ? "border-orange-400 bg-orange-500/15 text-orange-300"
-                  : "border-slate-700 bg-slate-900 text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="flex gap-1 border-b border-slate-800">
@@ -637,7 +624,7 @@ export default function DarazFinancePage() {
         ))}
       </div>
 
-      {tab === "payouts" ? (
+      {tab === "income" ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
           <StatCard
             icon={Wallet}
@@ -654,9 +641,9 @@ export default function DarazFinancePage() {
             hint="Your account balance at the end of the most recent statement — what Daraz owes you (or you owe Daraz) right now."
           />
           <StatCard icon={TrendingUp} label="Item Revenue" value={money(payoutSummary?.total_item_revenue)} tone="green" hint="Total sales revenue across statements in this filter." />
-          <StatCard icon={TrendingDown} label="Fees Total" value={money(payoutSummary?.total_fees)} tone="red" hint="Total platform/commission fees charged by Daraz in this filter." />
-          <StatCard icon={Banknote} label="Refunds" value={money(payoutSummary?.total_refunds)} tone="orange" hint="Total amount refunded to customers in this filter." />
-          <StatCard icon={AlertTriangle} label="Guarantee Deposit" value={money(payoutSummary?.total_guarantee_deposit)} tone="slate" hint="Deposit Daraz holds/releases as a seller guarantee." />
+          <StatCard icon={TrendingDown} label="Fees Total" value={moneyAbs(payoutSummary?.total_fees)} tone="red" hint="Total platform/commission fees charged by Daraz in this filter." />
+          <StatCard icon={Banknote} label="Refunds" value={moneyAbs(payoutSummary?.total_refunds)} tone="orange" hint="Total amount refunded to customers in this filter." />
+          <StatCard icon={AlertTriangle} label="Guarantee Deposit" value={moneyAbs(payoutSummary?.total_guarantee_deposit)} tone="slate" hint="Deposit Daraz holds/releases as a seller guarantee." />
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -669,7 +656,7 @@ export default function DarazFinancePage() {
 
       {loadingData ? (
         <Loader label="Loading finance data..." minHeight="240px" />
-      ) : tab === "payouts" ? (
+      ) : tab === "income" ? (
         <div className="overflow-x-auto rounded-lg border border-slate-800 bg-slate-950">
           <table className="min-w-full divide-y divide-slate-800 text-[12px]">
             <thead className="bg-slate-900">
@@ -695,8 +682,8 @@ export default function DarazFinancePage() {
                   <td className="px-3 py-2 text-slate-300">{money(row.opening_balance)}</td>
                   <td className="px-3 py-2 text-slate-300">{money(row.closing_balance)}</td>
                   <td className="px-3 py-2 font-semibold text-slate-100">{row.payout}</td>
-                  <td className="px-3 py-2 text-slate-300">{money(row.fees_total)}</td>
-                  <td className="px-3 py-2 text-slate-300">{money(row.refunds)}</td>
+                  <td className="px-3 py-2 text-slate-300">{moneyAbs(row.fees_total)}</td>
+                  <td className="px-3 py-2 text-slate-300">{moneyAbs(row.refunds)}</td>
                   <td className="px-3 py-2 text-slate-400">{formatDate(row.daraz_created_at)}</td>
                 </tr>
               ))}
