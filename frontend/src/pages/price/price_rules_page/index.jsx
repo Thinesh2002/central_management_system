@@ -6,6 +6,7 @@ import localProductsApi from "../../../config/sub_api/product_management_api/loc
 import { normalizeList } from "../../product_management/products/utils/productSku";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 import { useCanViewCostPrice } from "../../../components/common/permissions/PermissionsProvider";
 import Loader from "../../../components/common/Loader";
 
@@ -53,6 +54,7 @@ function StatusBadge({ status }) {
 
 export default function PriceRulesPage() {
   const showToast = useToast();
+  const confirm = useConfirm();
   const canViewCostPrice = useCanViewCostPrice();
 
   const [rows, setRows] = useState([]);
@@ -169,7 +171,7 @@ export default function PriceRulesPage() {
   }
 
   async function handleDelete(row) {
-    if (!window.confirm(`Delete price rule "${row.name}"? This can't be undone.`)) return;
+    if (!(await confirm(`Delete price rule "${row.name}"? This can't be undone.`))) return;
 
     try {
       await priceRulesApi.remove(row.id);

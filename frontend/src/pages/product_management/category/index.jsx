@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { usePagePermission } from "../../../components/common/permissions/PermissionsProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 import { categoryApi } from "../../../config/sub_api/product_management_api/category/categories_api";
 import { subCategoryApi } from "../../../config/sub_api/product_management_api/category/sub_category_api";
 import productModelApi from "../../../config/sub_api/product_management_api/category/product_model_api/product_model_api";
@@ -232,6 +233,7 @@ function ModalFooter({ readOnly, saving, mode, onClose, accent = "amber" }) {
 
 export default function CategoryPage() {
   const { canEdit, canDelete } = usePagePermission("categories");
+  const confirm = useConfirm();
 
   const [categories, setCategories] = useState([]);
   const [subs, setSubs] = useState([]);
@@ -797,7 +799,7 @@ export default function CategoryPage() {
       return;
     }
 
-    if (!window.confirm(`Delete ${selectedIds.length} selected categories?`)) {
+    if (!(await confirm(`Delete ${selectedIds.length} selected categories?`))) {
       return;
     }
 

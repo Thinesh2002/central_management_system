@@ -17,6 +17,7 @@ import {
 import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -152,6 +153,7 @@ function StatCard({ title, value, icon: Icon, tone = "slate" }) {
 
 export default function MarketplaceAccountsPage() {
   const { openOverlay } = usePageOverlay();
+  const confirm = useConfirm();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkingAll, setCheckingAll] = useState(false);
@@ -267,7 +269,7 @@ export default function MarketplaceAccountsPage() {
 
     if (!accountId) return;
 
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `Delete marketplace account "${account.account_name || account.account_uid}"? This cannot be undone.`
     );
 

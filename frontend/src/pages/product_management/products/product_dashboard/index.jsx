@@ -16,6 +16,7 @@ import {
   normalizeProductList,
 } from "./utils/localProductsTableHelpers";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../../components/common/confirm_modal/ConfirmProvider";
 import ExportCsvModal from "../../../../components/common/export/ExportCsvModal";
 import { exportRowsAsCsv } from "../../../../utils/csvExport";
 
@@ -504,6 +505,7 @@ function sortLatestProductsFirst(list = []) {
 
 export default function LocalProductsDashboard() {
   const showToast = useToast();
+  const confirm = useConfirm();
   const { openOverlay } = usePageOverlay();
 
   const [loading, setLoading] = useState(false);
@@ -671,7 +673,7 @@ export default function LocalProductsDashboard() {
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `Delete ${deletableIds.length} selected product${deletableIds.length === 1 ? "" : "s"}? This cannot be undone.`
     );
 
@@ -699,7 +701,7 @@ export default function LocalProductsDashboard() {
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `Delete product ${product.sku || product.product_sku || product.title || productId}?`
     );
 
@@ -723,7 +725,7 @@ export default function LocalProductsDashboard() {
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `Delete variant ${variant.variant_sku || variant.sku || variantId}?`
     );
 

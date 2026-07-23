@@ -5,6 +5,7 @@ import localProductsApi from "../../../../config/sub_api/product_management_api/
 import ProductPageLayout from "./../components/ProductPageLayout";
 import { getErrorMessage, normalizeList } from "./../utils/productSku";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../../components/common/confirm_modal/ConfirmProvider";
 import VariantTable from "./components/variants/VariantTable";
 import {
   getRecordId,
@@ -87,6 +88,7 @@ export default function LocalProductVariantsPage() {
   const { productId } = useParams();
   const navigate = useNavigate();
   const showToast = useToast();
+  const confirm = useConfirm();
 
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState(null);
@@ -145,7 +147,7 @@ export default function LocalProductVariantsPage() {
 
   async function handleDelete(variant) {
     const variantId = getRecordId(variant);
-    const confirmed = window.confirm(`Delete variant ${getVariantSku(variant)}?`);
+    const confirmed = await confirm(`Delete variant ${getVariantSku(variant)}?`);
 
     if (!confirmed) return;
 

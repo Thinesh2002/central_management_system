@@ -5,6 +5,7 @@ import { getStoredUser } from "../../../config/auth";
 import { FormInput, FormSelect } from "./components/FormInput";
 import { getErrorMessage, getName, normalizeList } from "./utils/productSku";
 import { useToast } from "../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 function getCurrentUserId() {
   const user = getStoredUser?.();
@@ -28,6 +29,7 @@ function rowMatchesScope(row, productId, variantId) {
  */
 export default function ProductAttributesPanel({ productId, variantId = null }) {
   const showToast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [attributes, setAttributes] = useState([]);
@@ -168,7 +170,7 @@ export default function ProductAttributesPanel({ productId, variantId = null }) 
       return;
     }
 
-    if (!window.confirm("Delete this attribute row?")) return;
+    if (!(await confirm("Delete this attribute row?"))) return;
 
     try {
       await localProductsApi.deleteProductAttributeValue(row.id);

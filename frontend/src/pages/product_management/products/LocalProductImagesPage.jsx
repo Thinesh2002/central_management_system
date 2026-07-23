@@ -12,6 +12,7 @@ import ProductPageLayout from "./components/ProductPageLayout";
 import { getErrorMessage, normalizeList } from "./utils/productSku";
 import ImageUploadBox from "../../../components/common/image_picker/ImageUploadBox";
 import ImagePickerModal from "../../../components/common/image_picker/ImagePickerModal";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 
 function getCurrentUserId() {
@@ -405,6 +406,7 @@ function ExtraImagesPopup({
 
 export default function LocalProductImagesPage() {
   const { productId } = useParams();
+  const confirm = useConfirm();
 
   const [loading, setLoading] = useState(false);
   const [uploadingKey, setUploadingKey] = useState("");
@@ -526,7 +528,7 @@ export default function LocalProductImagesPage() {
   async function removeImage(image) {
     if (!image?.id) return;
 
-    if (!window.confirm("Remove this image?")) return;
+    if (!(await confirm("Remove this image?"))) return;
 
     try {
       setUploadingKey(`delete-${image.id}`);

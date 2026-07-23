@@ -4,6 +4,7 @@ import { AlertCircle, MessageSquare, Pencil, Plus, Trash2, X } from "lucide-reac
 import messageTemplatesApi from "../../../config/sub_api/order_management_api/message_templates_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 const TRIGGER_OPTIONS = [
   { value: "order_confirmation", label: "Order Confirmation" },
@@ -193,6 +194,7 @@ function TemplateModal({ open, initial, onClose, onSave }) {
 
 export default function MessageTemplatesPage() {
   const showToast = useToast();
+  const confirm = useConfirm();
 
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -242,7 +244,7 @@ export default function MessageTemplatesPage() {
   }
 
   async function deleteTemplate(template) {
-    if (!window.confirm(`Delete template "${template.name}"? This can't be undone.`)) return;
+    if (!(await confirm(`Delete template "${template.name}"? This can't be undone.`))) return;
 
     try {
       await messageTemplatesApi.remove(template.id);

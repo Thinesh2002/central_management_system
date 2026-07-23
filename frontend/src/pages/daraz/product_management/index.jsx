@@ -19,6 +19,7 @@ import skuMappingApi from "../../../config/sub_api/product_management_api/sku_ma
 import ExportCsvModal from "../../../components/common/export/ExportCsvModal";
 import { exportRowsAsCsv } from "../../../utils/csvExport";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -669,6 +670,7 @@ function normalizeProduct(product, accountMap) {
 
 export default function DarazDashboardPage() {
   const { openOverlay } = usePageOverlay();
+  const confirm = useConfirm();
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState([]);
   const [products, setProducts] = useState([]);
@@ -1067,7 +1069,7 @@ export default function DarazDashboardPage() {
       return;
     }
 
-    if (!window.confirm(`Delete "${row.title}" from Daraz? This cannot be undone.`)) {
+    if (!(await confirm(`Delete "${row.title}" from Daraz? This cannot be undone.`))) {
       return;
     }
 

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import localProductsApi from "../../../config/sub_api/product_management_api/local_products_api";
 import Loader from "../../../components/common/Loader";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 import {
   dedupeImageLibraryRows,
   resolveImageUrl,
@@ -336,6 +337,7 @@ function ImageCard({ image, onSaveAltText, onDelete, onPreview, busy }) {
 
 export default function ImagesDashboardPage() {
   const fileInputRef = useRef(null);
+  const confirm = useConfirm();
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -456,7 +458,7 @@ export default function ImagesDashboardPage() {
   }
 
   async function handleDelete(image) {
-    if (!window.confirm(`Delete "${image.file_name}"? This cannot be undone.`)) {
+    if (!(await confirm(`Delete "${image.file_name}"? This cannot be undone.`))) {
       return;
     }
 

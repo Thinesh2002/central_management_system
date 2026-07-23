@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import localProductsApi from "../../../../../config/sub_api/product_management_api/local_products_api";
 import { getStoredUser } from "../../../../../config/auth";
 import { useToast } from "../../../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../../../components/common/confirm_modal/ConfirmProvider";
 import Loader from "../../../../../components/common/Loader";
 import ImageUploadBox from "../../../../../components/common/image_picker/ImageUploadBox";
 import ImagePickerModal from "../../../../../components/common/image_picker/ImagePickerModal";
@@ -30,6 +31,7 @@ function unwrapOne(response) {
 export default function VariantImagesPage() {
   const { productId, variantId } = useParams();
   const showToast = useToast();
+  const confirm = useConfirm();
 
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState("");
@@ -146,7 +148,7 @@ export default function VariantImagesPage() {
 
   async function removeImage(image) {
     if (!image?.id) return;
-    if (!window.confirm("Remove this image?")) return;
+    if (!(await confirm("Remove this image?"))) return;
 
     try {
       setBusyKey(`remove-${image.id}`);

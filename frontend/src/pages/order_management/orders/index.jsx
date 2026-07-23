@@ -34,6 +34,7 @@ import {
 } from "./utils/orderHelpers";
 import { extractDarazActionMessage, extractPdfUrls, openDarazDocument } from "./utils/darazDocument";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -108,6 +109,7 @@ const STATUS_KEYS = new Set(STATUS_TABS.map((tab) => tab.key));
 export default function OrdersPage() {
   const showToast = useToast();
   const { openOverlay } = usePageOverlay();
+  const confirm = useConfirm();
   const [searchParams] = useSearchParams();
 
   const [orders, setOrders] = useState([]);
@@ -223,7 +225,7 @@ export default function OrdersPage() {
   }, []);
 
   const handleDelete = useCallback(async (order) => {
-    if (!window.confirm(`Delete order ${order.display_order_no || order.order_no}? This can't be undone.`)) {
+    if (!(await confirm(`Delete order ${order.display_order_no || order.order_no}? This can't be undone.`))) {
       return;
     }
 

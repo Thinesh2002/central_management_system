@@ -4,6 +4,7 @@ import { Edit3, Plus, Save, Search, ShieldAlert, Trash2, Truck, X } from "lucide
 import suppliersApi from "../../../config/sub_api/supplier_management_api/suppliers_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 import { useIsMasterAdmin } from "../../../components/common/permissions/PermissionsProvider";
 import Loader from "../../../components/common/Loader";
 
@@ -46,6 +47,7 @@ function StatusBadge({ status }) {
 
 export default function SuppliersPage() {
   const showToast = useToast();
+  const confirm = useConfirm();
   const isMasterAdmin = useIsMasterAdmin();
 
   const [rows, setRows] = useState([]);
@@ -148,7 +150,7 @@ export default function SuppliersPage() {
   }
 
   async function handleDelete(row) {
-    if (!window.confirm(`Delete supplier "${row.name}"? This can't be undone.`)) return;
+    if (!(await confirm(`Delete supplier "${row.name}"? This can't be undone.`))) return;
 
     try {
       await suppliersApi.remove(row.id);

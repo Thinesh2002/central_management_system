@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import { ToastProvider } from "./components/common/toast/ToastProvider.jsx";
 import { PermissionsProvider } from "./components/common/permissions/PermissionsProvider.jsx";
 import { PageOverlayProvider } from "./components/common/page_overlay/PageOverlayProvider.jsx";
+import { ConfirmProvider } from "./components/common/confirm_modal/ConfirmProvider.jsx";
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
@@ -13,7 +14,9 @@ createRoot(document.getElementById("root")).render(
       <ToastProvider>
         <PermissionsProvider>
           <PageOverlayProvider>
-            <App />
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
           </PageOverlayProvider>
         </PermissionsProvider>
       </ToastProvider>

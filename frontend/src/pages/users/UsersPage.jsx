@@ -4,6 +4,7 @@ import api, { getApiError } from "../../config/api";
 import { getStoredUser } from "../../config/auth";
 import { usePagePermission } from "../../components/common/permissions/PermissionsProvider";
 import { usePageOverlay } from "../../components/common/page_overlay/PageOverlayProvider";
+import { useConfirm } from "../../components/common/confirm_modal/ConfirmProvider";
 import { Link } from "react-router-dom";
 
 function isLocked(user) {
@@ -15,6 +16,7 @@ export default function UsersPage() {
   const currentUser = getStoredUser();
   const { canEdit, canDelete } = usePagePermission("users");
   const { openOverlay } = usePageOverlay();
+  const confirm = useConfirm();
 
   const [users, setUsers] = useState([]);
   const [message, setMessage] = useState("");
@@ -36,7 +38,7 @@ export default function UsersPage() {
   }, []);
 
   async function removeUser(user) {
-    const confirmed = window.confirm(`Delete ${user.email}?`);
+    const confirmed = await confirm(`Delete ${user.email}?`);
     if (!confirmed) return;
 
     setMessage("");
