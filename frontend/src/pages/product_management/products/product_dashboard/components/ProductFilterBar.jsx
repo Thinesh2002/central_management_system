@@ -144,12 +144,12 @@ export default function ProductFilterBar({
         <button
           type="button"
           onClick={onOpenFilter}
-          className="inline-flex h-7 cursor-pointer items-center justify-center gap-1.5 bg-indigo-500 px-3 text-[10px] font-semibold text-white transition hover:bg-indigo-400"
+          className="inline-flex h-5.5 cursor-pointer items-center justify-center gap-1 rounded-sm bg-indigo-500 px-2 text-[9px] font-semibold text-white transition hover:bg-indigo-400"
         >
-          <Filter size={11} />
+          <Filter size={10} />
           FILTERS
           {activePopupFilterCount > 0 && (
-            <span className="bg-white/20 px-1.5 py-0.5 text-[9px]">
+            <span className="bg-white/20 px-1 py-0.5 text-[8px]">
               {activePopupFilterCount}
             </span>
           )}
