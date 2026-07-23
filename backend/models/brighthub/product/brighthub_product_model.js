@@ -164,7 +164,7 @@ async function getDueBrightHubAccounts() {
 
 async function listSyncedBrightHubProducts(accountId, { page = 1, limit = 50, search = "" } = {}) {
   const safePage = Math.max(Number(page) || 1, 1);
-  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 5000);
   const offset = (safePage - 1) * safeLimit;
 
   const values = [accountId];

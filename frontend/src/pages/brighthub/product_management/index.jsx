@@ -7,10 +7,19 @@ import {
   PlayCircle,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
+  CheckCircle,
   X,
 } from "lucide-react";
 import { brighthubProductApi } from "../../../config/sub_api/brighthub_api/brighthub_product_api";
+import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
+
+const PAGE_SIZES = [25, 50, 100, 200];
+
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
 
 function extractAccounts(res) {
   const payload = res?.data;
@@ -29,10 +38,6 @@ function extractProducts(res) {
   if (Array.isArray(payload?.data)) return payload.data;
 
   return [];
-}
-
-function getTotal(res) {
-  return Number(res?.data?.total || 0);
 }
 
 function money(value) {
@@ -70,43 +75,92 @@ function getFirstImage(imagesJson) {
   return first?.url || first?.src || first?.image_url || "";
 }
 
-function StatusBadge({ value }) {
-  const status = String(value || "unknown").toLowerCase();
+function formatInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-  const styles = {
-    active: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
-    inactive: "border-red-400/25 bg-red-400/10 text-red-300",
-    unknown: "border-slate-500/25 bg-slate-500/10 text-slate-300",
-  };
+  return `${year}-${month}-${day}`;
+}
 
-  return (
-    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${styles[status] || styles.unknown}`}>
-      {status}
-    </span>
-  );
+function getDatePresetRange(preset, customStartDate, customEndDate) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (preset === "all") return { start: "", end: "" };
+
+  if (preset === "today") {
+    const date = formatInputDate(today);
+    return { start: date, end: date };
+  }
+
+  if (preset === "yesterday") {
+    const date = new Date(today);
+    date.setDate(date.getDate() - 1);
+    const formatted = formatInputDate(date);
+    return { start: formatted, end: formatted };
+  }
+
+  if (preset === "last_7_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 6);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  if (preset === "last_30_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 29);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  if (preset === "last_60_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 59);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  if (preset === "last_90_days") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 89);
+    return { start: formatInputDate(start), end: formatInputDate(today) };
+  }
+
+  return { start: customStartDate, end: customEndDate };
+}
+
+function isDateInRange(dateKey, range) {
+  if (!range.start && !range.end) return true;
+  if (!dateKey) return false;
+  if (range.start && dateKey < range.start) return false;
+  if (range.end && dateKey > range.end) return false;
+  return true;
 }
 
 export default function BrightHubProductDashboardPage() {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
 
-  const [products, setProducts] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [rows, setRows] = useState([]);
 
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
+  const [idSearch, setIdSearch] = useState("");
+  const [skuSearch, setSkuSearch] = useState("");
+  const [datePreset, setDatePreset] = useState("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+
   const [page, setPage] = useState(1);
-  const [limit] = useState(50);
+  const [pageSize, setPageSize] = useState(50);
 
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
-
-  const totalPages = useMemo(() => Math.max(Math.ceil(total / limit), 1), [total, limit]);
 
   async function loadAccounts() {
     try {
@@ -114,12 +168,12 @@ export default function BrightHubProductDashboardPage() {
       setError("");
 
       const res = await brighthubProductApi.getBrightHubAccounts();
-      const rows = extractAccounts(res);
+      const list = extractAccounts(res);
 
-      setAccounts(rows);
+      setAccounts(list);
 
-      if (rows.length) {
-        setSelectedAccountId(String(rows[0].id || rows[0].account_id));
+      if (list.length) {
+        setSelectedAccountId(String(list[0].id || list[0].account_id));
       }
     } catch (err) {
       setAccounts([]);
@@ -131,8 +185,7 @@ export default function BrightHubProductDashboardPage() {
 
   async function loadProducts() {
     if (!selectedAccountId) {
-      setProducts([]);
-      setTotal(0);
+      setRows([]);
       return;
     }
 
@@ -141,16 +194,12 @@ export default function BrightHubProductDashboardPage() {
       setError("");
 
       const res = await brighthubProductApi.getSyncedBrightHubProducts(selectedAccountId, {
-        page,
-        limit,
-        search: appliedSearch || undefined,
+        limit: 5000,
       });
 
-      setProducts(extractProducts(res));
-      setTotal(getTotal(res));
+      setRows(extractProducts(res));
     } catch (err) {
-      setProducts([]);
-      setTotal(0);
+      setRows([]);
       setError(err?.friendlyMessage || "Failed to load synced BrightHub products.");
     } finally {
       setLoadingProducts(false);
@@ -166,12 +215,12 @@ export default function BrightHubProductDashboardPage() {
     try {
       setSyncing(true);
       setError("");
-      setMessage("");
+      setSuccess("");
 
       const res = await brighthubProductApi.syncBrightHubProducts(selectedAccountId);
       const data = res?.data?.data;
 
-      setMessage(
+      setSuccess(
         data
           ? `Product sync completed. Total: ${data.total_records || 0}, Success: ${data.success_records || 0}, Failed: ${data.failed_records || 0}`
           : "BrightHub product sync completed."
@@ -185,12 +234,6 @@ export default function BrightHubProductDashboardPage() {
     }
   }
 
-  function handleSearchSubmit(e) {
-    e.preventDefault();
-    setAppliedSearch(search.trim());
-    setPage(1);
-  }
-
   useEffect(() => {
     loadAccounts();
   }, []);
@@ -198,174 +241,456 @@ export default function BrightHubProductDashboardPage() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAccountId, page, appliedSearch]);
+  }, [selectedAccountId]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, idSearch, skuSearch, datePreset, customStartDate, customEndDate, activeTab]);
+
+  const statusTabs = useMemo(() => {
+    const counts = new Map();
+
+    rows.forEach((row) => {
+      const label = String(row.status || "unknown").toLowerCase();
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+
+    const dynamicTabs = Array.from(counts.entries()).map(([key, count]) => ({
+      key,
+      label: key.charAt(0).toUpperCase() + key.slice(1),
+      count,
+    }));
+
+    return [{ key: "all", label: "All", count: rows.length }, ...dynamicTabs];
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const idQ = idSearch.trim().toLowerCase();
+    const skuQ = skuSearch.trim().toLowerCase();
+    const dateRange = getDatePresetRange(datePreset, customStartDate, customEndDate);
+
+    return rows.filter((row) => {
+      const searchOk = !q || String(row.name || "").toLowerCase().includes(q);
+      const idOk = !idQ || String(row.bhid || "").toLowerCase().includes(idQ);
+      const skuOk = !skuQ || String(row.sku || "").toLowerCase().includes(skuQ);
+
+      const dateKey = row.last_synced_at ? String(row.last_synced_at).slice(0, 10) : "";
+      const dateOk = isDateInRange(dateKey, dateRange);
+
+      const tabOk = activeTab === "all" || String(row.status || "unknown").toLowerCase() === activeTab;
+
+      return searchOk && idOk && skuOk && dateOk && tabOk;
+    });
+  }, [rows, search, idSearch, skuSearch, datePreset, customStartDate, customEndDate, activeTab]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filteredRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+  const startIndex = filteredRows.length ? (safePage - 1) * pageSize + 1 : 0;
+  const endIndex = Math.min(safePage * pageSize, filteredRows.length);
+
+  function goToPage(nextPage) {
+    setPage(Math.min(Math.max(Number(nextPage), 1), totalPages));
+  }
+
+  function clearFilters() {
+    setSearchInput("");
+    setSearch("");
+    setIdSearch("");
+    setSkuSearch("");
+    setDatePreset("all");
+    setCustomStartDate("");
+    setCustomEndDate("");
+    setActiveTab("all");
+  }
+
+  const buttonClass =
+    "rounded-sm border border-zinc-800/40 transition hover:-translate-y-[1px] hover:border-[#D0E7E6]/50 disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
-    <div className="min-h-screen bg-[#070B14] px-4 py-4 text-slate-100 md:px-6">
-      {message && (
-        <div className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-200">
-          {message}
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-          {error}
-        </div>
-      )}
-
-      <div className="rounded-xl border border-white/10 bg-[#0D1322] shadow-lg shadow-black/20">
-        <div className="flex flex-col gap-3 border-b border-white/10 p-3 md:flex-row md:items-center md:justify-between">
-          <form onSubmit={handleSearchSubmit} className="relative w-full md:max-w-lg">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search product name, SKU, BHID..."
-              className="w-full rounded-lg border border-white/10 bg-[#070B14] py-2 pl-9 pr-24 text-xs text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/60"
-            />
-
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-md bg-yellow-400 px-3 py-1.5 text-[11px] font-semibold text-slate-950 transition hover:bg-yellow-300"
-            >
-              Search
-            </button>
-          </form>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSyncProducts}
-              disabled={syncing || !selectedAccountId || loadingAccounts}
-              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-yellow-400 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {syncing ? <Loader2 size={14} className="animate-spin" /> : <PlayCircle size={14} />}
-              Sync
-            </button>
-
-            <button
-              type="button"
-              onClick={loadProducts}
-              disabled={loadingProducts || !selectedAccountId}
-              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-[#070B14] px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw size={14} className={loadingProducts ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
-        </div>
-
-        {loadingProducts || loadingAccounts ? (
-          <Loader label="Loading products..." minHeight="0" className="py-16" />
-        ) : !accounts.length ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-500">
-              <Package size={26} />
+    <div className="w-full overflow-hidden text-[13px] text-zinc-200">
+      <div className="space-y-3">
+        <div className="rounded-md border border-zinc-700/60 bg-[#1c2838] shadow-sm shadow-black/20">
+          <div className="flex items-center justify-between border-b border-zinc-700/60 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <Search size={15} className="text-orange-400" />
+              <h2 className="text-[13px] font-semibold text-white">Search & Filter Website Products</h2>
             </div>
-            <p className="text-sm font-semibold text-slate-200">No BrightHub account connected yet.</p>
-            <p className="mt-1 max-w-md text-xs text-slate-500">
-              Add one from Marketplace Accounts (Platform: BrightHub).
-            </p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-[#070B14] text-slate-500">
-              <Package size={26} />
+
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedAccountId}
+                onChange={(event) => setSelectedAccountId(event.target.value)}
+                disabled={loadingAccounts}
+                className="h-7 rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[11px] text-zinc-200 outline-none"
+              >
+                {accounts.map((account) => (
+                  <option key={account.id || account.account_id} value={account.id || account.account_id}>
+                    {account.account_name || account.account_code}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={handleSyncProducts}
+                disabled={syncing || !selectedAccountId || loadingAccounts}
+                className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-600 px-3 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {syncing ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}
+                SYNC
+              </button>
+
+              <button
+                type="button"
+                onClick={loadProducts}
+                disabled={loadingProducts || !selectedAccountId}
+                className="h-7 rounded-sm border border-zinc-600 bg-[#44546b] px-3 text-[11px] font-semibold text-white hover:bg-[#52657f] disabled:opacity-40"
+              >
+                ⟳ REFRESH
+              </button>
             </div>
-            <p className="text-sm font-semibold text-slate-200">No synced BrightHub products found.</p>
-            <p className="mt-1 max-w-md text-xs text-slate-500">Click Sync to load products from BrightHub.</p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-xs">
-              <thead className="bg-[#070B14] text-[11px] uppercase tracking-wide text-slate-500">
+
+          <div className="grid grid-cols-1 gap-2 px-3 py-2 xl:grid-cols-12">
+            <div className="xl:col-span-2">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase text-zinc-300">
+                <span className="text-orange-400">▦</span>
+                Date Range
+              </label>
+
+              <select
+                value={datePreset}
+                onChange={(event) => setDatePreset(event.target.value)}
+                className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none focus:border-orange-400"
+              >
+                <option value="all">All Dates</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="last_7_days">Last 7 Days</option>
+                <option value="last_30_days">Last 30 Days</option>
+                <option value="last_60_days">Last 60 Days</option>
+                <option value="last_90_days">Last 90 Days</option>
+                <option value="custom">Custom Date Range</option>
+              </select>
+            </div>
+
+            {datePreset === "custom" ? (
+              <>
+                <div className="xl:col-span-1">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase text-zinc-300">From</label>
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(event) => setCustomStartDate(event.target.value)}
+                    className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none focus:border-orange-400"
+                  />
+                </div>
+
+                <div className="xl:col-span-1">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase text-zinc-300">To</label>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(event) => setCustomEndDate(event.target.value)}
+                    className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none focus:border-orange-400"
+                  />
+                </div>
+              </>
+            ) : null}
+
+            <div className="xl:col-span-2">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase text-zinc-300">
+                <span className="text-orange-400">▥</span>
+                BHID
+              </label>
+              <input
+                value={idSearch}
+                onChange={(event) => setIdSearch(event.target.value)}
+                placeholder="Enter BHID"
+                className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none placeholder:text-zinc-500 focus:border-orange-400"
+              />
+            </div>
+
+            <div className="xl:col-span-2">
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase text-zinc-300">
+                <span className="text-orange-400">▥</span>
+                SKU
+              </label>
+              <input
+                value={skuSearch}
+                onChange={(event) => setSkuSearch(event.target.value)}
+                placeholder="Enter SKU"
+                className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none placeholder:text-zinc-500 focus:border-orange-400"
+              />
+            </div>
+
+            <div className={datePreset === "custom" ? "xl:col-span-2" : "xl:col-span-3"}>
+              <label className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase text-zinc-300">
+                <span className="text-orange-400">⌕</span>
+                Search
+              </label>
+              <input
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search Website Products"
+                className="h-8 w-full rounded-sm border border-zinc-600 bg-[#2a3542] px-2 text-[12px] text-zinc-200 outline-none placeholder:text-zinc-500 focus:border-orange-400"
+              />
+            </div>
+
+            <div className={datePreset === "custom" ? "flex items-end gap-2 xl:col-span-2" : "flex items-end gap-2 xl:col-span-3"}>
+              <button
+                type="button"
+                onClick={() => setSearch(searchInput)}
+                className="h-8 rounded-sm bg-orange-500 px-3 text-[12px] font-bold text-white hover:bg-orange-400"
+              >
+                SEARCH
+              </button>
+
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="h-8 rounded-sm bg-white px-3 text-[12px] font-bold text-slate-700 hover:bg-zinc-100"
+              >
+                CLEAR
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {error ? (
+          <div className="flex gap-2 rounded-sm border border-red-500/20 bg-red-500/5 p-2 text-red-400">
+            <AlertTriangle size={15} />
+            <p>{error}</p>
+          </div>
+        ) : null}
+
+        {success ? (
+          <div className="flex gap-2 rounded-sm border border-emerald-500/20 bg-emerald-500/5 p-2 text-emerald-400">
+            <CheckCircle size={15} />
+            <p>{success}</p>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2 border-b border-zinc-800/60 pb-3">
+          {statusTabs.map((tab) => {
+            const active = activeTab === tab.key;
+
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={cx(
+                  "border-b-2 px-3 py-2 text-[13px] font-semibold transition",
+                  active
+                    ? "border-yellow-400 text-yellow-300"
+                    : "border-transparent text-zinc-400 hover:text-zinc-200"
+                )}
+              >
+                {tab.label}
+                <span className="ml-2 rounded-sm bg-white/5 px-1.5 py-0.5 text-[11px] text-zinc-400">
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-col gap-2 border-b border-zinc-800/60 pb-3 text-[12px] text-zinc-400 md:flex-row md:items-center md:justify-between">
+          <div>
+            Total: <b className="text-zinc-100">{rows.length}</b>
+            <span className="mx-2 text-zinc-700">|</span>
+            Filtered: <b className="text-zinc-100">{filteredRows.length}</b>
+          </div>
+
+          <div>
+            Showing <b className="text-zinc-100">{startIndex}</b>-<b className="text-zinc-100">{endIndex}</b> of <b className="text-zinc-100">{filteredRows.length}</b>
+            <span className="mx-2 text-zinc-700">|</span>
+            Page <b className="text-zinc-100">{safePage}</b> of <b className="text-zinc-100">{totalPages}</b>
+          </div>
+        </div>
+
+        <div className="w-full overflow-x-auto rounded-sm border border-zinc-800/40 bg-[#050817]">
+          <table className="w-full min-w-[1100px] table-fixed border-collapse text-[13px]">
+            <thead>
+              <tr className="border-b border-zinc-800/60 bg-white/[0.015]">
+                <th className="w-[8%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Image</th>
+                <th className="w-[12%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">BHID</th>
+                <th className="w-[34%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Product Title</th>
+                <th className="w-[14%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">SKU</th>
+                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Price</th>
+                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Status</th>
+                <th className="w-[12%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Last Synced</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loadingProducts || loadingAccounts ? (
                 <tr>
-                  <th className="px-3 py-3">Product</th>
-                  <th className="px-3 py-3">BHID</th>
-                  <th className="px-3 py-3">Price</th>
-                  <th className="px-3 py-3">Status</th>
-                  <th className="px-3 py-3">Last Sync</th>
+                  <td colSpan="7" className="px-2 py-10 text-center text-zinc-400">
+                    Loading Website products...
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody className="divide-y divide-white/10">
-                {products.map((product) => {
-                  const imageUrl = getFirstImage(product.images_json);
+              ) : !accounts.length ? (
+                <tr>
+                  <td colSpan="7" className="px-2 py-10 text-center text-zinc-400">
+                    No BrightHub account connected yet.
+                  </td>
+                </tr>
+              ) : pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-2 py-10 text-center text-zinc-400">
+                    No Website products found.
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((row) => {
+                  const imageUrl = getFirstImage(row.images_json);
 
                   return (
-                    <tr key={`${product.account_id}-${product.bhid}`} className="transition hover:bg-white/[0.03]">
-                      <td className="px-3 py-3">
-                        <div className="flex min-w-[390px] items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => imageUrl && setImagePreview({ image: imageUrl, title: product.name || "Product" })}
-                            className="flex h-14 w-14 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white"
-                            title="View product image"
-                          >
-                            {imageUrl ? (
-                              <img
-                                src={imageUrl}
-                                alt={product.name || "Product"}
-                                referrerPolicy="no-referrer"
-                                loading="lazy"
-                                className="h-full w-full object-contain transition duration-200 hover:scale-105"
-                              />
-                            ) : (
-                              <Package size={18} className="text-slate-500" />
-                            )}
-                          </button>
-
-                          <div className="min-w-0">
-                            <p className="line-clamp-2 text-[12px] font-medium leading-5 text-slate-100" title={product.name || "Unnamed Product"}>
-                              {product.name || "Unnamed Product"}
-                            </p>
-                            <div className="mt-0.5 font-mono text-[11px] text-yellow-200/80">SKU: {product.sku || "-"}</div>
-                          </div>
-                        </div>
+                    <tr key={`${row.account_id}-${row.bhid}`} className="border-b border-zinc-800/60 hover:bg-white/[0.04]">
+                      <td className="px-2 py-2 text-center align-middle">
+                        <button
+                          type="button"
+                          onClick={() => imageUrl && setImagePreview({ image: imageUrl, title: row.name })}
+                          className="mx-auto flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
+                        >
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={row.name}
+                              className="h-full w-full object-cover"
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <Package size={14} className="text-zinc-600" />
+                          )}
+                        </button>
                       </td>
 
-                      <td className="px-3 py-3 font-mono text-[12px] text-slate-300">{product.bhid || "-"}</td>
-                      <td className="px-3 py-3 text-[12px] font-semibold text-slate-100">{money(product.price)}</td>
-                      <td className="px-3 py-3"><StatusBadge value={product.status} /></td>
-                      <td className="px-3 py-3 text-[12px] text-slate-400">{formatDate(product.last_synced_at)}</td>
+                      <td className="px-2 py-2 text-center align-middle">
+                        <span className="mx-auto block max-w-full truncate text-center font-mono text-[12px] font-medium text-yellow-300">
+                          {row.bhid || "-"}
+                        </span>
+                      </td>
+
+                      <td className="px-2 py-2 text-center align-middle">
+                        <p title={row.name} className="whitespace-normal break-words text-center text-[11px] font-normal leading-[1.3] text-zinc-300">
+                          {row.name || "Unnamed Product"}
+                        </p>
+                      </td>
+
+                      <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
+                        <span className="block truncate">{row.sku || "-"}</span>
+                      </td>
+
+                      <td className="px-2 py-2 text-center align-middle text-[12px] font-semibold text-zinc-100">
+                        {money(row.price)}
+                      </td>
+
+                      <td className="px-2 py-2 text-center align-middle">
+                        <span
+                          className={cx(
+                            "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                            String(row.status || "").toLowerCase() === "active"
+                              ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                              : "border-red-400/25 bg-red-400/10 text-red-300"
+                          )}
+                        >
+                          {row.status || "unknown"}
+                        </span>
+                      </td>
+
+                      <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
+                        {formatDate(row.last_synced_at)}
+                      </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-zinc-800/60 pt-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2 text-zinc-400">
+            <span>Rows per page</span>
+
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                setPageSize(Number(event.target.value));
+                setPage(1);
+              }}
+              className={cx("h-8 bg-[#050817] px-2 text-zinc-200 outline-none", buttonClass)}
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
           </div>
-        )}
 
-        <div className="flex items-center justify-between border-t border-white/10 p-3">
-          <button
-            type="button"
-            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-            disabled={page <= 1 || loadingProducts}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-[#070B14] px-3 py-2 text-xs text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <ChevronLeft size={15} />
-            Previous
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => goToPage(safePage - 1)}
+              disabled={safePage <= 1}
+              className={cx("flex h-8 items-center gap-1 px-2.5 text-zinc-300", buttonClass)}
+            >
+              <ChevronLeft size={14} />
+              Prev
+            </button>
 
-          <p className="text-xs text-slate-500">
-            Page {page} of {totalPages} · {total} products
-          </p>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => {
+              const pageNumber =
+                totalPages <= 5
+                  ? index + 1
+                  : safePage <= 3
+                    ? index + 1
+                    : safePage >= totalPages - 2
+                      ? totalPages - 4 + index
+                      : safePage - 2 + index;
 
-          <button
-            type="button"
-            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={page >= totalPages || loadingProducts}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-white/10 bg-[#070B14] px-3 py-2 text-xs text-slate-200 transition hover:border-yellow-400/40 hover:text-yellow-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Next
-            <ChevronRight size={15} />
-          </button>
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => goToPage(pageNumber)}
+                  className={cx(
+                    "h-8 min-w-8 rounded-sm border-b-2 px-1.5 font-semibold hover:-translate-y-[1px]",
+                    safePage === pageNumber
+                      ? "border-yellow-400 text-yellow-300"
+                      : "border-transparent text-zinc-400 hover:text-zinc-200"
+                  )}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => goToPage(safePage + 1)}
+              disabled={safePage >= totalPages}
+              className={cx("flex h-8 items-center gap-1 px-2.5 text-zinc-300", buttonClass)}
+            >
+              Next
+              <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {imagePreview && (
+      {imagePreview ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           onClick={() => setImagePreview(null)}
@@ -391,9 +716,16 @@ export default function BrightHubProductDashboardPage() {
                 <img src={imagePreview.image} alt={imagePreview.title} className="max-h-[60vh] max-w-full object-contain" />
               </div>
             </div>
+
+            <div className="px-4 pb-4">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">Image URL</p>
+              <p title={imagePreview.image} className="break-all text-xs font-medium leading-5 text-slate-400">
+                {imagePreview.image}
+              </p>
+            </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
