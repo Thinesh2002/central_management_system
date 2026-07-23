@@ -152,11 +152,6 @@ export default function SkuReportPage() {
             <p className="mt-1 text-xs font-semibold text-slate-500">
               SKU: {report?.sku || sku}
             </p>
-            {report?.mapped_from && (
-              <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold text-orange-300 ring-1 ring-orange-500/30">
-                Mapped from wrong SKU "{report.mapped_from}"
-              </p>
-            )}
           </div>
         </div>
 
@@ -382,6 +377,32 @@ export default function SkuReportPage() {
                     ) : null}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            <div className="border border-slate-800 bg-[#0b1220]">
+              <div className="flex items-center gap-2 border-b border-slate-800 bg-[#07101f] px-4 py-3">
+                <Tag size={15} className="text-orange-300" />
+                <p className="text-sm font-black text-white">
+                  Mapped SKUs ({report.mapped_wrong_skus?.length || 0})
+                </p>
+              </div>
+
+              <div className="p-4">
+                {report.mapped_wrong_skus?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {report.mapped_wrong_skus.map((wrongSku) => (
+                      <span
+                        key={wrongSku}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-2.5 py-1 text-[11px] font-bold text-orange-300 ring-1 ring-orange-500/30"
+                      >
+                        {wrongSku} → {report.sku}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No wrong SKUs mapped to this SKU.</p>
+                )}
               </div>
             </div>
           </div>

@@ -430,6 +430,7 @@ async function getSkuReport(requestedSku) {
     sku,
     requested_sku: requestedSku,
     mapped_from: mappedFrom,
+    mapped_wrong_skus: knownWrongSkus,
     known_sku_variants: skuVariants,
     local_product: localProduct,
     images,
