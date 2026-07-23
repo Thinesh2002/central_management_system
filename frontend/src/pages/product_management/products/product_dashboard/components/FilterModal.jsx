@@ -23,7 +23,7 @@ export default function FilterModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl overflow-hidden border border-slate-700 bg-[#1b2b42] shadow-2xl shadow-black/40"
+        className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-700 bg-[#1b2b42] shadow-2xl shadow-black/40"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between bg-[#653bb3] px-5 py-4 text-white">

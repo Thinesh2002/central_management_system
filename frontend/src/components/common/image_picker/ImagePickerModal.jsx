@@ -59,7 +59,7 @@ export default function ImagePickerModal({ open, onClose, onSelect }) {
       onClick={onClose}
     >
       <div
-        className="flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden border border-slate-700 bg-[#243b57] shadow-2xl"
+        className="flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-[#243b57] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between bg-[#653bb3] px-5 py-4 text-white">

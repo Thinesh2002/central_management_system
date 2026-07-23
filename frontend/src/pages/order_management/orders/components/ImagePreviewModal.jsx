@@ -6,7 +6,7 @@ export default function ImagePreviewModal({ image, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg border border-slate-700 bg-[#0b1220] shadow-2xl"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-2.5">

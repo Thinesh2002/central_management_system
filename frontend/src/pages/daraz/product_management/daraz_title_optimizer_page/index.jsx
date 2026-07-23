@@ -60,7 +60,7 @@ function ImageZoomModal({ image, onClose }) {
       onClick={onClose}
     >
       <div
-        className="flex w-full max-w-155 flex-col overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+        className="flex w-full max-w-155 flex-col overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">
@@ -173,7 +173,7 @@ function ScanModal({ accounts, onClose, onDone, showToast }) {
       onClick={() => !running && onClose()}
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden border border-[#653bb3]/20 bg-slate-950 shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[#653bb3]/20 bg-slate-950 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between bg-[#653bb3] px-4 py-3">

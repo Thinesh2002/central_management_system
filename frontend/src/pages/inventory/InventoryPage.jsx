@@ -433,7 +433,7 @@ export default function InventoryPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm">
-          <form onSubmit={submitForm} className="w-full max-w-4xl overflow-hidden rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
+          <form onSubmit={submitForm} className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
               <h2 className="text-[14px] font-semibold text-white">{editing ? "Modify Inventory" : "Add Inventory"}</h2>
               <button type="button" onClick={() => setModalOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
@@ -557,7 +557,7 @@ export default function InventoryPage() {
 
       {historyOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={() => setHistoryOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl">
+          <div onClick={(e) => e.stopPropagation()} className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
               <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-white">
                 <History size={15} /> Cost Price History — {historySku}

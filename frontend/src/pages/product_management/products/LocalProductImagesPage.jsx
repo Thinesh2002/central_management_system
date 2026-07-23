@@ -357,7 +357,7 @@ function ExtraImagesPopup({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl border border-slate-700 bg-[#0b1220] shadow-2xl"
+        className="w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">

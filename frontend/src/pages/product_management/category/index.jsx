@@ -175,9 +175,9 @@ function ModalShell({ title, subtitle, onClose, children, wide }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm">
       <div
-        className={`w-full ${wide ? "max-w-xl" : "max-w-md"} rounded-lg border border-slate-700 bg-[#0b1220] shadow-2xl`}
+        className={`w-full ${wide ? "max-w-xl" : "max-w-md"} overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl`}
       >
-        <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-[#653bb3] px-4 py-3">
+        <div className="flex items-center justify-between rounded-t-2xl border-b border-white/10 bg-[#653bb3] px-4 py-3">
           <div>
             <h2 className="text-[14px] font-semibold text-white">{title}</h2>
             {subtitle && <p className="mt-0.5 text-[11px] text-purple-200/80">{subtitle}</p>}

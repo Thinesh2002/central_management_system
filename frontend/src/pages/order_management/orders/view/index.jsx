@@ -559,7 +559,7 @@ function TrackOrderModal({ open, onClose, order }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
+      <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 bg-[#653bb3] px-4 py-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-purple-200/80">Track My Order</p>

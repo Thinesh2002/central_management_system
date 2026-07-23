@@ -451,7 +451,7 @@ function TitleImpactModal({ logId, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg overflow-hidden border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-700 bg-[#111827] shadow-2xl shadow-black/50"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between bg-[#653bb3] px-4 py-3">

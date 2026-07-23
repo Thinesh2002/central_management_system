@@ -108,7 +108,7 @@ function TextArea({ label, value, onChange, disabled }) {
 
 function ModalHeader({ title, onClose }) {
   return (
-    <div className="flex items-center justify-between rounded-t-lg border-b border-white/10 bg-[#653bb3] px-4 py-3">
+    <div className="flex items-center justify-between rounded-t-2xl border-b border-white/10 bg-[#653bb3] px-4 py-3">
       <div>
         <h3 className="text-[15px] font-normal text-white">{title}</h3>
         <p className="text-[12px] text-purple-200/80">
@@ -542,7 +542,7 @@ export default function ProductColourPage() {
 
       {colourModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
             <ModalHeader
               title={
                 colourModal.mode === "view"
@@ -654,7 +654,7 @@ export default function ProductColourPage() {
 
       {deleteModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-lg border border-slate-800 bg-slate-950 shadow-2xl">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
             <ModalHeader
               title="Confirm Delete"
               onClose={() =>
