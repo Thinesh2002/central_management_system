@@ -12,8 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { brighthubProductApi } from "../../../config/sub_api/brighthub_api/brighthub_product_api";
-import { marketplaceApi } from "../../../config/sub_api/marketplace_management_api/marketplace_api";
 import Loader from "../../../components/common/Loader";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -137,6 +137,7 @@ function isDateInRange(dateKey, range) {
 }
 
 export default function BrightHubProductDashboardPage() {
+  const { openOverlay } = usePageOverlay();
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
 
@@ -578,15 +579,25 @@ export default function BrightHubProductDashboardPage() {
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle">
-                        <span className="mx-auto block max-w-full truncate text-center font-mono text-[12px] font-medium text-yellow-300">
+                        <button
+                          type="button"
+                          onClick={() => openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}`)}
+                          title={row.bhid}
+                          className="mx-auto block max-w-full cursor-pointer truncate text-center font-mono text-[12px] font-medium text-yellow-300 underline underline-offset-2 hover:text-yellow-200"
+                        >
                           {row.bhid || "-"}
-                        </span>
+                        </button>
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle">
-                        <p title={row.name} className="whitespace-normal break-words text-center text-[11px] font-normal leading-[1.3] text-zinc-300">
+                        <button
+                          type="button"
+                          onClick={() => openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}`)}
+                          title={row.name}
+                          className="cursor-pointer whitespace-normal break-words text-center text-[11px] font-normal leading-[1.3] text-zinc-300 hover:text-[#D0E7E6]"
+                        >
                           {row.name || "Unnamed Product"}
-                        </p>
+                        </button>
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">

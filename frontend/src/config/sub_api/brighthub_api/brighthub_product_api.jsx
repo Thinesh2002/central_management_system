@@ -10,6 +10,9 @@ export const brighthubProductApi = {
 
   getSyncedBrightHubProducts: (accountId, params = {}) =>
     api.get(`/marketplace/brighthub/accounts/${accountId}/synced-products`, { params }),
+
+  getSyncedBrightHubProductDetail: (accountId, bhid) =>
+    api.get(`/marketplace/brighthub/accounts/${accountId}/synced-products/${bhid}`),
 };
 
 export default brighthubProductApi;

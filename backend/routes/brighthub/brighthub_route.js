@@ -37,4 +37,9 @@ router.get(
   requireHandler(brighthubProductController.getSyncedBrightHubProducts, "getSyncedBrightHubProducts")
 );
 
+router.get(
+  "/accounts/:accountId/synced-products/:bhid",
+  requireHandler(brighthubProductController.getSyncedBrightHubProductDetail, "getSyncedBrightHubProductDetail")
+);
+
 module.exports = router;

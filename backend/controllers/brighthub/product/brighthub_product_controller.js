@@ -9,6 +9,10 @@ function getAccountId(req) {
   return req?.params?.accountId;
 }
 
+function getBhid(req) {
+  return req?.params?.bhid;
+}
+
 async function syncBrightHubProducts(req, res) {
   try {
     const accountId = getAccountId(req);
@@ -65,7 +69,39 @@ async function getSyncedBrightHubProducts(req, res) {
   }
 }
 
+async function getSyncedBrightHubProductDetail(req, res) {
+  try {
+    const accountId = getAccountId(req);
+    const bhid = getBhid(req);
+
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "Account ID is required." });
+    }
+
+    if (!bhid) {
+      return res.status(400).json({ success: false, message: "BHID is required." });
+    }
+
+    const product = await brighthubProductModel.getSyncedBrightHubProductDetail(accountId, bhid);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "BrightHub product not found." });
+    }
+
+    return res.json({ success: true, data: product });
+  } catch (error) {
+    console.error("[GET_SYNCED_BRIGHTHUB_PRODUCT_DETAIL_ERROR]:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load BrightHub product details.",
+      error: getErrorMessage(error),
+    });
+  }
+}
+
 module.exports = {
   syncBrightHubProducts,
   getSyncedBrightHubProducts,
+  getSyncedBrightHubProductDetail,
 };
