@@ -35,7 +35,6 @@ import {
   Truck,
   Monitor,
   ShieldCheck,
-  Globe,
   Wallet,
 } from "lucide-react";
 
@@ -67,7 +66,6 @@ const iconMap = {
   Truck,
   Monitor,
   ShieldCheck,
-  Globe,
   Wallet,
 };
 
@@ -134,7 +132,7 @@ const staticMenu = [
   {
     section: "MARKETPLACE MANAGEMENT",
     page_key: "brighthub_products",
-    page_name: "BrightHub Products",
+    page_name: "Website Products",
     path: "/product/brighthub-products",
     icon: "Store",
     exact: true,
@@ -145,15 +143,6 @@ const staticMenu = [
     page_name: "Title Optimizer",
     path: "/product/daraz-products/title-optimizer",
     icon: "Sparkles",
-    exact: true,
-  },
-  {
-    section: "MARKETPLACE MANAGEMENT",
-    page_key: "products",
-    pageKeys: ["products", "local_products"],
-    page_name: "Website Products",
-    path: "/product/local-products",
-    icon: "Globe",
     exact: true,
   },
   {
