@@ -223,16 +223,27 @@ export default function BrightHubProductDetailPage() {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-[#0D1322] p-5 shadow-xl shadow-black/20">
-            <h2 className="mb-3 font-semibold text-white">Description</h2>
+            <h2 className="mb-3 font-semibold text-white">Short Description</h2>
 
             <div
               className="text-sm leading-6 text-slate-300"
               dangerouslySetInnerHTML={{
-                __html: sanitizeHtml(raw.short_description || raw.description || "<p>No description found.</p>"),
+                __html: sanitizeHtml(raw.short_description || "<p>No short description found.</p>"),
               }}
             />
           </section>
         </aside>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-white/10 bg-[#0D1322] p-5 shadow-xl shadow-black/20">
+        <h2 className="mb-3 font-semibold text-white">Description</h2>
+
+        <div
+          className="text-sm leading-6 text-slate-300"
+          dangerouslySetInnerHTML={{
+            __html: sanitizeHtml(raw.description || "<p>No description found.</p>"),
+          }}
+        />
       </div>
     </div>
   );
