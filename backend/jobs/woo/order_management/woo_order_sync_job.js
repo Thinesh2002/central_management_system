@@ -2,6 +2,7 @@ const cron = require("node-cron");
 
 const wooModel = require("../../../models/marketplace/woo/woo_model");
 const wooOrderSyncService = require("../../../services/woo/order_management/woo_order_sync_service");
+const orderSyncSettingsModel = require("../../../models/order_management/order_sync_settings_model");
 
 let isRunning = false;
 
@@ -32,12 +33,33 @@ async function syncAllWooOrders() {
   }
 }
 
+// Same shared order_sync_settings row Daraz's sync job reads (fetch_order_days
+// already worked this way) - checked every 5 minutes so sync_interval_minutes
+// actually has an effect instead of the old hardcoded */30 schedule ignoring
+// it. sync_enabled/auto_sync_enabled are enforced here too; "Run Sync Now"
+// calls syncAllWooOrders() directly and is never gated by this check.
+async function runScheduledWooSync() {
+  try {
+    const settings = await orderSyncSettingsModel.getSettings();
+
+    if (!orderSyncSettingsModel.isScheduledSyncDue(settings)) {
+      return;
+    }
+
+    await syncAllWooOrders();
+  } catch (error) {
+    console.error("[WOO_ORDER_SYNC] Scheduled check failed:", error.message);
+  }
+}
+
 function startWooOrderSyncJob() {
-  cron.schedule("*/30 * * * *", syncAllWooOrders, {
+  cron.schedule("*/5 * * * *", runScheduledWooSync, {
     timezone: "Asia/Colombo",
   });
 
-  console.log("[WOO_ORDER_SYNC] Scheduler started. Runs every 30 minutes.");
+  console.log(
+    "[WOO_ORDER_SYNC] Scheduler started. Checks every 5 minutes, actually syncs per the saved sync_interval_minutes/sync_enabled/auto_sync_enabled settings."
+  );
 }
 
 module.exports = {
