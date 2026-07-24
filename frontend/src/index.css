@@ -116,40 +116,70 @@ html {
 }
 
 /* ================================
-   Global Loader (12-step fading spinner)
-   Slate + orange accent — used app-wide for
+   Global Loader (dual counter-rotating ring spinner)
+   White + orange accent — used app-wide for
    page and section loading states.
 ================================ */
 .loader {
-  width: 50px;
-  aspect-ratio: 1;
-  display: grid;
+  --color-1: #fff;
+  --color-2: #ff3d00;
+  --size: 1px;
+
+  width: calc(48 * var(--size));
+  height: calc(48 * var(--size));
   border-radius: 50%;
-  background:
-    linear-gradient(0deg ,rgb(148 163 184/45%) 30%,#0000 0 70%,rgb(251 146 60/100%) 0) 50%/8% 100%,
-    linear-gradient(90deg,rgb(148 163 184/22%) 30%,#0000 0 70%,rgb(251 146 60/70%) 0) 50%/100% 8%;
-  background-repeat: no-repeat;
-  animation: l23 0.9s infinite steps(12);
+  display: inline-block;
+  position: relative;
+  border: calc(3 * var(--size)) solid;
+  border-color: var(--color-1) var(--color-1) transparent transparent;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
 }
-.loader::before,
-.loader::after {
-   content: "";
-   grid-area: 1/1;
-   border-radius: 50%;
-   background: inherit;
-   opacity: 0.915;
-   transform: rotate(30deg);
+.loader::after,
+.loader::before {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  border: calc(3 * var(--size)) solid;
+  border-color: transparent transparent var(--color-2) var(--color-2);
+  width: calc(40 * var(--size));
+  height: calc(40 * var(--size));
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: rotationBack 0.5s linear infinite;
+  transform-origin: center center;
 }
-.loader::after {
-   opacity: 0.83;
-   transform: rotate(60deg);
+.loader::before {
+  width: calc(32 * var(--size));
+  height: calc(32 * var(--size));
+  border-color: var(--color-1) var(--color-1) transparent transparent;
+  animation: rotation 1.5s linear infinite;
 }
-@keyframes l23 {
-  100% {transform: rotate(1turn)}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+@keyframes rotationBack {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-360deg);
+  }
 }
 
 .loader-sm {
-  width: 28px;
+  --size: 0.6px;
 }
 
 @keyframes overlayBackdropIn {
