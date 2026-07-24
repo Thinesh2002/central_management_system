@@ -20,6 +20,7 @@ import ExportCsvModal from "../../../components/common/export/ExportCsvModal";
 import { exportRowsAsCsv } from "../../../utils/csvExport";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
+import Loader from "../../../components/common/Loader";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -1497,8 +1498,8 @@ export default function DarazDashboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="11" className="px-2 py-10 text-center text-zinc-400">
-                    Loading Daraz products...
+                  <td colSpan="11" className="px-2 py-10">
+                    <Loader label="Loading Daraz products..." minHeight="0" />
                   </td>
                 </tr>
               ) : pageRows.length === 0 ? (
