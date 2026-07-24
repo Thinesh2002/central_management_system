@@ -249,6 +249,58 @@ async function findByIdWithItems(id) {
 
 // Every real column an order row might carry the identifying number under —
 // used defensively since local/daraz/woo orders don't share one convention.
+// orders/daraz_orders/woo_orders only ever store a customer_id FK — the
+// name/phone/email/shipping/billing fields the frontend reads
+// (customer_name, customer_phone, shipping_address_line1, ...) live on the
+// shared customers table and were never being joined in, so the order
+// detail and list pages rendered blank Customer/Address cards. daraz/woo
+// order rows also carry their own marketplace-synced buyer_*/shipping_*
+// columns (often left NULL by the sync job) which take priority over the
+// customer master record when present.
+async function attachCustomerDetails(rows) {
+  const customerIds = [...new Set(rows.map((row) => row.customer_id).filter(Boolean))];
+  const customersById = new Map();
+
+  if (customerIds.length) {
+    const [customerRows] = await db.query(
+      `SELECT * FROM customers WHERE id IN (${inClause(customerIds)})`,
+      customerIds
+    );
+    customerRows.forEach((customer) => customersById.set(customer.id, customer));
+  }
+
+  rows.forEach((row) => {
+    const customer = customersById.get(row.customer_id) || {};
+
+    row.customer_name =
+      row.buyer_name || row.shipping_name || customer.customer_name || customer.shipping_full_name || null;
+    row.customer_phone = row.buyer_phone || row.shipping_phone || customer.phone || customer.shipping_phone || null;
+    row.customer_email = row.buyer_email || customer.email || null;
+
+    row.shipping_name = row.shipping_name || customer.shipping_full_name || row.buyer_name || null;
+    row.shipping_phone = row.shipping_phone || customer.shipping_phone || row.buyer_phone || null;
+    row.shipping_address_line1 = row.shipping_address || customer.shipping_address_line1 || null;
+    row.shipping_address_line2 = customer.shipping_address_line2 || null;
+    row.shipping_city = row.shipping_city || customer.shipping_city || null;
+    row.shipping_district = customer.shipping_district || null;
+    row.shipping_province = customer.shipping_province || null;
+    row.shipping_postal_code = customer.shipping_postal_code || null;
+    row.shipping_country = customer.shipping_country || null;
+
+    row.billing_name = customer.billing_full_name || null;
+    row.billing_phone = customer.billing_phone || null;
+    row.billing_address_line1 = customer.billing_address_line1 || null;
+    row.billing_address_line2 = customer.billing_address_line2 || null;
+    row.billing_city = customer.billing_city || null;
+    row.billing_district = customer.billing_district || null;
+    row.billing_province = customer.billing_province || null;
+    row.billing_postal_code = customer.billing_postal_code || null;
+    row.billing_country = customer.billing_country || null;
+  });
+
+  return rows;
+}
+
 function getOrderNo(row, source) {
   if (source === "local") return row.order_no;
   return row.order_number || row.daraz_order_id || row.woo_order_id || row.id;
@@ -291,6 +343,7 @@ async function listUnified({ limit = 1000, dateFrom, dateTo } = {}) {
       [...values, safeLimit]
     );
 
+    await attachCustomerDetails(rows);
     const itemsMap = await getOrderItemsMap(source, config, rows.map((row) => row.id));
 
     return rows.map((row) => {
@@ -321,6 +374,8 @@ async function getUnified(source, id) {
   );
 
   if (!orderRows.length) return null;
+
+  await attachCustomerDetails(orderRows);
 
   const [items] = await db.query(
     `SELECT * FROM ${qid(config.itemsTable)} WHERE ${qid(config.itemsFk)} = ? ORDER BY id ASC`,
@@ -446,7 +501,8 @@ async function createManualOrder(payload = {}) {
         phone_alt: customer.phone_2,
         email: customer.email,
         shipping_full_name: customer.customer_name,
-        shipping_address_line: shipping?.shipping_address_line1,
+        shipping_address_line1: shipping?.shipping_address_line1,
+        shipping_address_line2: shipping?.shipping_address_line2,
         shipping_city: shipping?.shipping_city,
         shipping_district: shipping?.shipping_district,
         shipping_province: shipping?.shipping_province,
