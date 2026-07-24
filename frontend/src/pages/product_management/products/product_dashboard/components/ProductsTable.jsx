@@ -42,7 +42,6 @@ export default function ProductsTable({
   subCategories,
   models,
   productImages,
-  attributesByProductId,
   expandedRows,
   selectedKeys = [],
   allSelected = false,
@@ -106,7 +105,6 @@ export default function ProductsTable({
                     subCategories={subCategories}
                     models={models}
                     productImages={productImages}
-                    attributesByProductId={attributesByProductId}
                     expandedRows={expandedRows}
                     isSelected={selectedKeys.includes(productKey)}
                     onToggleSelect={onToggleSelect}

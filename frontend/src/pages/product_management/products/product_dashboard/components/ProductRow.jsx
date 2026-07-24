@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
 import { usePageOverlay } from "../../../../../components/common/page_overlay/PageOverlayProvider";
-import { sanitizeHtml } from "../../../../../utils/sanitizeHtml";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -45,15 +44,6 @@ function getProductTitle(product = {}) {
   return product.title || product.name || product.product_name || "Untitled Product";
 }
 
-function getProductDescription(product = {}) {
-  return (
-    product.description ||
-    product.product_description ||
-    product.short_description ||
-    ""
-  );
-}
-
 function getPriceText(record = {}) {
   return record.price_summary?.price_text || "-";
 }
@@ -68,7 +58,6 @@ export default function ProductRow({
   productIndex,
   productKey,
   productImages,
-  attributesByProductId,
   expandedRows,
   isSelected,
   onToggleSelect,
@@ -106,8 +95,6 @@ export default function ProductRow({
   const variants = getProductVariants(product);
   const hasVariants = hasProductVariants(product);
   const isExpanded = Boolean(expandedRows[productKey]);
-  const description = getProductDescription(product);
-  const productAttributes = attributesByProductId?.get(String(productId)) || [];
 
   const price = getPriceText(product);
 
@@ -144,11 +131,24 @@ export default function ProductRow({
         <td className="px-2 py-3 text-center align-middle">
           <button
             type="button"
-            onClick={() => toggleExpanded(productKey)}
-            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-orange-300 transition hover:bg-white/10 hover:text-orange-200"
-            title="Show description, attributes and variants"
+            onClick={() => hasVariants && toggleExpanded(productKey)}
+            disabled={!hasVariants}
+            className={`inline-flex h-6 w-6 items-center justify-center rounded transition ${
+              hasVariants
+                ? "cursor-pointer text-orange-300 hover:bg-white/10 hover:text-orange-200"
+                : "cursor-default text-slate-600"
+            }`}
+            title={hasVariants ? "Show variants" : "No variants"}
           >
-            {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+            {hasVariants ? (
+              isExpanded ? (
+                <ChevronDown size={15} />
+              ) : (
+                <ChevronRight size={15} />
+              )
+            ) : (
+              <span className="text-slate-600">•</span>
+            )}
           </button>
         </td>
 
@@ -303,56 +303,18 @@ export default function ProductRow({
         </td>
       </tr>
 
-      {isExpanded && (
+      {isExpanded && hasVariants && (
         <tr>
-          <td colSpan={TABLE_COL_SPAN} className="space-y-3 bg-[#101827] px-4 py-3">
-            <div className="grid gap-3 lg:grid-cols-2">
-              <div className="border border-slate-700/60 bg-[#0b1220] p-3">
-                <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-orange-300">
-                  Description
-                </p>
-                {description ? (
-                  <div
-                    className="max-w-none text-[12px] leading-5 text-slate-300"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }}
-                  />
-                ) : (
-                  <p className="text-[12px] text-slate-500">No description added.</p>
-                )}
-              </div>
-
-              <div className="border border-slate-700/60 bg-[#0b1220] p-3">
-                <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-orange-300">
-                  Attributes
-                </p>
-                {productAttributes.length ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {productAttributes.map((attribute, index) => (
-                      <span
-                        key={`${attribute.name}-${attribute.value}-${index}`}
-                        className="rounded-full bg-slate-800 px-2.5 py-1 text-[11px] text-slate-300"
-                      >
-                        <span className="text-slate-500">{attribute.name}:</span> {attribute.value}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[12px] text-slate-500">No attributes assigned.</p>
-                )}
-              </div>
-            </div>
-
-            {hasVariants && (
-              <VariantTable
-                variants={variants}
-                product={product}
-                productId={productId}
-                productKey={productKey}
-                productImages={productImages}
-                setImagePreview={setImagePreview}
-                onDeleteVariant={handleDeleteVariant}
-              />
-            )}
+          <td colSpan={TABLE_COL_SPAN} className="bg-[#101827] px-4 py-3">
+            <VariantTable
+              variants={variants}
+              product={product}
+              productId={productId}
+              productKey={productKey}
+              productImages={productImages}
+              setImagePreview={setImagePreview}
+              onDeleteVariant={handleDeleteVariant}
+            />
           </td>
         </tr>
       )}

@@ -14,9 +14,9 @@ export default function ProductStepNav({ productId, active = "basic", product })
   return (
     <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-4 rounded-2xl bg-slate-950 p-4 text-white">
-        <p className="text-[11px] font-medium text-slate-300">Local Product</p>
-        <p className="mt-1 truncate text-[14px] font-bold">{product?.title || product?.sku || `#${productId}`}</p>
-        <p className="truncate text-[11px] text-slate-300">{product?.sku || "SKU not set"}</p>
+        <p className="text-xs font-medium text-slate-300">Local Product</p>
+        <p className="mt-1 truncate text-lg font-bold">{product?.title || product?.sku || `#${productId}`}</p>
+        <p className="truncate text-xs text-slate-300">{product?.sku || "SKU not set"}</p>
       </div>
 
       <div className="space-y-2">
@@ -27,14 +27,14 @@ export default function ProductStepNav({ productId, active = "basic", product })
               key={step.key}
               to={step.to(productId)}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-xl px-3 py-2 text-[12px] font-semibold transition ${
+                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                   isActive || active === step.key
                     ? "bg-slate-950 text-white"
                     : "text-slate-700 hover:bg-slate-100"
                 }`
               }
             >
-              <Icon size={14} />
+              <Icon size={17} />
               {step.label}
             </NavLink>
           );
@@ -44,7 +44,7 @@ export default function ProductStepNav({ productId, active = "basic", product })
       <button
         type="button"
         onClick={() => navigate("/product/local-products")}
-        className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-700 hover:bg-slate-100"
+        className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
       >
         Back to Dashboard
       </button>

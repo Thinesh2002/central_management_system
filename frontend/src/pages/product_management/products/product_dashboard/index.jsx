@@ -514,9 +514,6 @@ export default function LocalProductsDashboard() {
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const [models, setModels] = useState([]);
-  const [attributes, setAttributes] = useState([]);
-  const [attributeValues, setAttributeValues] = useState([]);
-  const [productAttributeValues, setProductAttributeValues] = useState([]);
   const [expandedRows, setExpandedRows] = useState({});
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -564,9 +561,6 @@ export default function LocalProductsDashboard() {
         categoryRes,
         subCategoryRes,
         modelRes,
-        attributeRes,
-        attributeValueRes,
-        productAttributeValueRes,
       ] = await Promise.all([
         localProductsApi.getProducts(),
         localProductsApi.getImages().catch(() => ({ data: [] })),
@@ -575,9 +569,6 @@ export default function LocalProductsDashboard() {
         localProductsApi.getCategories({ limit: 100 }).catch(() => []),
         localProductsApi.getSubCategories({ limit: 500 }).catch(() => []),
         localProductsApi.getProductModels({ limit: 1000 }).catch(() => []),
-        localProductsApi.getAttributes({ limit: 200 }).catch(() => []),
-        localProductsApi.getAttributeValues({ limit: 2000 }).catch(() => []),
-        localProductsApi.getProductAttributeValues({ limit: 5000 }).catch(() => ({ data: [] })),
       ]);
 
       const productRows = normalizeProductList(productRes);
@@ -591,9 +582,6 @@ export default function LocalProductsDashboard() {
       setCategories(normalizeList(categoryRes));
       setSubCategories(normalizeList(subCategoryRes));
       setModels(normalizeList(modelRes));
-      setAttributes(normalizeList(attributeRes));
-      setAttributeValues(normalizeList(attributeValueRes));
-      setProductAttributeValues(normalizeList(productAttributeValueRes));
     } catch (error) {
       alert(getErrorMessage(error, "Unable to load local products."));
     } finally {
@@ -604,33 +592,6 @@ export default function LocalProductsDashboard() {
   useEffect(() => {
     loadData();
   }, []);
-
-  // Attribute rows only carry attribute_id/attribute_value_id (no
-  // denormalized name/value text), so names have to be resolved against
-  // the master attributes/attribute_values lists client-side - same
-  // approach ProductAttributesPanel already uses for the edit-wizard tab.
-  const attributesByProductId = useMemo(() => {
-    const attributeNameById = new Map(attributes.map((row) => [String(row.id), row.name]));
-    const attributeValueById = new Map(attributeValues.map((row) => [String(row.id), row.value]));
-
-    const map = new Map();
-
-    productAttributeValues
-      .filter((row) => !row.variant_id)
-      .forEach((row) => {
-        const productId = String(row.product_id || "");
-        if (!productId) return;
-
-        const attributeName = attributeNameById.get(String(row.attribute_id)) || "";
-        const valueText = attributeValueById.get(String(row.attribute_value_id)) || "";
-        if (!attributeName || !valueText) return;
-
-        if (!map.has(productId)) map.set(productId, []);
-        map.get(productId).push({ name: attributeName, value: valueText });
-      });
-
-    return map;
-  }, [attributes, attributeValues, productAttributeValues]);
 
   const popupFilteredProducts = useMemo(() => {
     return applyTextAndPopupFilters(products, filters, productImages);
@@ -886,7 +847,6 @@ export default function LocalProductsDashboard() {
           subCategories={subCategories}
           models={models}
           productImages={productImages}
-          attributesByProductId={attributesByProductId}
           expandedRows={expandedRows}
           selectedKeys={selectedKeys}
           allSelected={allSelected}
