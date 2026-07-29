@@ -731,21 +731,43 @@ export default function DarazDashboardPage() {
 
   const statusTabs = useMemo(() => {
     let activeCount = 0;
-    let nonActiveCount = 0;
     let outOfStockCount = 0;
+    const nonActiveMap = new Map();
 
     rows.forEach((row) => {
-      if (row.statusLabel && row.statusLabel.toLowerCase() === "active") activeCount += 1;
-      else if (row.statusLabel) nonActiveCount += 1;
+      const statusKey = row.statusLabel ? row.statusLabel.toLowerCase() : "";
 
+      // Active means "sellable right now" — a listing that's in-stock and
+      // status=active. Zero stock pulls it out of Active into Out Of Stock
+      // only, it doesn't also still count as Active.
+      if (statusKey === "active" && row.qtyNumber !== 0) activeCount += 1;
+
+      // Out Of Stock is purely qty-based, independent of status — an
+      // active listing can be sold out just as easily as a suspended one.
       if (row.qtyNumber === 0) outOfStockCount += 1;
+
+      // Every other status gets its own tab (Inactive, Suspended, etc.)
+      // instead of one merged "Non Active" bucket, so they stay
+      // distinguishable from each other.
+      if (statusKey && statusKey !== "active") {
+        const existing = nonActiveMap.get(statusKey);
+        nonActiveMap.set(statusKey, {
+          key: statusKey,
+          label: row.statusLabel,
+          count: existing ? existing.count + 1 : 1,
+        });
+      }
     });
+
+    const nonActiveTabs = Array.from(nonActiveMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    );
 
     return [
       { key: "all", label: "All", count: rows.length },
       { key: "active", label: "Active", count: activeCount },
-      { key: "non_active", label: "Non Active", count: nonActiveCount },
       { key: "out_of_stock", label: "Out Of Stock", count: outOfStockCount },
+      ...nonActiveTabs,
     ];
   }, [rows]);
 
@@ -778,11 +800,13 @@ export default function DarazDashboardPage() {
 
       const dateRangeOk = isDateInRange(row.darazCreatedKey, dateRange);
 
+      const statusKey = row.statusLabel ? row.statusLabel.toLowerCase() : "";
+
       const tabOk =
         activeTab === "all" ||
-        (activeTab === "active" && row.statusLabel && row.statusLabel.toLowerCase() === "active") ||
-        (activeTab === "non_active" && row.statusLabel && row.statusLabel.toLowerCase() !== "active") ||
-        (activeTab === "out_of_stock" && row.qtyNumber === 0);
+        (activeTab === "active" && statusKey === "active" && row.qtyNumber !== 0) ||
+        (activeTab === "out_of_stock" && row.qtyNumber === 0) ||
+        (activeTab !== "active" && activeTab !== "out_of_stock" && statusKey === activeTab);
 
       return (
         searchOk &&
