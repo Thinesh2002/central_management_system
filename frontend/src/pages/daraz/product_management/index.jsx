@@ -730,24 +730,23 @@ export default function DarazDashboardPage() {
 
 
   const statusTabs = useMemo(() => {
-    const map = new Map();
+    let activeCount = 0;
+    let nonActiveCount = 0;
+    let outOfStockCount = 0;
 
     rows.forEach((row) => {
-      if (!row.statusLabel) return;
-      const key = row.statusLabel.toLowerCase();
-      const old = map.get(key);
-      map.set(key, {
-        key,
-        label: row.statusLabel,
-        count: old ? old.count + 1 : 1,
-      });
+      if (row.statusLabel && row.statusLabel.toLowerCase() === "active") activeCount += 1;
+      else if (row.statusLabel) nonActiveCount += 1;
+
+      if (row.qtyNumber === 0) outOfStockCount += 1;
     });
 
-    const dynamicTabs = Array.from(map.values()).sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
-
-    return [{ key: "all", label: "All", count: rows.length }, ...dynamicTabs];
+    return [
+      { key: "all", label: "All", count: rows.length },
+      { key: "active", label: "Active", count: activeCount },
+      { key: "non_active", label: "Non Active", count: nonActiveCount },
+      { key: "out_of_stock", label: "Out Of Stock", count: outOfStockCount },
+    ];
   }, [rows]);
 
   const filteredRows = useMemo(() => {
@@ -781,7 +780,9 @@ export default function DarazDashboardPage() {
 
       const tabOk =
         activeTab === "all" ||
-        (row.statusLabel && row.statusLabel.toLowerCase() === activeTab);
+        (activeTab === "active" && row.statusLabel && row.statusLabel.toLowerCase() === "active") ||
+        (activeTab === "non_active" && row.statusLabel && row.statusLabel.toLowerCase() !== "active") ||
+        (activeTab === "out_of_stock" && row.qtyNumber === 0);
 
       return (
         searchOk &&
@@ -1512,9 +1513,16 @@ export default function DarazDashboardPage() {
                 pageRows.map((row, index) => {
                   const key = String(row.id || row.listingId || row.sku || index);
                   const selected = selectedRows.includes(key);
+                  const isNonActive = Boolean(row.statusLabel) && row.statusLabel.toLowerCase() !== "active";
 
                   return (
-                    <tr key={key} className="border-b border-zinc-800/60 hover:bg-white/[0.04]">
+                    <tr
+                      key={key}
+                      className={cx(
+                        "border-b border-zinc-800/60 hover:bg-white/[0.04]",
+                        isNonActive && "opacity-60"
+                      )}
+                    >
                       <td className="px-2 py-2 text-center align-middle">
                         <input
                           type="checkbox"
@@ -1528,7 +1536,7 @@ export default function DarazDashboardPage() {
                         <button
                           type="button"
                           onClick={() => row.image && setImagePreview(row)}
-                          className="mx-auto flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
+                          className="relative mx-auto flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
                         >
                           {row.image ? (
                             <img
@@ -1541,6 +1549,14 @@ export default function DarazDashboardPage() {
                             />
                           ) : (
                             <Package size={14} className="text-zinc-600" />
+                          )}
+
+                          {isNonActive && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/60">
+                              <span className="text-[8px] font-bold uppercase tracking-wide text-rose-300">
+                                Inactive
+                              </span>
+                            </span>
                           )}
                         </button>
                       </td>
@@ -1652,7 +1668,22 @@ export default function DarazDashboardPage() {
                         )}
                       </td>
 
-                      <td className="px-2 py-2 text-center align-middle text-[12px] text-zinc-300">{row.statusLabel || "-"}</td>
+                      <td className="px-2 py-2 text-center align-middle">
+                        {row.statusLabel ? (
+                          <span
+                            className={cx(
+                              "inline-flex rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                              isNonActive
+                                ? "bg-rose-500/10 text-rose-300"
+                                : "bg-emerald-500/10 text-emerald-300"
+                            )}
+                          >
+                            {row.statusLabel}
+                          </span>
+                        ) : (
+                          <span className="text-[12px] text-zinc-300">-</span>
+                        )}
+                      </td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] text-zinc-400">{row.darazCreatedLabel}</td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">
                         <input
