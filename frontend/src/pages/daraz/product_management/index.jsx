@@ -392,7 +392,9 @@ function formatStatus(value) {
 
   return text
     .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    // Keep short all-caps words as-is (e.g. Daraz's "Pending QC" status) —
+    // only title-case words that aren't already an acronym.
+    .map((word) => (word.length > 1 && word === word.toUpperCase() ? word : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
     .join(" ");
 }
 
