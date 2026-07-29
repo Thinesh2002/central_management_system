@@ -3,6 +3,7 @@ const credentialModel = require("../../../models/marketplace/credential_model");
 const syncLogModel = require("../../../models/marketplace/sync_log_model");
 const darazProductApiService = require("../../marketplace/daraz_product_api_service");
 const model = require("../../../models/daraz/inventory/daraz_inventory_sync_model");
+const skuMappingModel = require("../../../models/product_management/sku_mapping/sku_mapping_model");
 
 const SYNC_CONCURRENCY = 5;
 
@@ -144,7 +145,13 @@ async function pushSkuStockToDaraz({
     jobId = ownedJob.jobId;
   }
 
-  const matches = await model.findDarazListingsBySku(cleanSku);
+  // A Daraz listing's own seller_sku can be one of this SKU's SKU Mapping
+  // "wrong SKU" aliases rather than the correct local SKU itself — search
+  // by every alias too, not just cleanSku, so the push reaches every
+  // linked listing across every account regardless of which SKU it's
+  // registered under on Daraz's side.
+  const wrongSkuAliases = await skuMappingModel.getWrongSkusForCorrectSku(cleanSku);
+  const matches = await model.findDarazListingsBySkus([cleanSku, ...wrongSkuAliases]);
 
   if (!matches.length) {
     await model.createInventorySyncLog({
@@ -194,6 +201,10 @@ async function pushSkuStockToDaraz({
 
   for (const match of matches) {
     const startedAt = new Date();
+    // The listing's own seller_sku on Daraz — may be cleanSku itself or one
+    // of its SKU Mapping wrong-SKU aliases, and Daraz's update API is keyed
+    // by whatever SKU that specific listing is actually registered under.
+    const listingSellerSku = match.seller_sku || cleanSku;
 
     try {
       const { account, credentials } = await getCachedAccountAndCredentials(
@@ -213,14 +224,14 @@ async function pushSkuStockToDaraz({
         credentials,
         itemId: match.daraz_item_id,
         skuId: match.daraz_sku_id,
-        sellerSku: cleanSku,
+        sellerSku: listingSellerSku,
         quantity: stockQty,
       });
 
       await Promise.all([
         model.updateDarazMirrorStock({
           account_id: match.account_id,
-          seller_sku: cleanSku,
+          seller_sku: listingSellerSku,
           quantity: stockQty,
         }),
         model.touchMarketplaceInventorySync(match.account_id, true),
@@ -228,21 +239,21 @@ async function pushSkuStockToDaraz({
           job_uid: jobUid,
           account_id: match.account_id,
           account_code: account.account_code,
-          seller_sku: cleanSku,
+          seller_sku: listingSellerSku,
           daraz_item_id: match.daraz_item_id,
           daraz_sku_id: match.daraz_sku_id,
           old_quantity: match.current_quantity,
           new_quantity: stockQty,
           source,
           sync_status: "success",
-          message: "Stock pushed to Daraz successfully.",
+          message: `Stock pushed to Daraz successfully (local SKU ${cleanSku}).`,
           changed_by: userId,
           started_at: startedAt,
           finished_at: new Date(),
         }),
         logJobItem(jobId, {
           account_id: match.account_id,
-          sku: cleanSku,
+          sku: listingSellerSku,
           daraz_item_id: match.daraz_item_id,
           status: "success",
           message: "Stock pushed to Daraz successfully.",
@@ -252,7 +263,7 @@ async function pushSkuStockToDaraz({
       successCount += 1;
       details.push({
         account_id: match.account_id,
-        seller_sku: cleanSku,
+        seller_sku: listingSellerSku,
         daraz_item_id: match.daraz_item_id,
         daraz_sku_id: match.daraz_sku_id,
         status: "success",
@@ -270,7 +281,7 @@ async function pushSkuStockToDaraz({
         model.createInventorySyncLog({
           job_uid: jobUid,
           account_id: match.account_id,
-          seller_sku: cleanSku,
+          seller_sku: listingSellerSku,
           daraz_item_id: match.daraz_item_id,
           daraz_sku_id: match.daraz_sku_id,
           old_quantity: match.current_quantity,
@@ -287,7 +298,7 @@ async function pushSkuStockToDaraz({
         }),
         logJobItem(jobId, {
           account_id: match.account_id,
-          sku: cleanSku,
+          sku: listingSellerSku,
           daraz_item_id: match.daraz_item_id,
           status: "failed",
           message: darazError.message || error.message,
@@ -298,7 +309,7 @@ async function pushSkuStockToDaraz({
 
       details.push({
         account_id: match.account_id,
-        seller_sku: cleanSku,
+        seller_sku: listingSellerSku,
         daraz_item_id: match.daraz_item_id,
         daraz_sku_id: match.daraz_sku_id,
         status: "failed",

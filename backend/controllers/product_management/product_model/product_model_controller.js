@@ -6,7 +6,8 @@ function getErrorStatus(error) {
   if (
     message.includes("required") ||
     message.includes("invalid") ||
-    message.includes("already exists")
+    message.includes("already exists") ||
+    message.includes("cannot delete")
   ) {
     return 400;
   }

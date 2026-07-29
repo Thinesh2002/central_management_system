@@ -211,6 +211,15 @@ async function checkCategoryExists(categoryCode) {
   return rows.length > 0;
 }
 
+async function getCategoryIdByCode(categoryCode) {
+  const [rows] = await db.query(
+    `SELECT id FROM categories WHERE category_code = ? AND deleted_at IS NULL LIMIT 1`,
+    [categoryCode]
+  );
+
+  return rows[0]?.id || null;
+}
+
 async function create(data) {
   const categoryCode = cleanText(data.category_code);
   const name = cleanText(data.name);
@@ -306,7 +315,7 @@ async function update(id, data) {
   await db.query(
     `
     UPDATE sub_categories
-    SET 
+    SET
       category_code = ?,
       sub_category_code = ?,
       name = ?,
@@ -317,10 +326,53 @@ async function update(id, data) {
     [categoryCode, subCategoryCode, name, slug, description, id]
   );
 
+  // Products/product_models each carry their own category_id, denormalized
+  // from whichever sub_category they were assigned under at the time -
+  // moving a sub category to a different parent category has to cascade
+  // onto every row that already points at it, or the Local Products page
+  // (which filters/displays by products.category_id directly) keeps
+  // showing the old category forever.
+  if (categoryCode !== existing.category_code) {
+    const newCategoryId = await getCategoryIdByCode(categoryCode);
+
+    if (newCategoryId) {
+      await Promise.all([
+        db.query(`UPDATE products SET category_id = ? WHERE sub_category_id = ?`, [newCategoryId, id]),
+        db.query(`UPDATE product_models SET category_id = ? WHERE sub_category_id = ?`, [newCategoryId, id]),
+      ]);
+    }
+  }
+
   return getById(id, true);
 }
 
 async function remove(id) {
+  const existing = await getById(id, true);
+
+  if (!existing) {
+    return null;
+  }
+
+  const [[modelRows], [productRows]] = await Promise.all([
+    db.query(`SELECT COUNT(*) AS total FROM product_models WHERE sub_category_id = ? AND deleted_at IS NULL`, [id]),
+    db.query(`SELECT COUNT(*) AS total FROM products WHERE sub_category_id = ? AND deleted_at IS NULL`, [id]),
+  ]);
+
+  const modelCount = Number(modelRows[0]?.total || 0);
+  const productCount = Number(productRows[0]?.total || 0);
+
+  if (modelCount > 0 || productCount > 0) {
+    const parts = [];
+    if (modelCount > 0) parts.push(`${modelCount} model${modelCount === 1 ? "" : "s"}`);
+    if (productCount > 0) parts.push(`${productCount} product${productCount === 1 ? "" : "s"}`);
+
+    const error = new Error(
+      `Cannot delete "${existing.name}" — ${parts.join(" and ")} still assigned to it. Move or delete ${parts.length > 1 || modelCount + productCount > 1 ? "them" : "it"} first.`
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
   await db.query(
     `
     UPDATE sub_categories

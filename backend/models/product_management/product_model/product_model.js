@@ -308,6 +308,27 @@ async function update(id, data) {
 }
 
 async function softDelete(id) {
+  const existing = await getById(id);
+
+  if (!existing) {
+    return false;
+  }
+
+  const [productRows] = await db.query(
+    `SELECT COUNT(*) AS total FROM products WHERE model_id = ? AND deleted_at IS NULL`,
+    [id]
+  );
+
+  const productCount = Number(productRows[0]?.total || 0);
+
+  if (productCount > 0) {
+    const error = new Error(
+      `Cannot delete "${existing.name}" — ${productCount} product${productCount === 1 ? "" : "s"} still assigned to it. Move or delete ${productCount === 1 ? "it" : "them"} first.`
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
   const [result] = await db.query(
     `
     UPDATE product_models

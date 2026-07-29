@@ -170,6 +170,64 @@ async function findDarazListingsBySku(sku) {
   return rows;
 }
 
+// Same as findDarazListingsBySku but matches against several SKU
+// candidates at once — used when pushing a stock update, since the local
+// correct SKU and any of its SKU Mapping "wrong SKU" aliases can each be
+// registered as a different Daraz listing's own seller_sku (confirmed
+// live: a listing's real Daraz seller_sku only matched a mapped wrong
+// SKU, never the correct local one, so single-SKU pushes silently missed
+// it every time).
+async function findDarazListingsBySkus(skus = []) {
+  const sellerSkus = [...new Set(skus.map(cleanSku).filter(Boolean).map((value) => value.toLowerCase()))];
+  if (!sellerSkus.length) return [];
+
+  const placeholders = sellerSkus.map(() => "?").join(",");
+
+  const [rows] = await productDb.query(
+    `SELECT *
+     FROM (
+       SELECT
+         dp.id AS daraz_product_row_id,
+         NULL AS daraz_variant_row_id,
+         dp.account_id,
+         dp.daraz_item_id,
+         NULL AS daraz_sku_id,
+         dp.seller_sku,
+         dp.quantity AS current_quantity,
+         dp.price,
+         dp.sale_price,
+         dp.name,
+         dp.main_image
+       FROM daraz_products dp
+       WHERE LOWER(dp.seller_sku) IN (${placeholders})
+
+       UNION ALL
+
+       SELECT
+         dp.id AS daraz_product_row_id,
+         dv.id AS daraz_variant_row_id,
+         dv.account_id,
+         dv.daraz_item_id,
+         dv.daraz_sku_id,
+         dv.seller_sku,
+         dv.quantity AS current_quantity,
+         dv.price,
+         dv.sale_price,
+         COALESCE(dv.name, dp.name) AS name,
+         dp.main_image
+       FROM daraz_product_variants dv
+       LEFT JOIN daraz_products dp
+         ON dp.account_id = dv.account_id
+        AND dp.daraz_item_id = dv.daraz_item_id
+       WHERE LOWER(dv.seller_sku) IN (${placeholders})
+     ) matches
+     ORDER BY account_id ASC, daraz_variant_row_id DESC`,
+    [...sellerSkus, ...sellerSkus]
+  );
+
+  return rows;
+}
+
 async function updateDarazMirrorStock({ account_id, seller_sku, quantity }) {
   const sku = cleanSku(seller_sku);
   const stockQty = toInt(quantity, 0);
@@ -240,6 +298,7 @@ module.exports = {
   toInt,
   getLocalInventoryRows,
   findDarazListingsBySku,
+  findDarazListingsBySkus,
   updateDarazMirrorStock,
   createInventorySyncLog,
   touchMarketplaceInventorySync,

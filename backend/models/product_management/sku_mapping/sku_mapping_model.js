@@ -103,6 +103,22 @@ async function resolveCorrectSku(wrongSku) {
   return mapping?.correct_sku || null;
 }
 
+// Reverse of resolveCorrectSku — every wrong/marketplace SKU alias mapped
+// to a given correct local SKU. Used when pushing stock updates back out
+// to Daraz: a listing may be registered under one of these wrong SKUs, so
+// finding it requires searching by every alias, not just the correct SKU.
+async function getWrongSkusForCorrectSku(correctSku) {
+  const clean = cleanString(correctSku);
+  if (!clean) return [];
+
+  const [rows] = await db.query(
+    `SELECT wrong_sku FROM sku_mappings WHERE correct_sku = ?`,
+    [clean]
+  );
+
+  return rows.map((row) => row.wrong_sku);
+}
+
 async function create(data, options = {}) {
   const wrongSku = cleanString(data.wrong_sku);
   const correctSku = cleanString(data.correct_sku);
@@ -188,4 +204,5 @@ module.exports = {
   update,
   remove,
   resolveCorrectSku,
+  getWrongSkusForCorrectSku,
 };

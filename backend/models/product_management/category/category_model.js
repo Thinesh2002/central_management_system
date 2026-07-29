@@ -236,13 +236,34 @@ async function update(id, data) {
 }
 
 async function remove(id) {
+  const existing = await getById(id, true);
+
+  if (!existing) {
+    return null;
+  }
+
+  const [subRows] = await db.query(
+    `SELECT COUNT(*) AS total FROM sub_categories WHERE category_code = ? AND deleted_at IS NULL`,
+    [existing.category_code]
+  );
+
+  const subCount = Number(subRows[0]?.total || 0);
+
+  if (subCount > 0) {
+    const error = new Error(
+      `Cannot delete "${existing.name}" — ${subCount} sub categor${subCount === 1 ? "y is" : "ies are"} still assigned to it. Move or delete ${subCount === 1 ? "it" : "them"} first.`
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
   await db.query(
     `
     UPDATE categories
-    SET 
+    SET
       deleted_at = NOW(),
       updated_at = NOW()
-    WHERE id = ? 
+    WHERE id = ?
       AND deleted_at IS NULL
     `,
     [id]
