@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, AlertCircle, RefreshCw, Users } from "lucide-react";
+import { Search, AlertCircle, RefreshCw, Users, UserPlus, Repeat, Wallet, ReceiptText } from "lucide-react";
 
 import customersApi from "../../../config/sub_api/order_management_api/customers_api";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
@@ -33,6 +33,66 @@ function statusClass(status) {
   if (status === "ACTIVE") return "border-emerald-900 bg-emerald-950 text-emerald-300";
   if (status === "BLOCKED") return "border-red-900 bg-red-950 text-red-300";
   return "border-slate-700 bg-slate-900 text-slate-400";
+}
+
+// total_orders is already computed live per customer (countable orders
+// only, cancelled/returned excluded) by listWithLiveStats on the backend -
+// "new" vs "repeated" here is purely derived from that count, no extra
+// API calls needed.
+function getCustomerStats(customers) {
+  let newCustomers = 0;
+  let repeatedCustomers = 0;
+  let neverOrdered = 0;
+  let totalRevenue = 0;
+  let totalOrders = 0;
+
+  customers.forEach((row) => {
+    const orders = Number(row.total_orders || 0);
+    totalOrders += orders;
+    totalRevenue += Number(row.total_spent || 0);
+
+    if (orders === 1) newCustomers += 1;
+    else if (orders > 1) repeatedCustomers += 1;
+    else neverOrdered += 1;
+  });
+
+  const buyers = newCustomers + repeatedCustomers;
+
+  return {
+    total: customers.length,
+    newCustomers,
+    repeatedCustomers,
+    neverOrdered,
+    totalRevenue,
+    repeatRate: buyers ? (repeatedCustomers / buyers) * 100 : 0,
+    avgOrderValue: totalOrders ? totalRevenue / totalOrders : 0,
+  };
+}
+
+function StatCard({ label, value, note, icon: Icon, tone = "slate" }) {
+  const toneClass = {
+    orange: "bg-orange-500/10 text-orange-300 ring-orange-500/30",
+    emerald: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30",
+    sky: "bg-sky-500/10 text-sky-300 ring-sky-500/30",
+    amber: "bg-amber-500/10 text-amber-300 ring-amber-500/30",
+    slate: "bg-slate-500/10 text-slate-300 ring-slate-500/30",
+  }[tone];
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+          <p className="mt-1.5 truncate text-[18px] font-bold text-white">{value}</p>
+          {note ? <p className="mt-1 text-[10px] text-slate-500">{note}</p> : null}
+        </div>
+
+        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ${toneClass}`}>
+          <Icon size={15} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function CustomersPage() {
@@ -74,6 +134,8 @@ export default function CustomersPage() {
     );
   }, [customers, search]);
 
+  const stats = useMemo(() => getCustomerStats(customers), [customers]);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -97,6 +159,46 @@ export default function CustomersPage() {
           Refresh
         </button>
       </div>
+
+      {!loading && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <StatCard label="Total Customers" value={stats.total.toLocaleString()} icon={Users} tone="slate" />
+          <StatCard
+            label="New Customers"
+            value={stats.newCustomers.toLocaleString()}
+            note="Exactly 1 order"
+            icon={UserPlus}
+            tone="sky"
+          />
+          <StatCard
+            label="Repeated Customers"
+            value={stats.repeatedCustomers.toLocaleString()}
+            note="2+ orders"
+            icon={Repeat}
+            tone="emerald"
+          />
+          <StatCard
+            label="Repeat Rate"
+            value={`${stats.repeatRate.toFixed(1)}%`}
+            note="Of customers who ever ordered"
+            icon={Repeat}
+            tone="amber"
+          />
+          <StatCard
+            label="Total Revenue"
+            value={money(stats.totalRevenue)}
+            note="Across all countable orders"
+            icon={Wallet}
+            tone="orange"
+          />
+          <StatCard
+            label="Avg Order Value"
+            value={money(stats.avgOrderValue)}
+            icon={ReceiptText}
+            tone="slate"
+          />
+        </div>
+      )}
 
       <div className="border border-slate-800 bg-slate-950 p-2">
         <div className="relative">
