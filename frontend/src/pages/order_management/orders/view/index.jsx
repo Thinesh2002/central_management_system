@@ -288,8 +288,42 @@ function statusBadgeClass(status) {
   return "border-slate-700 bg-slate-900 text-slate-300";
 }
 
+// Daraz's item model is one row per unit purchased (a qty:2 buy syncs in as
+// two separate qty:1 rows for the same SKU), so the raw items array needs
+// grouping before display or a 2-unit purchase renders as two rows each
+// showing "Qty: 1" instead of one row showing "Qty: 2".
+function groupOrderItems(items = []) {
+  const groups = new Map();
+
+  items.forEach((item, index) => {
+    const key = `${getItemSku(item)}|${item.variation || item.variation_name || ""}`;
+
+    const existing = groups.get(key);
+
+    if (!existing) {
+      groups.set(key, {
+        key,
+        firstItem: item,
+        orderItemIds: [item.order_item_id || item.daraz_order_item_id || item.id].filter(Boolean),
+        qty: getItemQty(item),
+        lineTotal: getItemLineTotal(item),
+        index,
+      });
+      return;
+    }
+
+    existing.qty += getItemQty(item);
+    existing.lineTotal += getItemLineTotal(item);
+    const id = item.order_item_id || item.daraz_order_item_id || item.id;
+    if (id) existing.orderItemIds.push(id);
+  });
+
+  return Array.from(groups.values());
+}
+
 function OrderItemsCard({ order, items, currency }) {
   const summary = getOrderSummary(order, items);
+  const groupedItems = groupOrderItems(items);
 
   return (
     <Card title="Items" icon={Package}>
@@ -303,10 +337,10 @@ function OrderItemsCard({ order, items, currency }) {
       </div>
 
       <div className="divide-y divide-slate-800">
-        {items.length ? (
-          items.map((item, index) => (
+        {groupedItems.length ? (
+          groupedItems.map(({ key, firstItem: item, orderItemIds, qty, lineTotal }) => (
             <div
-              key={item.id || item.order_item_id || index}
+              key={key}
               className="grid grid-cols-1 gap-2 py-3 md:grid-cols-[56px_1fr_140px_100px_120px_120px] md:items-center"
             >
               <div className="h-12 w-12 overflow-hidden rounded border border-slate-700 bg-white">
@@ -334,14 +368,14 @@ function OrderItemsCard({ order, items, currency }) {
                 )}
               </div>
 
-              <p className="text-[11px] text-slate-500">
-                {text(item.order_item_id || item.daraz_order_item_id || item.id)}
+              <p className="truncate text-[11px] text-slate-500" title={orderItemIds.join(", ")}>
+                {orderItemIds.length > 1 ? `${orderItemIds.length} units` : text(orderItemIds[0])}
               </p>
 
-              <p className="text-[12px] text-slate-300">{getItemQty(item)}</p>
-              <p className="text-[12px] text-slate-300">{money(getItemUnitPrice(item), currency)}</p>
+              <p className="text-[12px] text-slate-300">{qty}</p>
+              <p className="text-[12px] text-slate-300">{money(qty ? lineTotal / qty : 0, currency)}</p>
               <p className="text-[12px] font-semibold text-slate-100">
-                {money(getItemLineTotal(item), currency)}
+                {money(lineTotal, currency)}
               </p>
             </div>
           ))
