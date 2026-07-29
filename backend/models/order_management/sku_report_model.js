@@ -331,9 +331,18 @@ async function getLocalHistory(skuVariants) {
   }));
 }
 
+// order_date comes back from mysql2 as a UTC instant (the pool connects
+// with timezone: "+00:00") and toDateKey buckets it via toISOString(),
+// which is always UTC — "today" has to be computed the same way. Using
+// plain setHours()/setDate() here silently anchored "today" to the
+// server process's own local timezone (confirmed live: server runs
+// CEST, UTC+2) instead of UTC, so the whole series was shifted by
+// however many hours CEST sits from UTC, and today's real sales landed
+// under a date key the series never looked up — the graph just showed
+// nothing for today.
 function buildDailySeries(countableHistory, days) {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setUTCHours(0, 0, 0, 0);
 
   const byDate = new Map();
 
@@ -351,7 +360,7 @@ function buildDailySeries(countableHistory, days) {
 
   for (let i = days - 1; i >= 0; i -= 1) {
     const date = new Date(today);
-    date.setDate(date.getDate() - i);
+    date.setUTCDate(date.getUTCDate() - i);
     const key = date.toISOString().slice(0, 10);
 
     const point = byDate.get(key) || { date: key, sales_amount: 0, qty: 0 };
