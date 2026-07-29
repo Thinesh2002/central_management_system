@@ -35,6 +35,32 @@ function getItemQty(item = {}) {
   return Number(item.qty || item.quantity || 1) || 1;
 }
 
+// Daraz syncs one row per unit purchased (a qty:2 buy arrives as two
+// separate qty:1 rows for the same SKU), so the raw items array needs
+// grouping before rendering or a 2-unit purchase shows as two rows each
+// saying "Qty: 1" instead of one row saying "Qty: 2".
+function groupOrderItems(items = []) {
+  const groups = new Map();
+
+  items.forEach((item) => {
+    if (!item) {
+      groups.set("__none__", { item: null, qty: 1 });
+      return;
+    }
+
+    const key = `${getItemSku(item)}|${item.variation || item.variation_name || ""}`;
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.qty += getItemQty(item);
+    } else {
+      groups.set(key, { item, qty: getItemQty(item) });
+    }
+  });
+
+  return Array.from(groups.values());
+}
+
 function ProductThumb({ order, item, onPreview }) {
   const url = resolveImageUrl(getItemImage(item) || order.thumbnail_url || "");
   const title = getItemName(item) !== "-" ? getItemName(item) : order.first_item_title || order.display_order_no;
@@ -102,7 +128,8 @@ function OrderRow({
   const dateParts = niceDate(order.order_date);
   // Every order gets at least one product row, even if items didn't load -
   // the shared order columns (customer/total/status/actions) still render.
-  const items = order.items?.length ? order.items : [null];
+  const rawItems = order.items?.length ? order.items : [null];
+  const items = groupOrderItems(rawItems);
   const rowCount = items.length;
   const isMulti = items.length > 1;
 
@@ -113,7 +140,7 @@ function OrderRow({
 
   return (
     <Fragment>
-      {items.map((item, index) => {
+      {items.map(({ item, qty }, index) => {
         const isFirst = index === 0;
         const itemSku = item ? getItemSku(item) : null;
         const itemProductId = item ? getItemProductId(item) : null;
@@ -177,7 +204,7 @@ function OrderRow({
                         SKU: {itemSku}
                       </button>
                     ) : null}
-                    {item && <span>Qty: {getItemQty(item)}</span>}
+                    {item && <span>Qty: {qty}</span>}
                   </div>
                 </div>
               </div>
