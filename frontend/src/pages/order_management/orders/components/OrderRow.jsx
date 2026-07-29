@@ -101,9 +101,9 @@ function ActionButton({ label, icon: Icon, onClick, tone = "outline" }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-8 w-full items-center justify-center gap-1.5 rounded-sm px-2 text-[12px] font-semibold transition ${toneClass}`}
+      className={`flex h-7 w-full items-center justify-center gap-1.5 rounded-md px-2 text-[11px] font-semibold transition-all duration-150 hover:scale-[1.03] ${toneClass}`}
     >
-      {Icon && <Icon size={13} />}
+      {Icon && <Icon size={12} />}
       {label}
     </button>
   );

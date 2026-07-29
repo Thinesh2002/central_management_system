@@ -87,9 +87,9 @@ export default function RowActionsMenu({
         ref={triggerRef}
         type="button"
         onClick={() => (open ? setOpen(false) : openMenu())}
-        className="flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-slate-600 px-2 text-[12px] font-semibold text-slate-200 transition hover:border-yellow-400 hover:text-yellow-200"
+        className="flex h-7 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-slate-700/70 px-2 text-[11px] font-semibold text-slate-200 transition-all duration-150 hover:scale-[1.03] hover:border-yellow-400 hover:text-yellow-200"
       >
-        <MoreHorizontal size={13} />
+        <MoreHorizontal size={12} />
         More
       </button>
 

@@ -344,13 +344,13 @@ export default function OrdersPage() {
     <div className="space-y-3">
       <section className="overflow-hidden border border-slate-700 bg-[#1b2a3a] shadow-lg shadow-black/20">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-          <div className="flex flex-wrap items-stretch rounded-md bg-[#111827]">
+          <div className="flex flex-wrap items-stretch overflow-hidden rounded-lg bg-[#111827]">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setStatus(tab.key)}
-                className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-[12px] font-bold transition ${
+                className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-1.5 text-[11px] font-bold transition-all duration-150 ${
                   status === tab.key
                     ? "border-b-orange-500 bg-[#1b2a3a] text-orange-300"
                     : "border-b-transparent text-slate-400 hover:bg-[#1b2a3a] hover:text-slate-200"
@@ -358,7 +358,7 @@ export default function OrdersPage() {
               >
                 {tab.label}
                 <span
-                  className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
+                  className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold transition-colors duration-150 ${
                     status === tab.key ? "bg-orange-500 text-white" : "bg-slate-700 text-slate-200"
                   }`}
                 >
@@ -368,13 +368,13 @@ export default function OrdersPage() {
             ))}
           </div>
 
-          <label className="flex h-8 min-w-45 flex-1 items-center border border-slate-600 bg-[#2b3441] px-2.5 focus-within:border-orange-400">
-            <Search size={13} className="text-slate-500" />
+          <label className="flex h-7 min-w-45 flex-1 items-center rounded-md border border-slate-700/70 bg-[#2b3441] px-2.5 transition-colors duration-150 focus-within:border-orange-400">
+            <Search size={12} className="text-slate-500" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search order no, customer, phone, SKU, waybill..."
-              className="h-full min-w-0 flex-1 bg-transparent px-2 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
+              className="h-full min-w-0 flex-1 bg-transparent px-2 text-[10px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
             />
           </label>
 
@@ -384,18 +384,18 @@ export default function OrdersPage() {
               onClick={load}
               disabled={loading}
               title="Refresh"
-              className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-600 bg-[#44546b] text-white hover:bg-[#52657f] disabled:opacity-60"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700/70 bg-[#44546b] text-white transition-all duration-150 hover:scale-105 hover:bg-[#52657f] disabled:opacity-60"
             >
-              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
             </button>
 
             <button
               type="button"
               onClick={() => setFilterOpen(true)}
               title="Filter"
-              className="relative flex h-8 w-8 items-center justify-center rounded-md border border-slate-600 bg-[#44546b] text-white hover:bg-[#52657f]"
+              className="relative flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700/70 bg-[#44546b] text-white transition-all duration-150 hover:scale-105 hover:bg-[#52657f]"
             >
-              <Filter size={13} />
+              <Filter size={12} />
               {activeFilterCount(filters) > 0 && (
                 <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                   {activeFilterCount(filters)}
@@ -406,9 +406,9 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => openOverlay("/order-management/orders/create")}
-              className="flex h-8 items-center gap-1.5 rounded-full bg-orange-500 px-3.5 text-[12px] font-semibold text-white hover:bg-orange-400"
+              className="flex h-7 items-center gap-1.5 rounded-full bg-orange-500 px-3 text-[11px] font-semibold text-white transition-all duration-150 hover:scale-105 hover:bg-orange-400"
             >
-              <Plus size={13} />
+              <Plus size={12} />
               Create Order
             </button>
           </div>
@@ -426,7 +426,7 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => setSelectedKeys([])}
-              className="h-7 rounded-sm border border-slate-600 px-2.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-800"
+              className="h-6.5 rounded-md border border-slate-700/70 px-2.5 text-[10px] font-semibold text-slate-300 transition-all duration-150 hover:scale-105 hover:bg-slate-800"
             >
               Clear
             </button>
@@ -436,9 +436,9 @@ export default function OrdersPage() {
                 type="button"
                 disabled={busy}
                 onClick={() => runBulkAction("pack")}
-                className="inline-flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-sky-950 px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-6.5 items-center gap-1 rounded-md border border-sky-500/25 bg-sky-950 px-2.5 text-[10px] font-semibold text-sky-300 transition-all duration-150 hover:scale-105 hover:bg-sky-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               >
-                <PackageCheck size={12} /> Pack
+                <PackageCheck size={11} /> Pack
               </button>
             )}
 
@@ -447,9 +447,9 @@ export default function OrdersPage() {
                 type="button"
                 disabled={busy}
                 onClick={() => runBulkAction("ready_to_ship")}
-                className="inline-flex h-7 items-center gap-1 rounded-sm border border-violet-500/40 bg-violet-950 px-2.5 text-[11px] font-semibold text-violet-300 hover:bg-violet-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-6.5 items-center gap-1 rounded-md border border-violet-500/25 bg-violet-950 px-2.5 text-[10px] font-semibold text-violet-300 transition-all duration-150 hover:scale-105 hover:bg-violet-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               >
-                <Truck size={12} /> Ready to Ship
+                <Truck size={11} /> Ready to Ship
               </button>
             )}
 
@@ -459,9 +459,9 @@ export default function OrdersPage() {
                 disabled={busy}
                 onClick={() => setPrintChoiceOpen(true)}
                 title="Choose Normal or A4 (3x3 grid) label printing"
-                className="inline-flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-emerald-950 px-2.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-6.5 items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-950 px-2.5 text-[10px] font-semibold text-emerald-300 transition-all duration-150 hover:scale-105 hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               >
-                <Printer size={12} /> Print AWB
+                <Printer size={11} /> Print AWB
               </button>
             )}
           </div>
@@ -550,12 +550,12 @@ export default function OrdersPage() {
                   type="button"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  className="h-7 rounded-sm border border-slate-700 px-2.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-6.5 rounded-md border border-slate-700/70 px-2.5 text-[10px] font-semibold text-slate-300 transition-all duration-150 hover:scale-105 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   Previous
                 </button>
 
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[10px] text-slate-500">
                   Page {page} of {pageCount}
                 </span>
 
@@ -563,7 +563,7 @@ export default function OrdersPage() {
                   type="button"
                   disabled={page >= pageCount}
                   onClick={() => setPage((p) => Math.min(p + 1, pageCount))}
-                  className="h-7 rounded-sm border border-slate-700 px-2.5 text-[11px] font-semibold text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-6.5 rounded-md border border-slate-700/70 px-2.5 text-[10px] font-semibold text-slate-300 transition-all duration-150 hover:scale-105 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
                   Next
                 </button>
