@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Boxes, Edit3, History, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
+import { Boxes, ClipboardList, Edit3, History, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
 import { useCanViewCostPrice } from "../../components/common/permissions/PermissionsProvider";
 import Loader from "../../components/common/Loader";
+import api, { getApiError } from "../../config/api";
 
 const RAW_API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api").trim();
 const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
@@ -103,6 +104,12 @@ export default function InventoryPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySku, setHistorySku] = useState("");
   const [historyRows, setHistoryRows] = useState([]);
+
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsSkuSearch, setLogsSkuSearch] = useState("");
+  const [logsStatus, setLogsStatus] = useState("");
+  const [logsRows, setLogsRows] = useState([]);
 
   async function loadCatalog(q = "") {
     setProductLoading(true);
@@ -240,6 +247,31 @@ export default function InventoryPage() {
     }
   }
 
+  // Stock deducted automatically when order items sync in (Daraz/Woo/local) —
+  // same inventory_logs data already shown on the general Logs page, exposed
+  // here too so a search-by-SKU doesn't require leaving the Inventory page.
+  async function loadInventoryLogs({ sku = logsSkuSearch, status = logsStatus } = {}) {
+    setLogsLoading(true);
+    try {
+      const { data } = await api.get("/logs/inventory", {
+        params: { sku: clean(sku) || undefined, status: status || undefined, limit: 200 },
+      });
+      setLogsRows(normalizeList(data?.logs || data));
+    } catch (err) {
+      showToast(getApiError(err, "Unable to load inventory logs."), { type: "error" });
+      setLogsRows([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  }
+
+  function openInventoryLogs(sku = "") {
+    setLogsSkuSearch(sku);
+    setLogsStatus("");
+    setLogsOpen(true);
+    loadInventoryLogs({ sku, status: "" });
+  }
+
   async function submitForm(e) {
     e.preventDefault();
     const s = clean(form.sku);
@@ -302,6 +334,14 @@ export default function InventoryPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => openInventoryLogs()}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-200 hover:bg-slate-800"
+          >
+            <ClipboardList size={13} />
+            Inventory Logs
+          </button>
           <button
             type="button"
             onClick={syncAllDaraz}
@@ -407,6 +447,14 @@ export default function InventoryPage() {
                                 <History size={13} />
                               </button>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => openInventoryLogs(getSku(r))}
+                              title="Inventory Logs"
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-300"
+                            >
+                              <ClipboardList size={13} />
+                            </button>
                             <button
                               type="button"
                               onClick={() => openEdit(r)}
@@ -590,6 +638,115 @@ export default function InventoryPage() {
                           <td className="px-3 py-1.5 text-slate-300">{h.created_at ? String(h.created_at).slice(0, 10) : "-"}</td>
                           <td className="px-3 py-1.5 text-right text-slate-400">{fmt(h.old_value)}</td>
                           <td className="px-3 py-1.5 text-right font-semibold text-emerald-300">{fmt(h.new_value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {logsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={() => setLogsOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
+              <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-white">
+                <ClipboardList size={15} /> Inventory Logs
+              </h2>
+              <button type="button" onClick={() => setLogsOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 border-b border-slate-800 p-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={logsSkuSearch}
+                  onChange={(e) => setLogsSkuSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && loadInventoryLogs()}
+                  placeholder="Search by SKU..."
+                  className="h-9 w-full rounded-md border border-slate-700 bg-[#070b16] pl-7 pr-3 text-[12px] text-slate-100 outline-none placeholder:text-slate-600 focus:border-orange-400"
+                />
+              </div>
+
+              <select
+                value={logsStatus}
+                onChange={(e) => setLogsStatus(e.target.value)}
+                className="h-9 rounded-md border border-slate-700 bg-[#070b16] px-2.5 text-[12px] font-medium text-slate-100 outline-none focus:border-orange-400"
+              >
+                <option value="">All statuses</option>
+                <option value="success">Success</option>
+                <option value="sku_missing">SKU missing</option>
+                <option value="failed">Failed</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => loadInventoryLogs()}
+                disabled={logsLoading}
+                className="inline-flex h-9 items-center gap-1.5 rounded-md bg-orange-400 px-3 text-[12px] font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Search size={13} />
+                {logsLoading ? "Searching..." : "Search"}
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-4">
+              {logsLoading ? (
+                <Loader label="Loading inventory logs..." minHeight="160px" />
+              ) : !logsRows.length ? (
+                <p className="rounded-md border border-slate-800 bg-[#070b16] px-3 py-6 text-center text-[12px] text-slate-500">
+                  No stock deduction logs found{logsSkuSearch ? ` for "${logsSkuSearch}"` : ""}.
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-md border border-slate-800">
+                  <table className="w-full text-left text-[12px]">
+                    <thead className="bg-slate-900/60 text-[10px] uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="px-3 py-1.5 font-medium">Date</th>
+                        <th className="px-3 py-1.5 font-medium">Source</th>
+                        <th className="px-3 py-1.5 font-medium">Order</th>
+                        <th className="px-3 py-1.5 font-medium">SKU</th>
+                        <th className="px-3 py-1.5 font-medium text-right">Qty</th>
+                        <th className="px-3 py-1.5 font-medium">Stock Change</th>
+                        <th className="px-3 py-1.5 font-medium">Status</th>
+                        <th className="px-3 py-1.5 font-medium">Message</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {logsRows.map((row, i) => (
+                        <tr key={row.id || i} className="hover:bg-slate-900/60">
+                          <td className="whitespace-nowrap px-3 py-1.5 text-slate-300">
+                            {row.created_at ? new Date(row.created_at).toLocaleString() : "-"}
+                          </td>
+                          <td className="px-3 py-1.5 capitalize text-slate-300">{row.source || "-"}</td>
+                          <td className="px-3 py-1.5 text-slate-300">{row.source_order_id || "-"}</td>
+                          <td className="px-3 py-1.5 font-mono text-slate-200">{row.sku || "-"}</td>
+                          <td className="px-3 py-1.5 text-right text-slate-300">{row.qty ?? "-"}</td>
+                          <td className="px-3 py-1.5 text-slate-300">
+                            {row.old_stock_qty ?? row.new_stock_qty ? `${row.old_stock_qty ?? "-"} → ${row.new_stock_qty ?? "-"}` : "-"}
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                                row.status === "success"
+                                  ? "border-emerald-900 bg-emerald-950 text-emerald-300"
+                                  : row.status === "sku_missing"
+                                  ? "border-amber-900 bg-amber-950 text-amber-300"
+                                  : "border-red-900 bg-red-950 text-red-300"
+                              }`}
+                            >
+                              {row.status === "sku_missing" ? "SKU missing" : row.status}
+                            </span>
+                          </td>
+                          <td className="max-w-60 px-3 py-1.5">
+                            <span className="line-clamp-1 text-[11px] text-slate-400">{row.message || "-"}</span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
