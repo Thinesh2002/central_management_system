@@ -33,6 +33,7 @@ async function processOneOrder({ account, credentials, order }) {
           sourceOrderId: order.order_number || order.order_id,
           orderItemId: newItem.order_item_id,
           sku: newItem.sku,
+          fallbackSku: newItem.fallback_sku,
           qty: newItem.qty,
         });
       } catch (deductionError) {

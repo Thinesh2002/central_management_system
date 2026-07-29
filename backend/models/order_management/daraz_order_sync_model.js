@@ -109,6 +109,13 @@ async function upsertItems(items = [], localOrderId) {
       newlyCreated.push({
         order_item_id: item.order_item_id,
         sku: item.shop_sku || item.sku,
+        // shop_sku and sku don't always agree for the same listing (seen
+        // live: shop_sku returned a different value than the catalog's own
+        // seller_sku, which matched item.sku instead) — carry the other
+        // field along so inventory deduction can also try it before giving
+        // up, instead of only ever trying whichever one happened to be
+        // picked as primary above.
+        fallback_sku: item.shop_sku && item.sku && item.shop_sku !== item.sku ? item.sku : null,
         qty: 1,
       });
     }
