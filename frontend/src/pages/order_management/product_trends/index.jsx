@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AlertCircle, ImageOff, RefreshCw, Search, TrendingUp } from "lucide-react";
 
 import productTrendsApi from "../../../config/sub_api/order_management_api/product_trends_api";
 import { resolveImageUrl } from "../../product_management/products/product_dashboard/utils/localProductsImageHelpers";
+import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
 
 function getApiMessage(error, fallback = "Something went wrong") {
   return error?.response?.data?.message || error?.message || fallback;
@@ -48,7 +48,7 @@ function ProductImage({ src, name }) {
 }
 
 export default function ProductTrendsPage() {
-  const navigate = useNavigate();
+  const { openOverlay } = usePageOverlay();
 
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
@@ -242,7 +242,7 @@ export default function ProductTrendsPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            navigate(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)
+                            openOverlay(`/order-management/sku-report/${encodeURIComponent(row.sku)}`)
                           }
                           className="cursor-pointer text-orange-300 underline decoration-dotted transition hover:text-orange-200"
                           title={`View SKU report for ${row.sku}`}
