@@ -497,12 +497,13 @@ export default function InventoryPage() {
                         <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-lime-300">{salesTrendOf(r).toLocaleString()}</td>
                         <td className="border border-slate-800 px-3 py-2.5">
                           {darazEntries.length ? (
-                            <div className="space-y-1">
+                            <div className="divide-y divide-slate-800">
                               {darazEntries.map((entry) => (
-                                <p key={entry.account_id} className="whitespace-nowrap text-[11px] text-slate-300">
-                                  <span className="text-slate-500">{entry.account_name}:</span>{" "}
-                                  <span className="font-semibold text-purple-300">{entry.quantity.toLocaleString()}</span>
-                                </p>
+                                <div key={entry.account_id} className="whitespace-nowrap py-1 text-[11px] first:pt-0 last:pb-0">
+                                  <p className="text-slate-300">{entry.account_name}</p>
+                                  <p className="font-mono text-[10px] text-slate-500">{entry.seller_sku}</p>
+                                  <p className="font-semibold text-purple-300">Stock: {entry.quantity.toLocaleString()}</p>
+                                </div>
                               ))}
                             </div>
                           ) : (
