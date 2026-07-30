@@ -453,10 +453,10 @@ export default function InventoryPage() {
             <table className="min-w-full text-left text-[12px]">
               <thead className="bg-slate-900">
                 <tr>
-                  {["Product", "SKU / Colour", "Stock", "Reserved", "Available", "Low Alert", "Status", "Location", "Daraz Stock", "Action"].map((header) => (
+                  {["Product", "SKU / Colour", "Stock", "Reserved", "Low Alert", "Status", "Daraz Stock", "Action"].map((header) => (
                     <th
                       key={header}
-                      className={`px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Reserved", "Available", "Low Alert"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Status" ? "text-center" : "text-left"}`}
+                      className={`px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Reserved", "Low Alert"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Status" ? "text-center" : header === "Product" ? "w-16 text-left" : "text-left"}`}
                     >
                       {header}
                     </th>
@@ -471,14 +471,8 @@ export default function InventoryPage() {
                     const name = r.product_name || m.product_name || "Product";
                     return (
                       <tr key={r.id || r.inventory_id || `${getSku(r)}-${i}`} className="hover:bg-slate-900">
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-2.5">
-                            <ProductImage src={r.image_url || m.image_url} name={name} />
-                            <div className="min-w-0">
-                              <p className="truncate font-semibold text-white">{name}</p>
-                              <p className="truncate text-[11px] text-slate-500">SKU: {r.product_sku || m.product_sku || "-"}</p>
-                            </div>
-                          </div>
+                        <td className="w-16 px-3 py-2.5" title={name}>
+                          <ProductImage src={r.image_url || m.image_url} name={name} />
                         </td>
                         <td className="px-3 py-2.5">
                           <p className="font-mono text-[11px] font-semibold text-orange-300/90">{getSku(r)}</p>
@@ -486,12 +480,10 @@ export default function InventoryPage() {
                         </td>
                         <td className="px-3 py-2.5 text-right font-semibold text-slate-200">{getStock(r).toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-cyan-300">{getReserved(r).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-emerald-300">{getAvailable(r).toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-right font-semibold text-amber-300">{num(r.low_stock_alert_qty).toLocaleString()}</td>
                         <td className="px-3 py-2.5 text-center">
                           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${st.className}`}>{st.label}</span>
                         </td>
-                        <td className="px-3 py-2.5 text-slate-400">{getLocation(r)}</td>
                         <td className="px-3 py-2.5">
                           {darazStockOf(r).length ? (
                             <div className="space-y-1">
@@ -553,7 +545,7 @@ export default function InventoryPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="10" className="px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
+                    <td colSpan="8" className="px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
                   </tr>
                 )}
               </tbody>
