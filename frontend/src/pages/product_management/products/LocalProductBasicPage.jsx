@@ -366,8 +366,6 @@ export default function LocalProductBasicPage() {
   const categoryValue = asText(form.category_id || form.product_category_id);
   const subCategoryValue = asText(form.sub_category_id || form.product_sub_category_id);
   const modelValue = asText(form.model_id || form.product_model_id);
-  const currentUser = useMemo(() => getStoredUser?.() || null, []);
-
   function updateField(name, value) {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
@@ -446,14 +444,18 @@ export default function LocalProductBasicPage() {
     [models, modelValue]
   );
 
-  const generatedSkuPreview = useMemo(() => {
-    if (!selectedCategory || !selectedSubCategory || !selectedModel) return "";
-    return generateProductSku({
-      category: selectedCategory,
-      subCategory: selectedSubCategory,
-      model: selectedModel,
-    });
-  }, [selectedCategory, selectedSubCategory, selectedModel]);
+  // Only models actually assigned to the selected category + sub category -
+  // the dropdown was previously listing every model in the system
+  // regardless of which category/sub category was picked above it.
+  const filteredModels = useMemo(() => {
+    if (!categoryValue || !subCategoryValue) return [];
+
+    return models.filter(
+      (item) =>
+        isSame(item?.category_id, categoryValue) &&
+        isSame(item?.sub_category_id, subCategoryValue)
+    );
+  }, [models, categoryValue, subCategoryValue]);
 
   function regenerateSku(customForm = form) {
     const category = findByFlexibleId(categories, categoryValue);
@@ -576,31 +578,6 @@ export default function LocalProductBasicPage() {
           <Loader label="Loading product..." minHeight="260px" />
         ) : (
           <>
-            <div className="mb-4 border border-slate-800 bg-[#070b16] p-4">
-              <div className="grid grid-cols-1 gap-3 text-xs font-bold text-slate-400 md:grid-cols-4">
-                <div>
-                  <p className="uppercase tracking-wide text-slate-500">Category Code</p>
-                  <p className="mt-1 text-orange-300">{getCode(selectedCategory, "category") || "-"}</p>
-                </div>
-                <div>
-                  <p className="uppercase tracking-wide text-slate-500">Sub Category Code</p>
-                  <p className="mt-1 text-orange-300">{getCode(selectedSubCategory, "subCategory") || "-"}</p>
-                </div>
-                <div>
-                  <p className="uppercase tracking-wide text-slate-500">Model Code</p>
-                  <p className="mt-1 text-orange-300">{getCode(selectedModel, "model") || "-"}</p>
-                </div>
-                <div>
-                  <p className="uppercase tracking-wide text-slate-500">Login User</p>
-                  <p className="mt-1 text-cyan-300">{currentUser?.user_uid || currentUser?.name || currentUser?.email || "User"}</p>
-                </div>
-              </div>
-              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-slate-800 bg-[#0b1220] px-3 py-2 md:flex-row md:items-center md:justify-between">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Code Based SKU</p>
-                <p className="font-mono text-sm font-black text-emerald-300">{generatedSkuPreview || "Select category + sub category + model"}</p>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <DarkInput
                 label="Product Title"
@@ -658,6 +635,7 @@ export default function LocalProductBasicPage() {
                 value={modelValue}
                 onChange={handleModelChange}
                 required
+                disabled={!subCategoryValue}
               >
                 <option value="">Select model</option>
 
@@ -667,7 +645,7 @@ export default function LocalProductBasicPage() {
                   </option>
                 ) : null}
 
-                {models.map((item, index) => (
+                {filteredModels.map((item, index) => (
                   <option
                     key={getOptionId(item) || `model-${index}`}
                     value={getOptionId(item)}
@@ -676,14 +654,6 @@ export default function LocalProductBasicPage() {
                   </option>
                 ))}
               </DarkSelect>
-
-              <DarkInput
-                label="Slug"
-                value={form.slug}
-                onChange={(value) => updateField("slug", value)}
-                required
-                placeholder="product-slug"
-              />
 
               <DarkSelect
                 label="Product Type"
