@@ -753,7 +753,7 @@ export default function LocalProductsDashboard() {
       return;
     }
 
-    openOverlay(`/product/local-products/edit/${productId}/${section}`);
+    openOverlay(`/product/local-products/edit/${productId}/${section}`, loadData);
   }
 
   function openFilterModal() {
@@ -791,7 +791,7 @@ export default function LocalProductsDashboard() {
             </button>
             <button
               type="button"
-              onClick={() => openOverlay("/product/local-products/create")}
+              onClick={() => openOverlay("/product/local-products/create", loadData)}
               className="flex h-8 items-center gap-1.5 rounded-sm border border-slate-600 bg-[#334155] px-3 text-[12px] font-semibold text-slate-100 hover:bg-[#3f4d63]"
             >
               <Plus size={13} /> Add a product
