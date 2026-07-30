@@ -5,5 +5,6 @@ const router = express.Router();
 
 router.post("/sync-all", controller.syncAll);
 router.post("/sync-sku/:sku", controller.syncSku);
+router.post("/stock-by-skus", controller.getStockForSkus);
 
 module.exports = router;

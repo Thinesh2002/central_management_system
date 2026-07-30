@@ -119,6 +119,22 @@ async function getWrongSkusForCorrectSku(correctSku) {
   return rows.map((row) => row.wrong_sku);
 }
 
+// Bulk form of getWrongSkusForCorrectSku - one query for every SKU shown
+// on a page (e.g. the Inventory list) instead of one query per row.
+async function getWrongSkuMapForCorrectSkus(correctSkus = []) {
+  const cleanSkus = [...new Set(correctSkus.map(cleanString).filter(Boolean))];
+  if (!cleanSkus.length) return [];
+
+  const placeholders = cleanSkus.map(() => "?").join(",");
+
+  const [rows] = await db.query(
+    `SELECT wrong_sku, correct_sku FROM sku_mappings WHERE correct_sku IN (${placeholders})`,
+    cleanSkus
+  );
+
+  return rows;
+}
+
 async function create(data, options = {}) {
   const wrongSku = cleanString(data.wrong_sku);
   const correctSku = cleanString(data.correct_sku);
@@ -205,4 +221,5 @@ module.exports = {
   remove,
   resolveCorrectSku,
   getWrongSkusForCorrectSku,
+  getWrongSkuMapForCorrectSkus,
 };

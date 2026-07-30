@@ -85,7 +85,28 @@ async function syncAll(req, res) {
   }
 }
 
+async function getStockForSkus(req, res) {
+  try {
+    const skus = Array.isArray(req.body?.skus) ? req.body.skus : [];
+
+    if (!skus.length) {
+      return res.json({ success: true, data: {} });
+    }
+
+    const data = await service.getDarazStockForSkus(skus);
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[DARAZ_INVENTORY_STOCK_BY_SKUS_ERROR]", error.message);
+
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to load Daraz stock.",
+    });
+  }
+}
+
 module.exports = {
   syncSku,
   syncAll,
+  getStockForSkus,
 };

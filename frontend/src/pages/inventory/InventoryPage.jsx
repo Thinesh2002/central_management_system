@@ -111,6 +111,9 @@ export default function InventoryPage() {
   const [logsStatus, setLogsStatus] = useState("");
   const [logsRows, setLogsRows] = useState([]);
 
+  const [darazStock, setDarazStock] = useState({});
+  const [syncingSku, setSyncingSku] = useState("");
+
   async function loadCatalog(q = "") {
     setProductLoading(true);
     try {
@@ -163,8 +166,52 @@ export default function InventoryPage() {
     return merged;
   }, [catalog, inventoryMap, rows]);
 
+  // Batched once per catalog/inventory load, not per row - one request for
+  // every SKU on the page instead of N.
+  useEffect(() => {
+    const skus = [...new Set(displayRows.map((r) => getSku(r)).filter((s) => s && s !== "-"))];
+    if (!skus.length) {
+      setDarazStock({});
+      return;
+    }
+
+    let cancelled = false;
+
+    localProductsApi
+      .getDarazStockForSkus(skus)
+      .then((res) => {
+        if (!cancelled) setDarazStock(res?.data?.data || {});
+      })
+      .catch((e) => {
+        console.warn("[INVENTORY_DARAZ_STOCK_LOAD]", e);
+        if (!cancelled) setDarazStock({});
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayRows]);
+
   function meta(row) { return catalogMap.get(getSku(row).toLowerCase()) || {}; }
   function priceOf(row) { return priceMap.get(getSku(row).toLowerCase()) || {}; }
+  function darazStockOf(row) { return darazStock[getSku(row)] || []; }
+
+  async function syncRowToDaraz(row) {
+    const sku = getSku(row);
+    if (!sku || sku === "-") return;
+
+    setSyncingSku(sku);
+    try {
+      const res = await localProductsApi.syncDarazInventorySku(sku, { quantity: getStock(row) });
+      showToast(res?.data?.message || `Daraz stock synced for ${sku}.`);
+      const stockRes = await localProductsApi.getDarazStockForSkus([sku]);
+      setDarazStock((prev) => ({ ...prev, ...(stockRes?.data?.data || {}) }));
+    } catch (e) {
+      showToast(getErrorMessage(e, `Unable to sync ${sku} to Daraz.`), { type: "error" });
+    } finally {
+      setSyncingSku("");
+    }
+  }
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -406,7 +453,7 @@ export default function InventoryPage() {
             <table className="min-w-full text-left text-[12px]">
               <thead className="bg-slate-900">
                 <tr>
-                  {["Product", "SKU / Colour", "Stock", "Reserved", "Available", "Low Alert", "Status", "Location", "Action"].map((header) => (
+                  {["Product", "SKU / Colour", "Stock", "Reserved", "Available", "Low Alert", "Status", "Location", "Daraz Stock", "Action"].map((header) => (
                     <th
                       key={header}
                       className={`px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Reserved", "Available", "Low Alert"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Status" ? "text-center" : "text-left"}`}
@@ -445,6 +492,20 @@ export default function InventoryPage() {
                           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${st.className}`}>{st.label}</span>
                         </td>
                         <td className="px-3 py-2.5 text-slate-400">{getLocation(r)}</td>
+                        <td className="px-3 py-2.5">
+                          {darazStockOf(r).length ? (
+                            <div className="space-y-0.5">
+                              {darazStockOf(r).map((entry) => (
+                                <p key={entry.account_id} className="whitespace-nowrap text-[11px] text-slate-300">
+                                  <span className="text-slate-500">{entry.account_name}:</span>{" "}
+                                  <span className="font-semibold text-purple-300">{entry.quantity.toLocaleString()}</span>
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-600">Not linked</span>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {canViewCostPrice && (
@@ -467,6 +528,15 @@ export default function InventoryPage() {
                             </button>
                             <button
                               type="button"
+                              onClick={() => syncRowToDaraz(r)}
+                              disabled={syncingSku === getSku(r)}
+                              title="Sync this SKU's stock to Daraz"
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <RefreshCw size={13} className={syncingSku === getSku(r) ? "animate-spin" : ""} />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => openEdit(r)}
                               title="Edit"
                               className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400 hover:text-orange-300"
@@ -480,7 +550,7 @@ export default function InventoryPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="9" className="px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
+                    <td colSpan="10" className="px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
                   </tr>
                 )}
               </tbody>

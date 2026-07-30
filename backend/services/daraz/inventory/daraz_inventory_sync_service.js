@@ -397,7 +397,50 @@ async function syncAllLocalInventoryToDaraz({ source = "scheduled_30_min", userI
   };
 }
 
+// Read-only - for the Inventory page's "Daraz Stock" column, showing what
+// quantity Daraz currently has on file per linked account for each SKU
+// (no push, no writes). Same SKU Mapping alias-awareness as
+// pushSkuStockToDaraz, batched into one query per input list instead of
+// one round trip per row.
+async function getDarazStockForSkus(skus = []) {
+  const cleanSkus = [...new Set(skus.map(model.cleanSku).filter(Boolean))];
+  if (!cleanSkus.length) return {};
+
+  const aliasRows = await skuMappingModel.getWrongSkuMapForCorrectSkus(cleanSkus);
+
+  const candidateToCorrect = new Map();
+  cleanSkus.forEach((sku) => candidateToCorrect.set(sku.toLowerCase(), sku));
+  aliasRows.forEach((row) => {
+    if (row.wrong_sku) candidateToCorrect.set(String(row.wrong_sku).toLowerCase(), row.correct_sku);
+  });
+
+  const matches = await model.findDarazListingsBySkus([...candidateToCorrect.keys()]);
+  if (!matches.length) return {};
+
+  const accounts = await accountModel.getAllAccounts({ platform_code: "DARAZ" });
+  const accountNameById = new Map(accounts.map((account) => [account.id, account.account_name || account.account_code]));
+
+  const result = {};
+
+  matches.forEach((match) => {
+    const correctSku = candidateToCorrect.get(String(match.seller_sku || "").toLowerCase());
+    if (!correctSku) return;
+
+    if (!result[correctSku]) result[correctSku] = [];
+
+    result[correctSku].push({
+      account_id: match.account_id,
+      account_name: accountNameById.get(match.account_id) || `Account ${match.account_id}`,
+      seller_sku: match.seller_sku,
+      quantity: Number(match.current_quantity || 0),
+    });
+  });
+
+  return result;
+}
+
 module.exports = {
   pushSkuStockToDaraz,
   syncAllLocalInventoryToDaraz,
+  getDarazStockForSkus,
 };

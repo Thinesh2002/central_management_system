@@ -149,6 +149,9 @@ export const localProductsApi = {
   syncDarazInventorySku: (sku, payload = {}) =>
     api.post(`/daraz-inventory/sync-sku/${safeValue(sku)}`, payload),
 
+  getDarazStockForSkus: (skus = []) =>
+    api.post("/daraz-inventory/stock-by-skus", { skus }),
+
   getInventoryById: (id) =>
     api.get(`/product-management/product-inventory/${safeValue(id)}`),
 
