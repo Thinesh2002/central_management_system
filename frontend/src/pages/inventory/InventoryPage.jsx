@@ -513,9 +513,12 @@ export default function InventoryPage() {
                           {darazEntries.length ? (
                             <div className="divide-y divide-slate-800">
                               {darazEntries.map((entry) => (
-                                <p key={entry.account_id} className="whitespace-nowrap py-1 text-[11px] font-semibold text-purple-300 first:pt-0 last:pb-0">
-                                  {entry.quantity.toLocaleString()}
-                                </p>
+                                <div
+                                  key={entry.account_id}
+                                  className="flex min-h-7.5 flex-col justify-center whitespace-nowrap py-1 first:pt-0 last:pb-0"
+                                >
+                                  <p className="text-[11px] font-semibold text-purple-300">{entry.quantity.toLocaleString()}</p>
+                                </div>
                               ))}
                             </div>
                           ) : (
