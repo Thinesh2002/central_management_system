@@ -465,10 +465,10 @@ export default function InventoryPage() {
             <table className="min-w-full border-collapse text-left text-[12px]">
               <thead className="bg-slate-900">
                 <tr>
-                  {["Product", "SKU / Colour", "Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale", "Daraz Account / SKU", "Daraz Qty", "Action"].map((header) => (
+                  {["Product", "SKU / Colour", "Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale", "Daraz Stock", "Action"].map((header) => (
                     <th
                       key={header}
-                      className={`border border-slate-800 px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale", "Daraz Qty"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Product" ? "w-16 text-left" : "text-left"}`}
+                      className={`border border-slate-800 px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Product" ? "w-16 text-left" : "text-left"}`}
                     >
                       {header}
                     </th>
@@ -502,27 +502,12 @@ export default function InventoryPage() {
                                 <div key={entry.account_id} className="whitespace-nowrap py-1 text-[11px] first:pt-0 last:pb-0">
                                   <p className="text-slate-300">{entry.account_name}</p>
                                   <p className="font-mono text-[10px] text-slate-500">{entry.seller_sku}</p>
+                                  <p className="font-semibold text-purple-300">Stock: {entry.quantity.toLocaleString()}</p>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <span className="text-[11px] text-slate-600">Not linked</span>
-                          )}
-                        </td>
-                        <td className="border border-slate-800 px-3 py-2.5 text-right">
-                          {darazEntries.length ? (
-                            <div className="divide-y divide-slate-800">
-                              {darazEntries.map((entry) => (
-                                <div
-                                  key={entry.account_id}
-                                  className="flex min-h-7.5 flex-col justify-center whitespace-nowrap py-1 first:pt-0 last:pb-0"
-                                >
-                                  <p className="text-[11px] font-semibold text-purple-300">{entry.quantity.toLocaleString()}</p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-slate-600">-</span>
                           )}
                         </td>
                         <td className="border border-slate-800 px-3 py-2.5 text-right">
@@ -569,7 +554,7 @@ export default function InventoryPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="10" className="border border-slate-800 px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
+                    <td colSpan="9" className="border border-slate-800 px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
                   </tr>
                 )}
               </tbody>
