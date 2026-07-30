@@ -434,7 +434,11 @@ export default function LocalProductImagesPage() {
     try {
       const [productRes, imageRes] = await Promise.all([
         localProductsApi.getProductById(productId),
-        localProductsApi.getImages().catch(() => ({ data: [] })),
+        // Scoped to this product and a high limit - unscoped defaults to
+        // the backend's limit=25 across the *entire* image library, so a
+        // product's own images could simply fall outside that page and
+        // never show once the library passed 25 rows total.
+        localProductsApi.getImages({ product_id: productId, limit: 500 }).catch(() => ({ data: [] })),
       ]);
 
       const productData = normalizeProduct(productRes);

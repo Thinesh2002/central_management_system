@@ -49,7 +49,11 @@ export default function VariantImagesPage() {
       const [productRes, variantRes, imageRes] = await Promise.all([
         localProductsApi.getProductById(productId),
         localProductsApi.getVariants({ product_id: productId }).catch(() => ({ data: [] })),
-        localProductsApi.getImages().catch(() => ({ data: [] })),
+        // Scoped to this product and a high limit - unscoped defaults to
+        // the backend's limit=25 across the *entire* image library, so a
+        // newly uploaded/attached sub image could simply fall outside
+        // that page and never show, even right after saving it.
+        localProductsApi.getImages({ product_id: productId, limit: 500 }).catch(() => ({ data: [] })),
       ]);
 
       setProduct(unwrapOne(productRes));
