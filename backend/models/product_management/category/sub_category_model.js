@@ -353,21 +353,35 @@ async function remove(id) {
     return null;
   }
 
+  // Named, not just counted — a product's own category/sub_category can
+  // drift from its model's (they're independent denormalized fields), so
+  // a blocking product isn't necessarily visible anywhere in the Category
+  // Dashboard tree (which only ever renders Models, never Products).
+  // Without naming it here the user has no way to find what to fix.
   const [[modelRows], [productRows]] = await Promise.all([
-    db.query(`SELECT COUNT(*) AS total FROM product_models WHERE sub_category_id = ? AND deleted_at IS NULL`, [id]),
-    db.query(`SELECT COUNT(*) AS total FROM products WHERE sub_category_id = ? AND deleted_at IS NULL`, [id]),
+    db.query(
+      `SELECT model_code, name FROM product_models WHERE sub_category_id = ? AND deleted_at IS NULL LIMIT 5`,
+      [id]
+    ),
+    db.query(
+      `SELECT sku, product_name FROM products WHERE sub_category_id = ? AND deleted_at IS NULL LIMIT 5`,
+      [id]
+    ),
   ]);
 
-  const modelCount = Number(modelRows[0]?.total || 0);
-  const productCount = Number(productRows[0]?.total || 0);
-
-  if (modelCount > 0 || productCount > 0) {
+  if (modelRows.length || productRows.length) {
     const parts = [];
-    if (modelCount > 0) parts.push(`${modelCount} model${modelCount === 1 ? "" : "s"}`);
-    if (productCount > 0) parts.push(`${productCount} product${productCount === 1 ? "" : "s"}`);
+
+    if (modelRows.length) {
+      parts.push(`model${modelRows.length === 1 ? "" : "s"} ${modelRows.map((row) => row.model_code || row.name).join(", ")}`);
+    }
+
+    if (productRows.length) {
+      parts.push(`product${productRows.length === 1 ? "" : "s"} ${productRows.map((row) => row.sku || row.product_name).join(", ")}`);
+    }
 
     const error = new Error(
-      `Cannot delete "${existing.name}" — ${parts.join(" and ")} still assigned to it. Move or delete ${parts.length > 1 || modelCount + productCount > 1 ? "them" : "it"} first.`
+      `Cannot delete "${existing.name}" — ${parts.join(" and ")} still assigned to it. Move or delete ${modelRows.length + productRows.length > 1 ? "them" : "it"} first.`
     );
     error.statusCode = 400;
     throw error;

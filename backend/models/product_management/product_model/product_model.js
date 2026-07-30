@@ -315,15 +315,16 @@ async function softDelete(id) {
   }
 
   const [productRows] = await db.query(
-    `SELECT COUNT(*) AS total FROM products WHERE model_id = ? AND deleted_at IS NULL`,
+    `SELECT sku, product_name FROM products WHERE model_id = ? AND deleted_at IS NULL LIMIT 5`,
     [id]
   );
 
-  const productCount = Number(productRows[0]?.total || 0);
+  if (productRows.length > 0) {
+    const productCount = productRows.length;
+    const names = productRows.map((row) => row.sku || row.product_name).join(", ");
 
-  if (productCount > 0) {
     const error = new Error(
-      `Cannot delete "${existing.name}" — ${productCount} product${productCount === 1 ? "" : "s"} still assigned to it. Move or delete ${productCount === 1 ? "it" : "them"} first.`
+      `Cannot delete "${existing.name}" — product${productCount === 1 ? "" : "s"} ${names} still assigned to it. Move or delete ${productCount === 1 ? "it" : "them"} first.`
     );
     error.statusCode = 400;
     throw error;
