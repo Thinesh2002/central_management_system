@@ -121,6 +121,27 @@ async function getLocalInventoryRows({ limit = 5000, offset = 0 } = {}) {
   return rows;
 }
 
+// Daraz mirrors a single-SKU listing's seller_sku onto both its own
+// daraz_products row AND its one daraz_product_variants row (confirmed
+// live across 779 listings) - the UNION ALL below genuinely returns two
+// separate rows for the same physical listing in that case. Rows are
+// pre-sorted variant-first (daraz_variant_row_id DESC puts NULLs last),
+// so keeping only the first row seen per (account_id, seller_sku) keeps
+// the more specific variant-level row when one exists.
+function dedupeListingsByAccountAndSku(rows = []) {
+  const seen = new Set();
+  const deduped = [];
+
+  rows.forEach((row) => {
+    const key = `${row.account_id}|${String(row.seller_sku || "").toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    deduped.push(row);
+  });
+
+  return deduped;
+}
+
 async function findDarazListingsBySku(sku) {
   const sellerSku = cleanSku(sku);
   if (!sellerSku) return [];
@@ -167,7 +188,7 @@ async function findDarazListingsBySku(sku) {
     [sellerSku, sellerSku]
   );
 
-  return rows;
+  return dedupeListingsByAccountAndSku(rows);
 }
 
 // Same as findDarazListingsBySku but matches against several SKU
@@ -225,7 +246,7 @@ async function findDarazListingsBySkus(skus = []) {
     [...sellerSkus, ...sellerSkus]
   );
 
-  return rows;
+  return dedupeListingsByAccountAndSku(rows);
 }
 
 async function updateDarazMirrorStock({ account_id, seller_sku, quantity }) {
