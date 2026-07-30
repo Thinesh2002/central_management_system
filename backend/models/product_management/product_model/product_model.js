@@ -46,13 +46,17 @@ async function checkCategoryAndSubCategory(categoryId, subCategoryId) {
   return rows[0] || null;
 }
 
-async function findByCode(modelCode, excludeId = null) {
-  const params = [modelCode];
+// Scoped to (category, sub category) - the same model_code is allowed to
+// repeat under a different category/sub category (e.g. "PD" under two
+// unrelated sub categories), it just can't collide twice within the same
+// one.
+async function findByCode(modelCode, categoryId, subCategoryId, excludeId = null) {
+  const params = [modelCode, categoryId, subCategoryId];
 
   let sql = `
     SELECT id, model_code, name
     FROM product_models
-    WHERE model_code = ?
+    WHERE model_code = ? AND category_id = ? AND sub_category_id = ? AND deleted_at IS NULL
   `;
 
   if (excludeId) {
@@ -216,10 +220,10 @@ async function create(data) {
     throw new Error("Invalid category and sub category relation.");
   }
 
-  const duplicate = await findByCode(modelCode);
+  const duplicate = await findByCode(modelCode, categoryId, subCategoryId);
 
   if (duplicate) {
-    throw new Error("Model code already exists.");
+    throw new Error("Model code already exists under this category and sub category.");
   }
 
   const [result] = await db.query(
@@ -282,10 +286,10 @@ async function update(id, data) {
     throw new Error("Invalid category and sub category relation.");
   }
 
-  const duplicate = await findByCode(modelCode, modelId);
+  const duplicate = await findByCode(modelCode, categoryId, subCategoryId, modelId);
 
   if (duplicate) {
-    throw new Error("Model code already exists.");
+    throw new Error("Model code already exists under this category and sub category.");
   }
 
   await db.query(
