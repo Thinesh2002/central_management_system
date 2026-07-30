@@ -336,6 +336,16 @@ export default function InventoryPage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={loadInventory}
+            disabled={loading}
+            title="Reload stock, prices and the product catalog from the server"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <button
+            type="button"
             onClick={() => openInventoryLogs()}
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 text-[11px] font-semibold text-slate-200 hover:bg-slate-800"
           >
