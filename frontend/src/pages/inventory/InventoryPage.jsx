@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Boxes, ClipboardList, Edit3, History, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
+import productTrendsApi from "../../config/sub_api/order_management_api/product_trends_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
 import { useCanViewCostPrice } from "../../components/common/permissions/PermissionsProvider";
@@ -43,13 +44,6 @@ function flattenCatalog(products = []) {
     }
   });
   return out;
-}
-function stockStatus(row = {}) {
-  const available = getAvailable(row);
-  if (available <= 0) return { label: "Out of Stock", className: "bg-rose-500/10 text-rose-300 border-rose-500/30" };
-  const low = num(row.low_stock_alert_qty ?? 0);
-  if (low > 0 && available <= low) return { label: "Low Stock", className: "bg-amber-500/10 text-amber-300 border-amber-500/30" };
-  return { label: "In Stock", className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" };
 }
 function normalizeForm(row = {}, price = {}) {
   return {
@@ -113,6 +107,7 @@ export default function InventoryPage() {
 
   const [darazStock, setDarazStock] = useState({});
   const [syncingSku, setSyncingSku] = useState("");
+  const [salesTrend, setSalesTrend] = useState({});
 
   async function loadCatalog(q = "") {
     setProductLoading(true);
@@ -129,6 +124,21 @@ export default function InventoryPage() {
     }
   }
 
+  async function loadSalesTrend() {
+    try {
+      const res = await productTrendsApi.getAll();
+      const list = res?.data?.data || res?.data || [];
+      const map = {};
+      (Array.isArray(list) ? list : []).forEach((row) => {
+        if (row.sku) map[row.sku] = num(row.qty_30d);
+      });
+      setSalesTrend(map);
+    } catch (e) {
+      console.warn("[INVENTORY_SALES_TREND_LOAD]", e);
+      setSalesTrend({});
+    }
+  }
+
   async function loadInventory() {
     setLoading(true);
     try {
@@ -136,6 +146,7 @@ export default function InventoryPage() {
         localProductsApi.getInventory({ limit: 500, sort_by: "updated_at", sort_dir: "DESC" }),
         loadCatalog(),
         localProductsApi.getPrices({ limit: 1000 }).catch(() => []),
+        loadSalesTrend(),
       ]);
       setRows(normalizeList(inv));
       setPrices(normalizeList(priceRes));
@@ -195,6 +206,7 @@ export default function InventoryPage() {
   function meta(row) { return catalogMap.get(getSku(row).toLowerCase()) || {}; }
   function priceOf(row) { return priceMap.get(getSku(row).toLowerCase()) || {}; }
   function darazStockOf(row) { return darazStock[getSku(row)] || []; }
+  function salesTrendOf(row) { return salesTrend[getSku(row)] || 0; }
 
   async function syncRowToDaraz(row) {
     const sku = getSku(row);
@@ -453,10 +465,10 @@ export default function InventoryPage() {
             <table className="min-w-full border-collapse text-left text-[12px]">
               <thead className="bg-slate-900">
                 <tr>
-                  {["Product", "SKU / Colour", "Stock", "Reserved", "Low Alert", "Status", "Daraz Account / SKU", "Daraz Qty", "Action"].map((header) => (
+                  {["Product", "SKU / Colour", "Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale", "Daraz Stock", "Action"].map((header) => (
                     <th
                       key={header}
-                      className={`border border-slate-800 px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Reserved", "Low Alert", "Daraz Qty"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Status" ? "text-center" : header === "Product" ? "w-16 text-left" : "text-left"}`}
+                      className={`border border-slate-800 px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Product" ? "w-16 text-left" : "text-left"}`}
                     >
                       {header}
                     </th>
@@ -466,7 +478,6 @@ export default function InventoryPage() {
               <tbody>
                 {filteredRows.length ? (
                   filteredRows.map((r, i) => {
-                    const st = stockStatus(r);
                     const m = meta(r);
                     const name = r.product_name || m.product_name || "Product";
                     const darazEntries = darazStockOf(r);
@@ -480,36 +491,22 @@ export default function InventoryPage() {
                           {(r.colour_name || m.colour_name) && <p className="text-[11px] text-slate-500">{r.colour_name || m.colour_name}</p>}
                         </td>
                         <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-slate-200">{getStock(r).toLocaleString()}</td>
+                        <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-emerald-300">{getAvailable(r).toLocaleString()}</td>
                         <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-cyan-300">{getReserved(r).toLocaleString()}</td>
                         <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-amber-300">{num(r.low_stock_alert_qty).toLocaleString()}</td>
-                        <td className="border border-slate-800 px-3 py-2.5 text-center">
-                          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${st.className}`}>{st.label}</span>
-                        </td>
+                        <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-lime-300">{salesTrendOf(r).toLocaleString()}</td>
                         <td className="border border-slate-800 px-3 py-2.5">
                           {darazEntries.length ? (
-                            <div className="space-y-1.5">
+                            <div className="space-y-1">
                               {darazEntries.map((entry) => (
-                                <div key={entry.account_id} className="whitespace-nowrap text-[11px]">
-                                  <p className="text-slate-300">{entry.account_name}</p>
-                                  <p className="font-mono text-[10px] text-slate-500">{entry.seller_sku}</p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-slate-600">Not linked</span>
-                          )}
-                        </td>
-                        <td className="border border-slate-800 px-3 py-2.5 text-right">
-                          {darazEntries.length ? (
-                            <div className="space-y-1.5">
-                              {darazEntries.map((entry) => (
-                                <p key={entry.account_id} className="whitespace-nowrap text-[11px] font-semibold text-purple-300">
-                                  {entry.quantity.toLocaleString()}
+                                <p key={entry.account_id} className="whitespace-nowrap text-[11px] text-slate-300">
+                                  <span className="text-slate-500">{entry.account_name}:</span>{" "}
+                                  <span className="font-semibold text-purple-300">{entry.quantity.toLocaleString()}</span>
                                 </p>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[11px] text-slate-600">-</span>
+                            <span className="text-[11px] text-slate-600">Not linked</span>
                           )}
                         </td>
                         <td className="border border-slate-800 px-3 py-2.5 text-right">
