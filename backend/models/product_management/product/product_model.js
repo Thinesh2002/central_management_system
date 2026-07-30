@@ -817,6 +817,16 @@ async function updateById(id, payload = {}, options = {}) {
     throw error;
   }
 
+  // product_inventory/product_prices key their rows by SKU text, not this
+  // product's id (they live in separate databases) - renaming sku here
+  // without also renaming it there leaves the old row behind as an
+  // orphaned, permanently-stale entry that never disappears from the
+  // Inventory page, while the product silently gets a brand-new
+  // zero-stock inventory row under its new SKU.
+  const existingBefore = data.sku !== undefined ? await findById(id) : null;
+  const oldSku = existingBefore?.sku ? String(existingBefore.sku).trim() : null;
+  const newSku = data.sku !== undefined ? String(data.sku || "").trim() : null;
+
   const assignments = Object.keys(data)
     .map((column) => `${qid(column)} = ?`)
     .join(", ");
@@ -832,7 +842,32 @@ async function updateById(id, payload = {}, options = {}) {
 
   if (!result.affectedRows) return null;
 
+  if (oldSku && newSku && oldSku.toLowerCase() !== newSku.toLowerCase()) {
+    await renameSkuEverywhere(oldSku, newSku).catch((error) => {
+      console.error(`[PRODUCT_SKU_RENAME_CASCADE_FAILED] ${oldSku} -> ${newSku}:`, error.message);
+    });
+  }
+
   return findById(id);
+}
+
+async function renameSkuEverywhere(oldSku, newSku) {
+  // Required lazily - product_inventory_model/product_price_model each
+  // require this same file's db config module tree, and both already sit
+  // in this same product_management/product folder, so this keeps the
+  // normal require graph acyclic (product_model.js doesn't get required
+  // back by either of them).
+  const productInventoryModel = require("./product_inventory_model");
+  const productPriceModel = require("./product_price_model");
+
+  // updateBySku resolves to null (not a throw) when no row exists for
+  // oldSku, so nothing to catch here for the common "never had inventory
+  // yet" case - a genuine DB error still propagates to updateById's own
+  // catch, which logs it without failing the product save itself.
+  await Promise.all([
+    productInventoryModel.updateBySku(oldSku, { sku: newSku }),
+    productPriceModel.updateBySku(oldSku, { sku: newSku }),
+  ]);
 }
 
 async function removeById(id, options = {}) {
