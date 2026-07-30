@@ -450,49 +450,47 @@ export default function InventoryPage() {
           <Loader label="Loading inventory..." minHeight="0" className="py-16" />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-[12px]">
+            <table className="min-w-full border-collapse text-left text-[12px]">
               <thead className="bg-slate-900">
                 <tr>
-                  {["Product", "SKU / Colour", "Stock", "Reserved", "Low Alert", "Status", "Daraz Stock", "Action"].map((header) => (
+                  {["Product", "SKU / Colour", "Stock", "Reserved", "Low Alert", "Status", "Daraz Account / SKU", "Daraz Qty", "Action"].map((header) => (
                     <th
                       key={header}
-                      className={`px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Reserved", "Low Alert"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Status" ? "text-center" : header === "Product" ? "w-16 text-left" : "text-left"}`}
+                      className={`border border-slate-800 px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Reserved", "Low Alert", "Daraz Qty"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Status" ? "text-center" : header === "Product" ? "w-16 text-left" : "text-left"}`}
                     >
                       {header}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody>
                 {filteredRows.length ? (
                   filteredRows.map((r, i) => {
                     const st = stockStatus(r);
                     const m = meta(r);
                     const name = r.product_name || m.product_name || "Product";
+                    const darazEntries = darazStockOf(r);
                     return (
                       <tr key={r.id || r.inventory_id || `${getSku(r)}-${i}`} className="hover:bg-slate-900">
-                        <td className="w-16 px-3 py-2.5" title={name}>
+                        <td className="w-16 border border-slate-800 px-3 py-2.5" title={name}>
                           <ProductImage src={r.image_url || m.image_url} name={name} />
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="border border-slate-800 px-3 py-2.5">
                           <p className="font-mono text-[11px] font-semibold text-orange-300/90">{getSku(r)}</p>
                           {(r.colour_name || m.colour_name) && <p className="text-[11px] text-slate-500">{r.colour_name || m.colour_name}</p>}
                         </td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-slate-200">{getStock(r).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-cyan-300">{getReserved(r).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-semibold text-amber-300">{num(r.low_stock_alert_qty).toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-center">
+                        <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-slate-200">{getStock(r).toLocaleString()}</td>
+                        <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-cyan-300">{getReserved(r).toLocaleString()}</td>
+                        <td className="border border-slate-800 px-3 py-2.5 text-right font-semibold text-amber-300">{num(r.low_stock_alert_qty).toLocaleString()}</td>
+                        <td className="border border-slate-800 px-3 py-2.5 text-center">
                           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${st.className}`}>{st.label}</span>
                         </td>
-                        <td className="px-3 py-2.5">
-                          {darazStockOf(r).length ? (
-                            <div className="space-y-1">
-                              {darazStockOf(r).map((entry) => (
+                        <td className="border border-slate-800 px-3 py-2.5">
+                          {darazEntries.length ? (
+                            <div className="space-y-1.5">
+                              {darazEntries.map((entry) => (
                                 <div key={entry.account_id} className="whitespace-nowrap text-[11px]">
-                                  <p className="text-slate-300">
-                                    <span className="text-slate-500">{entry.account_name}:</span>{" "}
-                                    <span className="font-semibold text-purple-300">{entry.quantity.toLocaleString()}</span>
-                                  </p>
+                                  <p className="text-slate-300">{entry.account_name}</p>
                                   <p className="font-mono text-[10px] text-slate-500">{entry.seller_sku}</p>
                                 </div>
                               ))}
@@ -501,7 +499,20 @@ export default function InventoryPage() {
                             <span className="text-[11px] text-slate-600">Not linked</span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-right">
+                        <td className="border border-slate-800 px-3 py-2.5 text-right">
+                          {darazEntries.length ? (
+                            <div className="space-y-1.5">
+                              {darazEntries.map((entry) => (
+                                <p key={entry.account_id} className="whitespace-nowrap text-[11px] font-semibold text-purple-300">
+                                  {entry.quantity.toLocaleString()}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-600">-</span>
+                          )}
+                        </td>
+                        <td className="border border-slate-800 px-3 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1">
                             {canViewCostPrice && (
                               <button
@@ -545,7 +556,7 @@ export default function InventoryPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="8" className="px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
+                    <td colSpan="9" className="border border-slate-800 px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
                   </tr>
                 )}
               </tbody>
