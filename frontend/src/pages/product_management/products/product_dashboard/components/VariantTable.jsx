@@ -1,4 +1,4 @@
-import { Edit, Eye, Trash2 } from "lucide-react";
+import { Copy, Edit, Eye, Trash2 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
 import { usePageOverlay } from "../../../../../components/common/page_overlay/PageOverlayProvider";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
@@ -34,6 +34,11 @@ function pickFirstValue(...values) {
 
 function clean(value) {
   return String(value ?? "").trim();
+}
+
+function copyText(value) {
+  if (!value || value === "-") return;
+  navigator.clipboard?.writeText(String(value)).catch(() => {});
 }
 
 function sameSku(left, right) {
@@ -281,18 +286,31 @@ export default function VariantTable({
                   </td>
 
                   <td className="px-3 py-3 align-middle">
-                    {variantSku ? (
-                      <button
-                        type="button"
-                        onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(variantSku)}`)}
-                        className="block w-full cursor-pointer truncate text-left text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
-                        title={`View SKU report for ${variantSku}`}
-                      >
-                        {variantSku}
-                      </button>
-                    ) : (
-                      <span className="block truncate text-[11px] font-normal text-slate-200">-</span>
-                    )}
+                    <div className="flex min-w-0 items-center gap-2">
+                      {variantSku ? (
+                        <button
+                          type="button"
+                          onClick={() => openOverlay(`/order-management/sku-report/${encodeURIComponent(variantSku)}`)}
+                          className="cursor-pointer truncate text-left text-[11px] font-normal text-orange-300 underline decoration-dotted transition hover:text-orange-200"
+                          title={`View SKU report for ${variantSku}`}
+                        >
+                          {variantSku}
+                        </button>
+                      ) : (
+                        <span className="truncate text-[11px] font-normal text-slate-200">-</span>
+                      )}
+
+                      {variantSku && (
+                        <button
+                          type="button"
+                          onClick={() => copyText(variantSku)}
+                          className="shrink-0 cursor-pointer text-orange-400 transition hover:text-orange-200"
+                          title="Copy SKU"
+                        >
+                          <Copy size={12} />
+                        </button>
+                      )}
+                    </div>
                   </td>
 
                   <td className="px-3 py-3 text-center align-middle">
