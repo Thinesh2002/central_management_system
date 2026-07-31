@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
 import { usePageOverlay } from "../../../../../components/common/page_overlay/PageOverlayProvider";
+import { useToast } from "../../../../../components/common/toast/ToastProvider";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -48,9 +49,9 @@ function getPriceText(record = {}) {
   return record.price_summary?.price_text || "-";
 }
 
-function copyText(value) {
+function copyText(value, onDone) {
   if (!value || value === "-") return;
-  navigator.clipboard?.writeText(String(value)).catch(() => {});
+  navigator.clipboard?.writeText(String(value)).then(() => onDone?.()).catch(() => {});
 }
 
 export default function ProductRow({
@@ -68,6 +69,7 @@ export default function ProductRow({
 }) {
   const { canEdit, canDelete } = usePagePermission("local_products");
   const { openOverlay } = usePageOverlay();
+  const showToast = useToast();
   const [actionOpen, setActionOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const actionRef = useRef(null);
@@ -211,7 +213,7 @@ export default function ProductRow({
 
             <button
               type="button"
-              onClick={() => copyText(sku)}
+              onClick={() => copyText(sku, () => showToast(`Copied "${sku}"`))}
               className="shrink-0 cursor-pointer text-orange-400 transition hover:text-orange-200"
               title="Copy SKU"
             >

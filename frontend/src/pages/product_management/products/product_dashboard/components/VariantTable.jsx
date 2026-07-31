@@ -1,6 +1,7 @@
 import { Copy, Edit, Eye, Trash2 } from "lucide-react";
 import { usePagePermission } from "../../../../../components/common/permissions/PermissionsProvider";
 import { usePageOverlay } from "../../../../../components/common/page_overlay/PageOverlayProvider";
+import { useToast } from "../../../../../components/common/toast/ToastProvider";
 import { EMPTY_IMAGE } from "../constants/localProductsDashboardConstants";
 import {
   getMainImageFromRows,
@@ -36,9 +37,9 @@ function clean(value) {
   return String(value ?? "").trim();
 }
 
-function copyText(value) {
+function copyText(value, onDone) {
   if (!value || value === "-") return;
-  navigator.clipboard?.writeText(String(value)).catch(() => {});
+  navigator.clipboard?.writeText(String(value)).then(() => onDone?.()).catch(() => {});
 }
 
 function sameSku(left, right) {
@@ -191,6 +192,7 @@ export default function VariantTable({
 }) {
   const { canEdit, canDelete } = usePagePermission("local_products");
   const { openOverlay } = usePageOverlay();
+  const showToast = useToast();
 
   if (!variants.length) {
     return (
@@ -303,7 +305,7 @@ export default function VariantTable({
                       {variantSku && (
                         <button
                           type="button"
-                          onClick={() => copyText(variantSku)}
+                          onClick={() => copyText(variantSku, () => showToast(`Copied "${variantSku}"`))}
                           className="shrink-0 cursor-pointer text-orange-400 transition hover:text-orange-200"
                           title="Copy SKU"
                         >
