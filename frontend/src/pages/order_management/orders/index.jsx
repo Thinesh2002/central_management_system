@@ -136,7 +136,14 @@ export default function OrdersPage() {
     try {
       const [ordersRes, optionsRes] = await Promise.all([
         ordersApi.listOrders({
-          limit: 1000,
+          // Status tab counts and the list itself are both derived from
+          // this one fetch (see countByStatus below) - capped at 1000 it
+          // silently stopped growing once total order volume passed that
+          // (confirmed live: 1120 orders across all sources), so the "All"
+          // tab looked permanently stuck at 1000 and the oldest orders
+          // beyond that cutoff simply vanished from the list. 5000 matches
+          // order_model.js's own hard cap on this endpoint.
+          limit: 5000,
           date_from: filters.dateFrom || undefined,
           date_to: filters.dateTo || undefined,
         }),
