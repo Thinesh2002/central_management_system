@@ -429,6 +429,17 @@ async function removeById(id, options = {}) {
   const existing = await findById(id);
   if (!existing) return null;
 
+  const availableQty = hasColumn(meta, "available_qty") && existing.available_qty !== null && existing.available_qty !== undefined
+    ? Number(existing.available_qty)
+    : Math.max(Number(existing.stock_qty || 0) - Number(existing.reserved_qty || 0), 0);
+
+  if (availableQty > 0) {
+    throw makeError(
+      `Cannot delete SKU "${existing.sku}" — it still has ${availableQty} available in inventory. Reduce the stock to 0 first.`,
+      400
+    );
+  }
+
   if (hasColumn(meta, "deleted_at")) {
     const data = { deleted_at: new Date() };
 

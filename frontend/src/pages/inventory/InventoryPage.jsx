@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Boxes, ClipboardList, Edit3, History, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
+import { Boxes, ClipboardList, Edit3, History, ImageOff, Plus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import productTrendsApi from "../../config/sub_api/order_management_api/product_trends_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
+import { useConfirm } from "../../components/common/confirm_modal/ConfirmProvider";
 import { useCanViewCostPrice } from "../../components/common/permissions/PermissionsProvider";
 import Loader from "../../components/common/Loader";
 import api, { getApiError } from "../../config/api";
@@ -78,6 +79,8 @@ function StatCard({ label, value, tone = "text-slate-100" }) {
 
 export default function InventoryPage() {
   const showToast = useToast();
+  const confirm = useConfirm();
+  const [deletingId, setDeletingId] = useState("");
   const canViewCostPrice = useCanViewCostPrice();
   const [searchParams] = useSearchParams();
   const [rows, setRows] = useState([]);
@@ -222,6 +225,26 @@ export default function InventoryPage() {
       showToast(getErrorMessage(e, `Unable to sync ${sku} to Daraz.`), { type: "error" });
     } finally {
       setSyncingSku("");
+    }
+  }
+
+  async function deleteRow(row) {
+    if (!row?.id) return;
+
+    const sku = getSku(row);
+    if (!(await confirm(`Delete inventory record for SKU "${sku}"?`))) return;
+
+    setDeletingId(row.id);
+    try {
+      await localProductsApi.deleteInventory(row.id);
+      showToast("Inventory record deleted.");
+      await loadInventory();
+    } catch (e) {
+      // Backend blocks the delete (400) with a message like 'still has N
+      // available in inventory' when the SKU isn't fully depleted yet.
+      showToast(getErrorMessage(e, "Unable to delete inventory record."), { type: "error" });
+    } finally {
+      setDeletingId("");
     }
   }
 
@@ -547,6 +570,17 @@ export default function InventoryPage() {
                             >
                               <Edit3 size={13} />
                             </button>
+                            {r.id && (
+                              <button
+                                type="button"
+                                onClick={() => deleteRow(r)}
+                                disabled={deletingId === r.id}
+                                title="Delete inventory record"
+                                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-rose-400 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
