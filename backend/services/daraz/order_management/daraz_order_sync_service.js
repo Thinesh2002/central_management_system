@@ -23,7 +23,8 @@ async function processOneOrder({ account, credentials, order }) {
     });
 
     const items = itemsResponse?.data?.data || [];
-    const newlyCreatedItems = await darazOrderSyncModel.upsertItems(items, localOrder.id);
+    const { newlyCreated: newlyCreatedItems, newlyCanceled: newlyCanceledItems } =
+      await darazOrderSyncModel.upsertItems(items, localOrder.id);
     itemCount = items.length;
 
     for (const newItem of newlyCreatedItems) {
@@ -40,6 +41,22 @@ async function processOneOrder({ account, credentials, order }) {
         console.error(
           `[DARAZ_ORDER_SYNC] Inventory deduction failed for order ${order.order_id} item ${newItem.order_item_id}:`,
           deductionError.message
+        );
+      }
+    }
+
+    for (const canceledItem of newlyCanceledItems) {
+      try {
+        await orderInventoryDeductionService.restockCanceledItem({
+          source: "daraz",
+          sourceOrderId: order.order_number || order.order_id,
+          orderItemId: canceledItem.order_item_id,
+          qty: canceledItem.qty,
+        });
+      } catch (restockError) {
+        console.error(
+          `[DARAZ_ORDER_SYNC] Inventory restock failed for order ${order.order_id} item ${canceledItem.order_item_id}:`,
+          restockError.message
         );
       }
     }

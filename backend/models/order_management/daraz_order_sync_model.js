@@ -82,9 +82,15 @@ async function upsertOrder(order, account) {
   return orderModel.create(payload);
 }
 
+const CANCELED_ITEM_STATUSES = new Set(["canceled", "cancelled"]);
+
 // Returns the items that were genuinely new this call (not previously
 // synced) — the caller uses this to trigger inventory deduction exactly
 // once per order item, never again on re-sync/status-change updates.
+// Also returns items whose status just transitioned into canceled this
+// call (old status wasn't canceled, new one is) — comparing against the
+// stored row before overwriting it means this only ever fires once per
+// cancellation, not on every re-sync while it stays canceled.
 async function upsertItems(items = [], localOrderId) {
   const [existingRows] = await db.query(
     "SELECT * FROM daraz_order_items WHERE daraz_order_id = ?",
@@ -92,6 +98,7 @@ async function upsertItems(items = [], localOrderId) {
   );
 
   const newlyCreated = [];
+  const newlyCanceled = [];
 
   for (const item of items) {
     const payload = mapItemPayload(item, localOrderId);
@@ -103,6 +110,16 @@ async function upsertItems(items = [], localOrderId) {
       }) || existingRows.find((row) => String(row.marketplace_sku || row.local_sku) === String(item.sku));
 
     if (matching) {
+      const wasCanceled = CANCELED_ITEM_STATUSES.has(String(matching.item_status || "").toLowerCase());
+      const isCanceledNow = CANCELED_ITEM_STATUSES.has(String(item.status || "").toLowerCase());
+
+      if (!wasCanceled && isCanceledNow) {
+        newlyCanceled.push({
+          order_item_id: matching.daraz_order_item_id ?? matching.order_item_id ?? item.order_item_id,
+          qty: 1,
+        });
+      }
+
       await itemModel.update(matching.id, payload);
     } else {
       await itemModel.create(payload);
@@ -130,7 +147,7 @@ async function upsertItems(items = [], localOrderId) {
     });
   }
 
-  return newlyCreated;
+  return { newlyCreated, newlyCanceled };
 }
 
 module.exports = { upsertOrder, upsertItems };

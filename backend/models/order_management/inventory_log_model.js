@@ -19,6 +19,22 @@ async function create({
   );
 }
 
+// Used when an order item transitions to "canceled" - only restock if a
+// deduction genuinely succeeded for this exact item before (never for
+// sku_missing/error attempts, and never twice for the same item).
+async function findLatestDeduction(source, orderItemId) {
+  if (!orderItemId) return null;
+
+  const [rows] = await db.query(
+    `SELECT * FROM inventory_logs
+     WHERE source = ? AND order_item_id = ? AND status = 'success'
+     ORDER BY id DESC LIMIT 1`,
+    [source, orderItemId]
+  );
+
+  return rows[0] || null;
+}
+
 async function listRecent({ status, sku, limit = 200 } = {}) {
   const params = [];
   let whereSql = "WHERE 1=1";
@@ -41,4 +57,4 @@ async function listRecent({ status, sku, limit = 200 } = {}) {
   return rows;
 }
 
-module.exports = { create, listRecent };
+module.exports = { create, listRecent, findLatestDeduction };

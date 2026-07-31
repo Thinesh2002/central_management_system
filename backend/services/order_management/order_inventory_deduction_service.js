@@ -117,4 +117,70 @@ async function deductStockForNewItem({ source = "daraz", sourceOrderId, orderIte
   }
 }
 
-module.exports = { deductStockForNewItem };
+// Called when an order item transitions to a canceled status (see
+// daraz_order_sync_model.upsertItems, which detects the old->new status
+// change so this only ever fires once per cancellation, not on every
+// re-sync while it stays canceled). Only restocks if a deduction
+// genuinely succeeded for this exact item before - an item that was
+// sku_missing/never matched has nothing to add back, and re-running this
+// twice for the same cancellation would double-restock.
+async function restockCanceledItem({ source = "daraz", sourceOrderId, orderItemId, qty = 1 }) {
+  const deduction = await inventoryLogModel.findLatestDeduction(source, orderItemId);
+
+  if (!deduction) {
+    return { status: "skipped", reason: "no_prior_deduction" };
+  }
+
+  const resolvedSku = deduction.sku;
+  const inventoryRow = await productInventoryModel.findBySku(resolvedSku);
+
+  if (!inventoryRow) {
+    return { status: "skipped", reason: "inventory_row_missing" };
+  }
+
+  try {
+    const oldQty = Number(inventoryRow.stock_qty || 0);
+    const restockQty = Number(deduction.qty ?? qty ?? 1);
+    const newQty = oldQty + restockQty;
+
+    await productInventoryModel.updateBySku(resolvedSku, { stock_qty: newQty });
+
+    await inventoryLogModel.create({
+      source,
+      source_order_id: sourceOrderId,
+      order_item_id: orderItemId,
+      sku: resolvedSku,
+      qty: restockQty,
+      old_stock_qty: oldQty,
+      new_stock_qty: newQty,
+      status: "restocked",
+      message: `Order ${sourceOrderId || "-"} item canceled — stock restocked.`,
+    });
+
+    try {
+      await darazInventorySyncService.pushSkuStockToDaraz({
+        sku: resolvedSku,
+        quantity: newQty,
+        source: "order_canceled",
+      });
+    } catch (pushError) {
+      console.error("[INVENTORY_RESTOCK_CROSS_ACCOUNT_SYNC_FAILED]", pushError.message);
+    }
+
+    return { status: "success", sku: resolvedSku, old_stock_qty: oldQty, new_stock_qty: newQty };
+  } catch (error) {
+    await inventoryLogModel.create({
+      source,
+      source_order_id: sourceOrderId,
+      order_item_id: orderItemId,
+      sku: resolvedSku,
+      qty,
+      status: "error",
+      message: error.message || "Stock restock failed.",
+    });
+
+    return { status: "error", message: error.message };
+  }
+}
+
+module.exports = { deductStockForNewItem, restockCanceledItem };
