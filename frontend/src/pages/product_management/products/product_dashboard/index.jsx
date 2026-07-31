@@ -563,7 +563,11 @@ export default function LocalProductsDashboard() {
         modelRes,
       ] = await Promise.all([
         localProductsApi.getProducts(),
-        localProductsApi.getImages().catch(() => ({ data: [] })),
+        // Unscoped defaults to the backend's limit=25 across the *entire*
+        // image library (confirmed live: 43 total images, so nearly half
+        // were silently cut from this list) - the list needs every
+        // product's image at once, not just the first page of the library.
+        localProductsApi.getImages({ limit: 5000 }).catch(() => ({ data: [] })),
         localProductsApi.getInventory({ limit: 500 }).catch(() => ({ data: [] })),
         localProductsApi.getPrices({ limit: 2000 }).catch(() => ({ data: [] })),
         localProductsApi.getCategories({ limit: 100 }).catch(() => []),
