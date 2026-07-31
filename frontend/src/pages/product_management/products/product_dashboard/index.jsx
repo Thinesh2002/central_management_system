@@ -808,8 +808,6 @@ export default function LocalProductsDashboard() {
           onOpenFilter={openFilterModal}
           onClear={clearAllFilters}
           onOpenExport={() => setExportOpen(true)}
-          onOpenPriceDashboard={() => openOverlay("/price")}
-          onOpenInventoryDashboard={() => openOverlay("/inventory")}
         />
 
         {selectedKeys.length > 0 && (

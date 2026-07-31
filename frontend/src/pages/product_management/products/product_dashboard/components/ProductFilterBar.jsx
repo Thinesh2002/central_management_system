@@ -1,4 +1,4 @@
-import { Boxes, Download, Filter, Search, Tag } from "lucide-react";
+import { Download, Filter, Search } from "lucide-react";
 
 const DATE_OPTIONS = [
   { value: "all", label: "All Dates" },
@@ -34,8 +34,6 @@ export default function ProductFilterBar({
   activePopupFilterCount,
   onOpenFilter,
   onOpenExport,
-  onOpenPriceDashboard,
-  onOpenInventoryDashboard,
 }) {
   function updateFilter(key, value) {
     setFilters((prev) => ({
@@ -69,23 +67,6 @@ export default function ProductFilterBar({
             EXPORT CSV
           </button>
 
-          <button
-            type="button"
-            onClick={onOpenPriceDashboard}
-            className="flex h-7 items-center gap-1 rounded-sm border border-emerald-500/40 bg-transparent px-2.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/10"
-          >
-            <Tag size={11} />
-            PRICE DASHBOARD
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenInventoryDashboard}
-            className="flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-transparent px-2.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/10"
-          >
-            <Boxes size={11} />
-            INVENTORY DASHBOARD
-          </button>
         </div>
       </div>
 
