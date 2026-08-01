@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Boxes, ClipboardList, Edit3, History, ImageOff, Plus, RefreshCw, Save, Search, Trash2, X } from "lucide-react";
+import { Boxes, ClipboardList, History, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import productTrendsApi from "../../config/sub_api/order_management_api/product_trends_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
@@ -107,6 +107,11 @@ export default function InventoryPage() {
   const [logsSkuSearch, setLogsSkuSearch] = useState("");
   const [logsStatus, setLogsStatus] = useState("");
   const [logsRows, setLogsRows] = useState([]);
+
+  const [addStockOpen, setAddStockOpen] = useState(false);
+  const [addStockRow, setAddStockRow] = useState(null);
+  const [addStockForm, setAddStockForm] = useState({ quantity: "", cost_price: "" });
+  const [addStockSaving, setAddStockSaving] = useState(false);
 
   const [darazStock, setDarazStock] = useState({});
   const [syncingSku, setSyncingSku] = useState("");
@@ -281,6 +286,50 @@ export default function InventoryPage() {
     setSkuSearch(f.sku);
     setProductMatches([]);
     setModalOpen(true);
+  }
+
+  function openAddStock(row) {
+    setAddStockRow(row);
+    setAddStockForm({ quantity: "", cost_price: "" });
+    setAddStockOpen(true);
+  }
+
+  function closeAddStock() {
+    if (addStockSaving) return;
+    setAddStockOpen(false);
+    setAddStockRow(null);
+  }
+
+  // Adds ON TOP of whatever stock is currently there instead of replacing
+  // it - a restock (e.g. from a supplier) is additive, not a correction.
+  // The supplier can quote a different cost price on every restock, so
+  // cost_price here is this batch's own price, not a fixed one; the
+  // existing cost-price-history logging (queueCostPriceUpdate on the
+  // backend) already tracks each change over time.
+  async function submitAddStock(e) {
+    e.preventDefault();
+    if (!addStockRow?.id) return;
+
+    const addQty = num(addStockForm.quantity);
+    if (addQty <= 0) return alert("Enter a quantity greater than 0 to add.");
+
+    const newStockQty = getStock(addStockRow) + addQty;
+    const costPrice = clean(addStockForm.cost_price);
+
+    setAddStockSaving(true);
+    try {
+      await localProductsApi.patchInventory(addStockRow.id, {
+        stock_qty: newStockQty,
+        cost_price: costPrice ? num(costPrice) : undefined,
+      });
+      showToast(`Added ${addQty} to ${getSku(addStockRow)} — new stock: ${newStockQty}.`);
+      closeAddStock();
+      await loadInventory();
+    } catch (e2) {
+      alert(getErrorMessage(e2, "Unable to add stock."));
+    } finally {
+      setAddStockSaving(false);
+    }
   }
 
   function setField(n, v) { setForm((p) => ({ ...p, [n]: v })); }
@@ -534,41 +583,52 @@ export default function InventoryPage() {
                           )}
                         </td>
                         <td className="border border-slate-800 px-3 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
                             {canViewCostPrice && (
                               <button
                                 type="button"
                                 onClick={() => openHistory(r)}
                                 title="Cost Price History"
-                                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400 hover:text-cyan-300"
+                                className="inline-flex h-7 items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 text-[10px] font-semibold text-cyan-300 transition-all duration-150 hover:scale-105 hover:bg-cyan-500/20"
                               >
-                                <History size={13} />
+                                History
                               </button>
                             )}
                             <button
                               type="button"
                               onClick={() => openInventoryLogs(getSku(r))}
                               title="Inventory Logs"
-                              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-sky-400 hover:text-sky-300"
+                              className="inline-flex h-7 items-center gap-1 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 text-[10px] font-semibold text-sky-300 transition-all duration-150 hover:scale-105 hover:bg-sky-500/20"
                             >
-                              <ClipboardList size={13} />
+                              Logs
                             </button>
                             <button
                               type="button"
                               onClick={() => syncRowToDaraz(r)}
                               disabled={syncingSku === getSku(r)}
                               title="Sync this SKU's stock to Daraz"
-                              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-400 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] font-semibold text-emerald-300 transition-all duration-150 hover:scale-105 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
                             >
-                              <RefreshCw size={13} className={syncingSku === getSku(r) ? "animate-spin" : ""} />
+                              <RefreshCw size={11} className={syncingSku === getSku(r) ? "animate-spin" : ""} />
+                              Sync
                             </button>
+                            {r.id && (
+                              <button
+                                type="button"
+                                onClick={() => openAddStock(r)}
+                                title="Add stock on top of the current quantity"
+                                className="inline-flex h-7 items-center gap-1 rounded-md border border-violet-500/30 bg-violet-500/10 px-2 text-[10px] font-semibold text-violet-300 transition-all duration-150 hover:scale-105 hover:bg-violet-500/20"
+                              >
+                                Add Stock
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => openEdit(r)}
                               title="Edit"
-                              className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-orange-400 hover:text-orange-300"
+                              className="inline-flex h-7 items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 text-[10px] font-semibold text-amber-300 transition-all duration-150 hover:scale-105 hover:bg-amber-500/20"
                             >
-                              <Edit3 size={13} />
+                              Edit
                             </button>
                             {r.id && (
                               <button
@@ -576,9 +636,9 @@ export default function InventoryPage() {
                                 onClick={() => deleteRow(r)}
                                 disabled={deletingId === r.id}
                                 title="Delete inventory record"
-                                className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-900 text-slate-300 hover:border-rose-400 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex h-7 items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 text-[10px] font-semibold text-rose-300 transition-all duration-150 hover:scale-105 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
                               >
-                                <Trash2 size={13} />
+                                Delete
                               </button>
                             )}
                           </div>
@@ -715,6 +775,74 @@ export default function InventoryPage() {
               </button>
               <button disabled={saving} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-orange-400 px-3 text-[12px] font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60">
                 <Save size={13} /> {saving ? "Saving..." : "Save Inventory"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {addStockOpen && addStockRow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm" onClick={closeAddStock}>
+          <form
+            onSubmit={submitAddStock}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-700 bg-[#0b1220] shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 bg-[#653bb3] px-4 py-3">
+              <h2 className="text-[14px] font-semibold text-white">Add Stock — {getSku(addStockRow)}</h2>
+              <button type="button" onClick={closeAddStock} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-4">
+              <div className="rounded-md border border-slate-800 bg-[#070b16] p-3 text-[12px] text-slate-400">
+                Current stock: <span className="font-semibold text-slate-200">{getStock(addStockRow).toLocaleString()}</span>
+                {num(addStockForm.quantity) > 0 && (
+                  <>
+                    {" "}→ new stock: <span className="font-semibold text-emerald-300">{(getStock(addStockRow) + num(addStockForm.quantity)).toLocaleString()}</span>
+                  </>
+                )}
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Quantity to Add <span className="text-amber-400">*</span>
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  value={addStockForm.quantity}
+                  onChange={(e) => setAddStockForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                  placeholder="e.g. 20"
+                  className="h-9 w-full rounded-md border border-slate-700 bg-[#020617] px-3 text-[12px] font-medium text-slate-100 outline-none placeholder:text-slate-600 focus:border-violet-400"
+                  autoFocus
+                />
+              </label>
+
+              {canViewCostPrice && (
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Cost Price <span className="normal-case text-slate-600">(this batch — supplier may quote a different price each time)</span>
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={addStockForm.cost_price}
+                    onChange={(e) => setAddStockForm((prev) => ({ ...prev, cost_price: e.target.value }))}
+                    placeholder="Leave blank to keep current cost"
+                    className="h-9 w-full rounded-md border border-slate-700 bg-[#020617] px-3 text-[12px] font-medium text-slate-100 outline-none placeholder:text-slate-600 focus:border-violet-400"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-800 px-4 py-3">
+              <button type="button" onClick={closeAddStock} className="h-8 rounded-md border border-slate-700 px-3 text-[12px] font-semibold text-slate-300 hover:bg-slate-800">
+                Cancel
+              </button>
+              <button disabled={addStockSaving} className="inline-flex h-8 items-center gap-1.5 rounded-md bg-violet-500 px-3 text-[12px] font-semibold text-white hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-60">
+                <Plus size={13} /> {addStockSaving ? "Adding..." : "Add Stock"}
               </button>
             </div>
           </form>
