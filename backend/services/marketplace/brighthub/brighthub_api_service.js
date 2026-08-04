@@ -115,6 +115,44 @@ async function deleteProduct(credentials, bhid) {
   return response.data || { success: true };
 }
 
+async function getOrders(credentials, query = {}) {
+  const client = createBrightHubClient(credentials);
+
+  const response = await client.get("/orders", {
+    params: {
+      page: query.page || 1,
+      limit: query.limit || 20,
+      status: query.status || undefined,
+    },
+  });
+
+  const body = response.data || {};
+
+  return {
+    data: Array.isArray(body.data) ? body.data : [],
+    total: Number(body.pagination?.total || 0),
+    total_pages: Number(body.pagination?.totalPages || 0),
+  };
+}
+
+async function getOrder(credentials, orderId) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.get(`/orders/${encodeURIComponent(orderId)}`);
+  return response.data?.data || null;
+}
+
+// There is no delete endpoint for orders - "Cancelled" is a status value,
+// set via this same PUT, that releases the stock/sales committed at creation.
+async function updateOrderStatus(credentials, orderId, status) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.put(
+    `/orders/${encodeURIComponent(orderId)}/status`,
+    { status },
+    { headers: { "Content-Type": "application/json" } }
+  );
+  return response.data?.data || null;
+}
+
 module.exports = {
   DEFAULT_BASE_URL,
   cleanBaseUrl,
@@ -124,4 +162,7 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  getOrders,
+  getOrder,
+  updateOrderStatus,
 };

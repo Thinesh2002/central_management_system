@@ -2,6 +2,7 @@ const express = require("express");
 
 const brighthubAccountController = require("../../controllers/marketplace/brighthub/brighthub_controller");
 const brighthubProductController = require("../../controllers/brighthub/product/brighthub_product_controller");
+const brighthubOrderController = require("../../controllers/brighthub/order/brighthub_order_controller");
 
 const router = express.Router();
 
@@ -60,6 +61,21 @@ router.put(
 router.delete(
   "/accounts/:accountId/products/:bhid",
   requireHandler(brighthubProductController.deleteBrightHubProduct, "deleteBrightHubProduct")
+);
+
+router.get(
+  "/accounts/:accountId/orders",
+  requireHandler(brighthubOrderController.getBrightHubOrders, "getBrightHubOrders")
+);
+
+router.get(
+  "/accounts/:accountId/orders/:id",
+  requireHandler(brighthubOrderController.getBrightHubOrderDetail, "getBrightHubOrderDetail")
+);
+
+router.put(
+  "/accounts/:accountId/orders/:id/status",
+  requireHandler(brighthubOrderController.updateBrightHubOrderStatus, "updateBrightHubOrderStatus")
 );
 
 module.exports = router;
