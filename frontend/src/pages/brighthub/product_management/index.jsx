@@ -6,6 +6,7 @@ import {
   Package,
   PlayCircle,
   Plus,
+  Pencil,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -249,6 +250,10 @@ export default function BrightHubProductDashboardPage() {
     }
 
     openOverlay(`/product/brighthub-products/create/${selectedAccountId}`, loadProducts);
+  }
+
+  function openEditProduct(row) {
+    openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}/edit`, loadProducts);
   }
 
   async function handleDeleteProduct(row) {
@@ -575,7 +580,7 @@ export default function BrightHubProductDashboardPage() {
                 <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Price</th>
                 <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Status</th>
                 <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Last Synced</th>
-                <th className="w-[8%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Action</th>
+                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Action</th>
               </tr>
             </thead>
 
@@ -673,19 +678,30 @@ export default function BrightHubProductDashboardPage() {
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteProduct(row)}
-                          disabled={deletingBhid === row.bhid}
-                          title="Delete from BrightHub"
-                          className="mx-auto flex h-7 w-7 items-center justify-center rounded-sm border border-red-500/30 bg-red-500/10 text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {deletingBhid === row.bhid ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={12} />
-                          )}
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openEditProduct(row)}
+                            title="Edit on BrightHub"
+                            className="flex h-7 w-7 items-center justify-center rounded-sm border border-amber-500/30 bg-amber-500/10 text-amber-300 transition hover:bg-amber-500/20"
+                          >
+                            <Pencil size={12} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProduct(row)}
+                            disabled={deletingBhid === row.bhid}
+                            title="Delete from BrightHub"
+                            className="flex h-7 w-7 items-center justify-center rounded-sm border border-red-500/30 bg-red-500/10 text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {deletingBhid === row.bhid ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={12} />
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

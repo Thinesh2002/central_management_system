@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { brighthubProductApi } from "../../../../config/sub_api/brighthub_api/brighthub_product_api";
 import { sanitizeHtml } from "../../../../utils/sanitizeHtml";
 import Loader from "../../../../components/common/Loader";
-import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
 import { useConfirm } from "../../../../components/common/confirm_modal/ConfirmProvider";
 import { useToast } from "../../../../components/common/toast/ToastProvider";
 
@@ -59,7 +58,6 @@ function Info({ label, value }) {
 export default function BrightHubProductDetailPage() {
   const { accountId, bhid } = useParams();
   const navigate = useNavigate();
-  const { openOverlay } = usePageOverlay();
   const confirm = useConfirm();
   const showToast = useToast();
 
@@ -104,8 +102,14 @@ export default function BrightHubProductDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId, bhid]);
 
+  // Plain in-place navigation, not openOverlay() - this detail page is
+  // often already showing inside an overlay opened from the list page, so
+  // opening ANOTHER overlay from in here stacked a second popup frame
+  // (purple header + close button) inside the first one. Navigating within
+  // the same page instance works whether this page is embedded or not, and
+  // the Edit page already navigates back here on save, which reloads fresh.
   function openEdit() {
-    openOverlay(`/product/brighthub-products/${accountId}/${bhid}/edit`, loadProduct);
+    navigate(`/product/brighthub-products/${accountId}/${bhid}/edit`);
   }
 
   async function handleDelete() {
