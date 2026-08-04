@@ -38,7 +38,6 @@ const emptyPrice = {
   sale_price: 0,
   local_selling_price: 0,
   daraz_price: 0,
-  woo_price: 0,
   packing_percent: 3,
   profit_percent: 50,
   daraz_fee_percent: 20,
@@ -133,7 +132,6 @@ export default function VariantPriceInventoryPage() {
           sale_price: priceRow?.sale_price ?? 0,
           local_selling_price: priceRow?.local_selling_price ?? priceRow?.sale_price ?? 0,
           daraz_price: priceRow?.daraz_price ?? 0,
-          woo_price: priceRow?.woo_price ?? 0,
           packing_percent: priceRow?.packing_percent ?? 3,
           profit_percent: priceRow?.profit_percent ?? 50,
           daraz_fee_percent: priceRow?.daraz_fee_percent ?? 20,
@@ -185,7 +183,6 @@ export default function VariantPriceInventoryPage() {
         next.sale_price = productSelling;
         next.local_selling_price = productSelling;
         next.daraz_price = daraz;
-        next.woo_price = productSelling;
       }
 
       return next;
@@ -222,7 +219,6 @@ export default function VariantPriceInventoryPage() {
         sale_price: money(priceForm.local_selling_price || priceForm.sale_price),
         local_selling_price: money(priceForm.local_selling_price || priceForm.sale_price),
         daraz_price: money(priceForm.daraz_price),
-        woo_price: money(priceForm.woo_price),
         packing_percent: money(priceForm.packing_percent),
         profit_percent: money(priceForm.profit_percent),
         daraz_fee_percent: money(priceForm.daraz_fee_percent),
@@ -282,7 +278,7 @@ export default function VariantPriceInventoryPage() {
         <div className="border-b border-slate-800 bg-[#07101f] px-4 py-3">
           <p className="text-sm font-black text-white">Variant Price & Inventory</p>
           <p className="mt-1 text-xs font-semibold text-slate-500">
-            SKU: {variantSku || "-"} — enter cost price to auto-calculate selling, Daraz and Woo prices.
+            SKU: {variantSku || "-"} — enter cost price to auto-calculate selling and Daraz price.
           </p>
         </div>
 
@@ -330,9 +326,6 @@ export default function VariantPriceInventoryPage() {
                 </FieldBox>
                 <FieldBox label="Daraz Price (auto)">
                   <NumberInput value={priceForm.daraz_price} readOnly onChange={() => {}} />
-                </FieldBox>
-                <FieldBox label="Woo Price (auto = Selling Price)">
-                  <NumberInput value={priceForm.woo_price} readOnly onChange={() => {}} />
                 </FieldBox>
                 <FieldBox label="Currency">
                   <select

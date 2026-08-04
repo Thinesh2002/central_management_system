@@ -35,9 +35,6 @@ const emptyForm = {
   refresh_token: "",
   access_token_expires_at: "",
   refresh_token_expires_at: "",
-
-  consumer_key: "",
-  consumer_secret: "",
 };
 
 function extractAccounts(res) {
@@ -70,23 +67,6 @@ function getAccountId(account) {
   return account?.id || account?.account_id;
 }
 
-function normalizePlatform(value) {
-  const text = String(value || "").toUpperCase();
-
-  if (
-    text === "WOO" ||
-    text === "WOOCOMMERCE" ||
-    text === "WOOCOMMERCE" ||
-    text === "WOOCOMMERCE_KEYS"
-  ) {
-    return "WOO";
-  }
-
-  if (text === "WOOCOMMERCE") return "WOO";
-
-  return text === "WOO" ? "WOO" : "DARAZ";
-}
-
 function toDatetimeLocal(value) {
   if (!value) return "";
 
@@ -109,15 +89,9 @@ export default function EditMarketplaceAccountPage() {
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testingWoo, setTestingWoo] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showAppSecret, setShowAppSecret] = useState(false);
-  const [showConsumerSecret, setShowConsumerSecret] = useState(false);
-
-  const platform = normalizePlatform(form.platform_code);
-  const isDaraz = platform === "DARAZ";
-  const isWoo = platform === "WOO";
 
   const pageTitle = useMemo(() => {
     return account?.account_name
@@ -133,12 +107,8 @@ export default function EditMarketplaceAccountPage() {
   }
 
   function fillForm(row) {
-    const detectedPlatform = normalizePlatform(
-      row.platform_code || row.platform_name || row.credential_type
-    );
-
     setForm({
-      platform_code: detectedPlatform,
+      platform_code: "DARAZ",
       account_uid: row.account_uid || "",
       account_name: row.account_name || "",
       account_code: row.account_code || "",
@@ -146,9 +116,7 @@ export default function EditMarketplaceAccountPage() {
       seller_id: row.seller_id || "",
       seller_email: row.seller_email || "",
       store_url: row.store_url || "",
-      api_base_url:
-        row.api_base_url ||
-        (detectedPlatform === "DARAZ" ? "https://api.daraz.lk/rest" : ""),
+      api_base_url: row.api_base_url || "https://api.daraz.lk/rest",
       is_sandbox: Boolean(row.is_sandbox),
 
       app_key: "",
@@ -157,9 +125,6 @@ export default function EditMarketplaceAccountPage() {
       refresh_token: "",
       access_token_expires_at: toDatetimeLocal(row.access_token_expires_at),
       refresh_token_expires_at: toDatetimeLocal(row.refresh_token_expires_at),
-
-      consumer_key: "",
-      consumer_secret: "",
     });
   }
 
@@ -203,34 +168,17 @@ export default function EditMarketplaceAccountPage() {
     }
   }
 
-  function validateForm({ requireWooKeys = false } = {}) {
+  function validateForm() {
     if (!form.account_name.trim()) return "Account name is required.";
     if (!form.account_code.trim()) return "Account code is required.";
-
-    if (isDaraz) {
-      if (!form.account_uid.trim()) return "Account UID is required.";
-    }
-
-    if (isWoo) {
-      if (!form.store_url.trim()) return "WooCommerce store URL is required.";
-
-      if (requireWooKeys) {
-        if (!form.consumer_key.trim()) {
-          return "WooCommerce consumer key is required.";
-        }
-
-        if (!form.consumer_secret.trim()) {
-          return "WooCommerce consumer secret is required.";
-        }
-      }
-    }
+    if (!form.account_uid.trim()) return "Account UID is required.";
 
     return "";
   }
 
-  function buildCommonPayload() {
+  function buildDarazPayload() {
     return {
-      platform_code: platform,
+      platform_code: "DARAZ",
       account_uid: form.account_uid.trim() || null,
       account_name: form.account_name.trim(),
       account_code: form.account_code.trim(),
@@ -240,12 +188,6 @@ export default function EditMarketplaceAccountPage() {
       store_url: form.store_url.trim() || null,
       api_base_url: form.api_base_url.trim() || null,
       is_sandbox: form.is_sandbox ? 1 : 0,
-    };
-  }
-
-  function buildDarazPayload() {
-    return {
-      ...buildCommonPayload(),
       app_key: form.app_key.trim() || null,
       app_secret: form.app_secret.trim() || null,
       access_token: form.access_token.trim() || null,
@@ -255,53 +197,10 @@ export default function EditMarketplaceAccountPage() {
     };
   }
 
-  function buildWooPayload() {
-    return {
-      account_name: form.account_name.trim(),
-      account_code: form.account_code.trim(),
-      country_code: form.country_code.trim() || "LK",
-      store_url: form.store_url.trim(),
-      consumer_key: form.consumer_key.trim(),
-      consumer_secret: form.consumer_secret.trim(),
-    };
-  }
-
-  async function handleTestWooConnection() {
-    const validationError = validateForm({ requireWooKeys: true });
-
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    try {
-      setTestingWoo(true);
-      setError("");
-      setMessage("");
-
-      await marketplaceApi.connectWooAccount(buildWooPayload());
-
-      setMessage("WooCommerce connection tested and updated successfully.");
-      await loadAccount();
-    } catch (err) {
-      setError(
-        err?.friendlyMessage ||
-          "WooCommerce connection failed. Please check keys."
-      );
-    } finally {
-      setTestingWoo(false);
-    }
-  }
-
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const wooHasNewKeys =
-      form.consumer_key.trim() || form.consumer_secret.trim();
-
-    const validationError = validateForm({
-      requireWooKeys: isWoo && Boolean(wooHasNewKeys),
-    });
+    const validationError = validateForm();
 
     if (validationError) {
       setError(validationError);
@@ -315,14 +214,7 @@ export default function EditMarketplaceAccountPage() {
 
       const id = getAccountId(account) || accountId;
 
-      if (isWoo && wooHasNewKeys) {
-        await marketplaceApi.connectWooAccount(buildWooPayload());
-      } else {
-        await marketplaceApi.updateAccount(
-          id,
-          isDaraz ? buildDarazPayload() : buildCommonPayload()
-        );
-      }
+      await marketplaceApi.updateAccount(id, buildDarazPayload());
 
       navigate("/marketplace/accounts");
     } catch (err) {
@@ -354,7 +246,7 @@ export default function EditMarketplaceAccountPage() {
           <h1 className="text-xl font-semibold text-white">{pageTitle}</h1>
 
           <p className="mt-1 text-sm text-slate-400">
-            Update account details, API base settings and WooCommerce keys.
+            Update account details and API base settings.
           </p>
         </div>
 
@@ -393,7 +285,7 @@ export default function EditMarketplaceAccountPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Platform">
-                <input value={platform} disabled className={`${inputClass} opacity-70`} />
+                <input value="DARAZ" disabled className={`${inputClass} opacity-70`} />
               </Field>
 
               <Field label="Country Code">
@@ -406,17 +298,15 @@ export default function EditMarketplaceAccountPage() {
                 />
               </Field>
 
-              {isDaraz && (
-                <Field label="Account UID">
-                  <input
-                    value={form.account_uid}
-                    onChange={(e) =>
-                      updateField("account_uid", e.target.value.toUpperCase())
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-              )}
+              <Field label="Account UID">
+                <input
+                  value={form.account_uid}
+                  onChange={(e) =>
+                    updateField("account_uid", e.target.value.toUpperCase())
+                  }
+                  className={inputClass}
+                />
+              </Field>
 
               <Field label="Account Code">
                 <input
@@ -434,49 +324,30 @@ export default function EditMarketplaceAccountPage() {
                 />
               </Field>
 
-              {isDaraz && (
-                <>
-                  <Field label="Seller ID">
-                    <input
-                      value={form.seller_id}
-                      onChange={(e) => updateField("seller_id", e.target.value)}
-                      className={inputClass}
-                    />
-                  </Field>
+              <Field label="Seller ID">
+                <input
+                  value={form.seller_id}
+                  onChange={(e) => updateField("seller_id", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
 
-                  <Field label="Seller Email">
-                    <input
-                      type="email"
-                      value={form.seller_email}
-                      onChange={(e) =>
-                        updateField("seller_email", e.target.value)
-                      }
-                      className={inputClass}
-                    />
-                  </Field>
+              <Field label="Seller Email">
+                <input
+                  type="email"
+                  value={form.seller_email}
+                  onChange={(e) => updateField("seller_email", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
 
-                  <Field label="API Base URL" className="md:col-span-2">
-                    <input
-                      value={form.api_base_url}
-                      onChange={(e) =>
-                        updateField("api_base_url", e.target.value)
-                      }
-                      className={inputClass}
-                    />
-                  </Field>
-                </>
-              )}
-
-              {isWoo && (
-                <Field label="WooCommerce Store URL" className="md:col-span-2">
-                  <input
-                    value={form.store_url}
-                    onChange={(e) => updateField("store_url", e.target.value)}
-                    placeholder="https://yourstore.com"
-                    className={inputClass}
-                  />
-                </Field>
-              )}
+              <Field label="API Base URL" className="md:col-span-2">
+                <input
+                  value={form.api_base_url}
+                  onChange={(e) => updateField("api_base_url", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
 
               <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#070B14] px-4 py-3 text-sm text-slate-300 md:col-span-2">
                 <input
@@ -497,106 +368,77 @@ export default function EditMarketplaceAccountPage() {
               </div>
 
               <div>
-                <h2 className="font-semibold text-white">
-                  {isDaraz ? "Update Daraz Credentials" : "Update Woo Keys"}
-                </h2>
+                <h2 className="font-semibold text-white">Update Daraz Credentials</h2>
                 <p className="text-xs text-slate-400">
                   Leave secret fields blank if you do not want to change them.
                 </p>
               </div>
             </div>
 
-            {isDaraz ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="New App Key">
-                  <input
-                    value={form.app_key}
-                    onChange={(e) => updateField("app_key", e.target.value)}
-                    placeholder="Fill only if changing"
-                    className={inputClass}
-                  />
-                </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="New App Key">
+                <input
+                  value={form.app_key}
+                  onChange={(e) => updateField("app_key", e.target.value)}
+                  placeholder="Fill only if changing"
+                  className={inputClass}
+                />
+              </Field>
 
-                <Field label="New App Secret">
-                  <SecretInput
-                    value={form.app_secret}
-                    show={showAppSecret}
-                    setShow={setShowAppSecret}
-                    onChange={(value) => updateField("app_secret", value)}
-                    placeholder="Fill only if changing"
-                  />
-                </Field>
+              <Field label="New App Secret">
+                <SecretInput
+                  value={form.app_secret}
+                  show={showAppSecret}
+                  setShow={setShowAppSecret}
+                  onChange={(value) => updateField("app_secret", value)}
+                  placeholder="Fill only if changing"
+                />
+              </Field>
 
-                <Field label="New Access Token" className="md:col-span-2">
-                  <textarea
-                    value={form.access_token}
-                    onChange={(e) =>
-                      updateField("access_token", e.target.value)
-                    }
-                    rows={3}
-                    placeholder="Fill only if changing"
-                    className={`${inputClass} resize-none`}
-                  />
-                </Field>
+              <Field label="New Access Token" className="md:col-span-2">
+                <textarea
+                  value={form.access_token}
+                  onChange={(e) => updateField("access_token", e.target.value)}
+                  rows={3}
+                  placeholder="Fill only if changing"
+                  className={`${inputClass} resize-none`}
+                />
+              </Field>
 
-                <Field label="New Refresh Token" className="md:col-span-2">
-                  <textarea
-                    value={form.refresh_token}
-                    onChange={(e) =>
-                      updateField("refresh_token", e.target.value)
-                    }
-                    rows={3}
-                    placeholder="Fill only if changing"
-                    className={`${inputClass} resize-none`}
-                  />
-                </Field>
+              <Field label="New Refresh Token" className="md:col-span-2">
+                <textarea
+                  value={form.refresh_token}
+                  onChange={(e) =>
+                    updateField("refresh_token", e.target.value)
+                  }
+                  rows={3}
+                  placeholder="Fill only if changing"
+                  className={`${inputClass} resize-none`}
+                />
+              </Field>
 
-                <Field label="Access Token Expires At">
-                  <input
-                    type="datetime-local"
-                    value={form.access_token_expires_at}
-                    onChange={(e) =>
-                      updateField("access_token_expires_at", e.target.value)
-                    }
-                    className={inputClass}
-                  />
-                </Field>
+              <Field label="Access Token Expires At">
+                <input
+                  type="datetime-local"
+                  value={form.access_token_expires_at}
+                  onChange={(e) =>
+                    updateField("access_token_expires_at", e.target.value)
+                  }
+                  className={inputClass}
+                />
+              </Field>
 
-                <Field label="Refresh Token Expires At">
-                  <input
-                    type="datetime-local"
-                    value={form.refresh_token_expires_at}
-                    onChange={(e) =>
-                      updateField("refresh_token_expires_at", e.target.value)
-                    }
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label="New Consumer Key">
-                  <input
-                    value={form.consumer_key}
-                    onChange={(e) =>
-                      updateField("consumer_key", e.target.value)
-                    }
-                    placeholder="ck_xxxxxxxxx"
-                    className={inputClass}
-                  />
-                </Field>
-
-                <Field label="New Consumer Secret">
-                  <SecretInput
-                    value={form.consumer_secret}
-                    show={showConsumerSecret}
-                    setShow={setShowConsumerSecret}
-                    onChange={(value) => updateField("consumer_secret", value)}
-                    placeholder="cs_xxxxxxxxx"
-                  />
-                </Field>
-              </div>
-            )}
+              <Field label="Refresh Token Expires At">
+                <input
+                  type="datetime-local"
+                  value={form.refresh_token_expires_at}
+                  onChange={(e) =>
+                    updateField("refresh_token_expires_at", e.target.value)
+                  }
+                  className={inputClass}
+                />
+              </Field>
+            </div>
           </section>
         </div>
 
@@ -615,25 +457,9 @@ export default function EditMarketplaceAccountPage() {
               </div>
             </div>
 
-            {isWoo && (
-              <button
-                type="button"
-                onClick={handleTestWooConnection}
-                disabled={testingWoo || saving}
-                className="mb-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 text-[12px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {testingWoo ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <ShieldCheck size={16} />
-                )}
-                Test & Update Woo Keys
-              </button>
-            )}
-
             <button
               type="submit"
-              disabled={saving || testingWoo}
+              disabled={saving}
               className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-yellow-400 px-3 text-[12px] font-semibold text-slate-950 shadow-lg shadow-yellow-400/10 transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
@@ -657,8 +483,7 @@ export default function EditMarketplaceAccountPage() {
                   Important Note
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-yellow-100/80">
-                  For WooCommerce, updating keys through Test & Update will call
-                  the Woo connect API and validate the store again.
+                  Daraz refresh token expiry needs seller reauthorization.
                 </p>
               </div>
             </div>

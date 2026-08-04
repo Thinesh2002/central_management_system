@@ -1,7 +1,7 @@
 const db = require("../../../config/price_management_db/price_management_db");
 const productManagementDb = require("../../../config/product_management_db/product_management_db");
 
-const ALLOWED_MARKETPLACES = new Set(["local", "daraz", "woocommerce", "all"]);
+const ALLOWED_MARKETPLACES = new Set(["local", "daraz", "all"]);
 const ALLOWED_MARGIN_TYPES = new Set(["percentage", "fixed"]);
 const ALLOWED_ROUNDING_RULES = new Set(["none", "nearest_9", "nearest_50", "nearest_100", "nearest_whole"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);

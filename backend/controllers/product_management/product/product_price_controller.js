@@ -124,7 +124,7 @@ function normalizePriceBody(body = {}) {
   delete payload.purchasePrice;
 
   // Removed / unwanted old relation columns only.
-  // Do not remove currency / Daraz / Woo / product selling fields because price dashboard uses them.
+  // Do not remove currency / Daraz / product selling fields because price dashboard uses them.
   delete payload.product_id;
   delete payload.variant_id;
   delete payload.price_type;
@@ -141,7 +141,6 @@ function hasRealUpdateFields(payload = {}) {
     "cost_price",
     "local_selling_price",
     "daraz_price",
-    "woo_price",
     "profit_percent",
     "daraz_fee_percent",
     "advertising_percent",
@@ -340,7 +339,7 @@ const update = asyncHandler(async (req, res) => {
 
   if (!hasRealUpdateFields(payload)) {
     throw badRequestError(
-      "No valid price fields supplied. Send cost price, product selling price, Daraz price or Woo price."
+      "No valid price fields supplied. Send cost price, product selling price, Daraz price."
     );
   }
 
@@ -404,7 +403,7 @@ const updateBySku = asyncHandler(async (req, res) => {
 
   if (!hasRealUpdateFields(payload)) {
     throw badRequestError(
-      "No valid price fields supplied. Send cost price, product selling price, Daraz price or Woo price."
+      "No valid price fields supplied. Send cost price, product selling price, Daraz price."
     );
   }
 

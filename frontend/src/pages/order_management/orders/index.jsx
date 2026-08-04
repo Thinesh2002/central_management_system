@@ -176,7 +176,7 @@ export default function OrdersPage() {
   const [searchParams] = useSearchParams();
 
   const [orders, setOrders] = useState([]);
-  const [filterOptions, setFilterOptions] = useState({ accounts: [], payment_methods: [] });
+  const [filterOptions, setFilterOptions] = useState({ payment_methods: [] });
   const [status, setStatus] = useState(() => {
     const fromUrl = searchParams.get("status");
     return fromUrl && STATUS_KEYS.has(fromUrl) ? fromUrl : "all";
@@ -215,7 +215,7 @@ export default function OrdersPage() {
       ]);
 
       setOrders([...(ordersRes?.data?.orders || []), ...brighthubOrders]);
-      setFilterOptions(optionsRes?.data || { accounts: [], payment_methods: [] });
+      setFilterOptions(optionsRes?.data || { payment_methods: [] });
     } catch (error) {
       alert(getApiError(error, "Failed to load orders"));
       setOrders([]);
@@ -234,6 +234,20 @@ export default function OrdersPage() {
   }, [filters.dateFrom, filters.dateTo]);
 
   const counts = useMemo(() => countByStatus(orders), [orders]);
+
+  // Derived straight from the loaded orders (source + account_name), not a
+  // separate backend call - stays in sync automatically and naturally
+  // includes BrightHub accounts (which only exist client-side, merged in
+  // above) without the backend needing to know about them.
+  const accountOptions = useMemo(() => {
+    const seen = new Map();
+    orders.forEach((order) => {
+      if (!order.account_name) return;
+      const key = `${order.source}:${order.account_name}`;
+      if (!seen.has(key)) seen.set(key, { name: order.account_name, source: order.source });
+    });
+    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [orders]);
 
   const visibleOrders = useMemo(
     () => filterOrders(orders, filters, query, status),
@@ -279,7 +293,7 @@ export default function OrdersPage() {
 
   // BrightHub orders are viewed on their own detail page (order/status live
   // straight from BrightHub's API) instead of the generic source/id route,
-  // which only knows about daraz/woo/local. No separate invoice/tracking
+  // which only knows about daraz/local. No separate invoice/tracking
   // view exists for BrightHub yet, so Print/Track fall back to the same page.
   function brightHubDetailUrl(order) {
     return `/product/brighthub-orders/${order.account_id}/${order.source_order_id}`;
@@ -668,7 +682,7 @@ export default function OrdersPage() {
         open={filterOpen}
         filters={filters}
         setFilters={setFilters}
-        options={filterOptions}
+        options={{ ...filterOptions, accounts: accountOptions }}
         onClose={() => setFilterOpen(false)}
         onReset={() => setFilters(blankFilters)}
       />

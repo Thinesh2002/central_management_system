@@ -58,7 +58,6 @@ export function sourceMeta(source) {
   const s = normalize(source);
 
   if (s === "daraz") return { label: "Daraz", className: "text-orange-400" };
-  if (s === "woo") return { label: "WooCommerce", className: "text-violet-400" };
   if (s === "local") return { label: "Manual", className: "text-emerald-400" };
   if (s === "brighthub") return { label: "Website", className: "text-yellow-400" };
 

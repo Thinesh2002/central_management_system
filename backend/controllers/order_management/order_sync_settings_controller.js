@@ -1,7 +1,6 @@
 const asyncHandler = require("../../middleware/async_handler");
 const settingsModel = require("../../models/order_management/order_sync_settings_model");
 const darazOrderSyncJob = require("../../jobs/daraz/order_management/daraz_order_sync_job");
-const wooOrderSyncJob = require("../../jobs/woo/order_management/woo_order_sync_job");
 
 const getSettings = asyncHandler(async (req, res) => {
   const settings = await settingsModel.getSettings();
@@ -23,11 +22,7 @@ const runNow = asyncHandler(async (req, res) => {
     console.error("[DARAZ_ORDER_SYNC] Manual run-now failed:", error.message);
   });
 
-  wooOrderSyncJob.syncAllWooOrders().catch((error) => {
-    console.error("[WOO_ORDER_SYNC] Manual run-now failed:", error.message);
-  });
-
-  return res.json({ success: true, message: "Order sync triggered for Daraz and WooCommerce. Check logs for status." });
+  return res.json({ success: true, message: "Order sync triggered for Daraz. Check logs for status." });
 });
 
 module.exports = { getSettings, updateSettings, runNow };

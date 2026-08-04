@@ -77,7 +77,7 @@ const createWaybill = asyncHandler(async (req, res) => {
   return res.json({ success: true, message: "Waybill saved", data: updated });
 });
 
-// Only manual orders can be deleted — a Daraz/Woo order is a synced mirror
+// Only manual orders can be deleted — a Daraz order is a synced mirror
 // of something real on that marketplace; deleting the local row wouldn't
 // delete it there, and the next sync would just recreate it.
 const deleteOrder = asyncHandler(async (req, res) => {

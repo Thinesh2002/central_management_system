@@ -37,22 +37,6 @@ export const marketplaceApi = {
   getDarazReauthUrl: (accountId) =>
     api.get(`${BASE_PATH}/accounts/${accountId}/daraz/reauth-url`),
 
-  // WooCommerce
-  connectWooAccount: (payload) =>
-    api.post(`${BASE_PATH}/woo/connect`, payload),
-
-  getWooAccounts: () =>
-    api.get(`${BASE_PATH}/woo/accounts`),
-
-  testWooAccount: (accountId) =>
-    api.post(`${BASE_PATH}/woo/accounts/${accountId}/test`),
-
-  getWooProducts: (accountId, params = {}) =>
-    api.get(`${BASE_PATH}/woo/accounts/${accountId}/products`, { params }),
-
-  getWooCategories: (accountId, params = {}) =>
-    api.get(`${BASE_PATH}/woo/accounts/${accountId}/categories`, { params }),
-
   // BrightHub
   connectBrightHubAccount: (payload) =>
     api.post(`${BASE_PATH}/brighthub/connect`, payload),

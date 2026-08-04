@@ -30,7 +30,6 @@ const DATE_PRESETS = [
 const MARKETPLACES = [
   { value: "all", label: "Marketplace total" },
   { value: "daraz", label: "Daraz" },
-  { value: "woo", label: "WooCommerce" },
   { value: "local", label: "Manual / Local" },
 ];
 

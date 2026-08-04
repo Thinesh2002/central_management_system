@@ -44,8 +44,6 @@ async function createMarketplaceAccount(req, res) {
       refresh_token,
       access_token_expires_at,
       refresh_token_expires_at,
-      consumer_key,
-      consumer_secret,
     } = body;
 
     if (!platform_code || !account_uid || !account_name) {
@@ -115,23 +113,6 @@ async function createMarketplaceAccount(req, res) {
       await accountModel.upsertAccountHealth(accountId, "DARAZ", {
         connection_status: access_token ? "connected" : "not_connected",
         token_status: access_token ? "valid" : "not_created",
-        last_error: null,
-      });
-    }
-
-    if (normalizedPlatform === "WOO" || normalizedPlatform === "WOOCOMMERCE") {
-      await credentialModel.upsertCredentials({
-        account_id: accountId,
-        credential_type: "woocommerce_keys",
-        consumer_key: cleanValue(consumer_key),
-        consumer_secret: cleanValue(consumer_secret),
-        token_status: consumer_key && consumer_secret ? "valid" : "not_created",
-      });
-
-      await accountModel.upsertAccountHealth(accountId, normalizedPlatform, {
-        connection_status:
-          consumer_key && consumer_secret ? "connected" : "not_connected",
-        token_status: consumer_key && consumer_secret ? "valid" : "not_created",
         last_error: null,
       });
     }
@@ -234,35 +215,6 @@ async function updateMarketplaceAccount(req, res) {
         await accountModel.upsertAccountHealth(accountId, "DARAZ", {
           connection_status: body.access_token ? "connected" : "not_connected",
           token_status: body.access_token ? "valid" : "not_created",
-          last_error: null,
-        });
-      }
-    }
-
-    if (normalizedPlatform === "WOO" || normalizedPlatform === "WOOCOMMERCE") {
-      const hasWooCredentialUpdate = body.consumer_key || body.consumer_secret;
-
-      if (hasWooCredentialUpdate) {
-        await credentialModel.upsertCredentials({
-          account_id: accountId,
-          credential_type: "woocommerce_keys",
-          consumer_key: cleanValue(body.consumer_key),
-          consumer_secret: cleanValue(body.consumer_secret),
-          token_status:
-            body.consumer_key && body.consumer_secret
-              ? "valid"
-              : "not_created",
-        });
-
-        await accountModel.upsertAccountHealth(accountId, normalizedPlatform, {
-          connection_status:
-            body.consumer_key && body.consumer_secret
-              ? "connected"
-              : "not_connected",
-          token_status:
-            body.consumer_key && body.consumer_secret
-              ? "valid"
-              : "not_created",
           last_error: null,
         });
       }

@@ -122,14 +122,6 @@ async function manualSyncAccount({ accountId, syncType, userId = null }) {
         syncType,
         jobId,
       });
-    } else if (platformCode === "WOO") {
-      result = {
-        total_records: 0,
-        success_records: 0,
-        failed_records: 0,
-        skipped_records: 0,
-        message: "WooCommerce sync service not implemented yet.",
-      };
     } else {
       throw createSyncError(
         `Unsupported platform: ${account.platform_code}`,

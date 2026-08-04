@@ -202,7 +202,7 @@ export default function CustomerViewPage() {
             <div className="border-b border-slate-800 px-4 py-3">
               <h2 className="text-sm font-medium text-slate-100">Order History ({orders.length})</h2>
               <p className="text-[12px] text-slate-500">
-                All orders placed by this customer, across local, Daraz and WooCommerce.
+                All orders placed by this customer, across local and Daraz.
               </p>
             </div>
 

@@ -14,7 +14,6 @@ const MARKETPLACE_OPTIONS = [
   { value: "all", label: "All Marketplaces" },
   { value: "local", label: "Local Store" },
   { value: "daraz", label: "Daraz" },
-  { value: "woocommerce", label: "WooCommerce" },
 ];
 
 const ROUNDING_OPTIONS = [

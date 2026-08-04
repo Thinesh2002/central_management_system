@@ -16,7 +16,7 @@ function ProtectedBrightHubOrderPage({ children }) {
 
 // The standalone Website Orders list page/route was removed - BrightHub
 // orders now show merged into the main Orders page (/order-management/orders)
-// alongside Daraz/Woo/local orders. This detail page stays, reached from
+// alongside Daraz/local orders. This detail page stays, reached from
 // that unified list's View/Print/Track actions for brighthub-sourced rows.
 export default function BrightHubOrderRoutes() {
   return (

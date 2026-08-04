@@ -34,7 +34,7 @@ async function updateSettings(data = {}) {
 // Gates the SCHEDULED/cron-triggered sync only — "Run Sync Now" always runs
 // unconditionally (an explicit manual click shouldn't be silently ignored).
 // sync_enabled/auto_sync_enabled/sync_interval_minutes previously existed on
-// the settings form but nothing ever read them - both the Daraz and Woo cron
+// the settings form but nothing ever read them - the Daraz cron
 // jobs ran on a hardcoded */30 schedule regardless of what was saved here.
 function isScheduledSyncDue(settings) {
   if (!settings) return true;

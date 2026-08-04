@@ -46,7 +46,7 @@ async function resolveMappedSku(sku) {
 }
 
 // Every wrong SKU on record that resolves to this correct SKU — old order
-// rows (Daraz/Woo/local) may have been recorded under any of them before
+// rows (Daraz/local) may have been recorded under any of them before
 // the typo was caught, so history lookups need to match all of them, not
 // just today's correct SKU.
 async function getKnownWrongSkusFor(correctSku) {
@@ -125,7 +125,7 @@ async function getStockAndPrice(sku) {
   );
 
   const [priceRows] = await priceDb.query(
-    "SELECT cost_price, local_selling_price, sale_price, daraz_price, woo_price, currency FROM product_prices WHERE sku = ? AND deleted_at IS NULL LIMIT 1",
+    "SELECT cost_price, local_selling_price, sale_price, daraz_price, currency FROM product_prices WHERE sku = ? AND deleted_at IS NULL LIMIT 1",
     [sku]
   );
 
@@ -194,15 +194,7 @@ async function getMarketplaceListings(skuVariants) {
     skuVariants
   );
 
-  const [wooRows] = await productDb.query(
-    `SELECT id, account_id, sku, name, price, regular_price, sale_price, stock_quantity, stock_status
-     FROM woo_products WHERE sku IN (${placeholders})`,
-    skuVariants
-  );
-
-  const accountIds = Array.from(
-    new Set([...darazRows.map((r) => r.account_id), ...wooRows.map((r) => r.account_id)].filter(Boolean))
-  );
+  const accountIds = Array.from(new Set(darazRows.map((r) => r.account_id).filter(Boolean)));
 
   let accountMap = new Map();
 
@@ -222,14 +214,6 @@ async function getMarketplaceListings(skuVariants) {
       price: toNumber(row.sale_price || row.price),
       stock_qty: toNumber(row.quantity),
       status: row.status,
-    })),
-    woo: wooRows.map((row) => ({
-      account_id: row.account_id,
-      account_name: accountMap.get(row.account_id) || `Account ${row.account_id}`,
-      title: row.name,
-      price: toNumber(row.sale_price || row.regular_price || row.price),
-      stock_qty: toNumber(row.stock_quantity),
-      status: row.stock_status,
     })),
   };
 }
@@ -254,39 +238,6 @@ async function getDarazHistory(skuVariants) {
   return rows.map((row) => ({
     platform: "DARAZ",
     order_no: row.order_number || row.daraz_order_id,
-    order_date: row.order_date,
-    status: row.item_status || row.order_status,
-    account_name: row.account_name,
-    buyer: row.buyer_name,
-    product_title: row.product_title,
-    variation: row.variation_name,
-    qty: toNumber(row.qty),
-    unit_price: toNumber(row.unit_price),
-    discount_amount: toNumber(row.discount_amount),
-    line_total: toNumber(row.line_total),
-  }));
-}
-
-async function getWooHistory(skuVariants) {
-  const placeholders = inClause(skuVariants);
-
-  const [rows] = await orderDb.query(
-    `SELECT
-        woi.id, woi.qty, woi.unit_price, woi.discount_amount, woi.line_total, woi.item_status,
-        woi.product_title, woi.variation_name,
-        wo.order_number, wo.woo_order_id, wo.order_date, wo.order_status, wo.account_name, wo.buyer_name
-     FROM woo_order_items woi
-     INNER JOIN woo_orders wo ON wo.id = woi.woo_order_id
-     WHERE woi.sku IN (${placeholders})
-        OR woi.local_sku IN (${placeholders})
-        OR woi.marketplace_sku IN (${placeholders})
-     ORDER BY wo.order_date DESC`,
-    [...skuVariants, ...skuVariants, ...skuVariants]
-  );
-
-  return rows.map((row) => ({
-    platform: "WOO",
-    order_no: row.order_number || row.woo_order_id,
     order_date: row.order_date,
     status: row.item_status || row.order_status,
     account_name: row.account_name,
@@ -402,16 +353,15 @@ async function getSkuReport(requestedSku) {
   // the local product record has to be resolved first.
   const localProduct = await getLocalProduct(sku);
 
-  const [stockAndPrice, images, listings, darazHistory, wooHistory, localHistory] = await Promise.all([
+  const [stockAndPrice, images, listings, darazHistory, localHistory] = await Promise.all([
     getStockAndPrice(sku),
     getProductImages(sku, localProduct),
     getMarketplaceListings(skuVariants),
     getDarazHistory(skuVariants),
-    getWooHistory(skuVariants),
     getLocalHistory(skuVariants),
   ]);
 
-  const allHistory = [...darazHistory, ...wooHistory, ...localHistory].sort(
+  const allHistory = [...darazHistory, ...localHistory].sort(
     (a, b) => new Date(b.order_date) - new Date(a.order_date)
   );
 
@@ -419,7 +369,6 @@ async function getSkuReport(requestedSku) {
 
   const platforms = [
     { platform: "DARAZ", has_listing: listings.daraz.length > 0, ...summarizePlatform(darazHistory) },
-    { platform: "WOO", has_listing: listings.woo.length > 0, ...summarizePlatform(wooHistory) },
     { platform: "LOCAL", has_listing: Boolean(localProduct), ...summarizePlatform(localHistory) },
   ].filter((row) => row.has_listing || row.order_count > 0);
 

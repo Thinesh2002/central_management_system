@@ -1,7 +1,7 @@
 import api from "../../../config/api";
 
 // NOTE: `api` already has baseURL ending in "/api", so paths here must NOT
-// start with "/api" again (same gotcha documented in woo_product_api.jsx).
+// start with "/api" again (same gotcha as other sub-api modules).
 export const brighthubProductApi = {
   getBrightHubAccounts: () => api.get("/marketplace/brighthub/accounts"),
 

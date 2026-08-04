@@ -2,7 +2,6 @@ const asyncHandler = require("../../../middleware/async_handler.js");
 const model = require("../../../models/product_management/product/product_inventory_model.js");
 const productLogModel = require("../../../models/product_management/product/product_log_model.js");
 const darazInventorySyncService = require("../../../services/daraz/inventory/daraz_inventory_sync_service.js");
-const wooInventorySyncService = require("../../../services/woo/inventory/woo_inventory_sync_service.js");
 const inventoryCostPriceService = require("../../../services/product_management/inventory_cost_price_service.js");
 
 const TABLE_LABEL = "Product inventory";
@@ -88,32 +87,6 @@ function queueInventorySyncToDaraz(req, saved) {
     });
 
   return { queued: true, message: "Daraz stock sync queued in background." };
-}
-
-// Moved here from the (now-removed) GRN receiving flow - manual stock
-// updates on the Inventory Dashboard now push to Woo the same way GRN
-// receipts used to.
-function queueInventorySyncToWoo(req, saved) {
-  const shouldSync = String(
-    req?.body?.sync_woo ?? req?.body?.syncWoo ?? req?.query?.sync_woo ?? "true"
-  ).toLowerCase() !== "false";
-
-  if (!shouldSync || !saved?.sku) {
-    return { queued: false, skipped: true, message: "Woo stock sync skipped." };
-  }
-
-  wooInventorySyncService
-    .pushSkuStockToWoo({
-      sku: saved.sku,
-      quantity: saved.stock_qty ?? saved.total_stock ?? saved.quantity ?? 0,
-      source: "inventory_update",
-      userId: getUserId(req),
-    })
-    .catch((error) => {
-      console.error("[INVENTORY_WOO_STOCK_SYNC_ERROR]", { sku: saved.sku, message: error?.message });
-    });
-
-  return { queued: true, message: "Woo stock sync queued in background." };
 }
 
 // Moved here from the (now-removed) GRN receiving flow - if the caller
@@ -214,7 +187,6 @@ const create = asyncHandler(async (req, res) => {
   );
 
   const darazSync = queueInventorySyncToDaraz(req, saved);
-  const wooSync = queueInventorySyncToWoo(req, saved);
   queueCostPriceUpdate(req, saved);
 
   return sendSuccess(
@@ -224,7 +196,7 @@ const create = asyncHandler(async (req, res) => {
       ? `${TABLE_LABEL} updated successfully`
       : `${TABLE_LABEL} created successfully`,
     saved,
-    { daraz_sync: darazSync, woo_sync: wooSync }
+    { daraz_sync: darazSync }
   );
 });
 
@@ -248,12 +220,10 @@ const update = asyncHandler(async (req, res) => {
   );
 
   const darazSync = queueInventorySyncToDaraz(req, updated);
-  const wooSync = queueInventorySyncToWoo(req, updated);
   queueCostPriceUpdate(req, updated);
 
   return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated, {
     daraz_sync: darazSync,
-    woo_sync: wooSync,
   });
 });
 
@@ -286,12 +256,10 @@ const updateBySku = asyncHandler(async (req, res) => {
   );
 
   const darazSync = queueInventorySyncToDaraz(req, updated);
-  const wooSync = queueInventorySyncToWoo(req, updated);
   queueCostPriceUpdate(req, updated);
 
   return sendSuccess(res, 200, `${TABLE_LABEL} updated successfully`, updated, {
     daraz_sync: darazSync,
-    woo_sync: wooSync,
   });
 });
 

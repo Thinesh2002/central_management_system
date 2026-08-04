@@ -47,16 +47,7 @@ async function getRecentOrderItems(sinceDate) {
     [sinceDate]
   );
 
-  const [wooRows] = await orderDb.query(
-    `SELECT COALESCE(NULLIF(woi.local_sku, ''), NULLIF(woi.sku, ''), woi.marketplace_sku) AS sku,
-            woi.qty, wo.order_date, wo.order_status AS status
-     FROM woo_order_items woi
-     JOIN woo_orders wo ON wo.id = woi.woo_order_id
-     WHERE wo.order_date >= ?`,
-    [sinceDate]
-  );
-
-  return [...localRows, ...darazRows, ...wooRows];
+  return [...localRows, ...darazRows];
 }
 
 async function getCatalog() {

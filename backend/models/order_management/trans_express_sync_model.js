@@ -4,7 +4,7 @@ const orders = createGenericModel("orders");
 
 const TERMINAL_STATUSES = ["delivered", "cancelled", "canceled", "returned"];
 
-// Local orders only - Daraz/Woo have their own courier integrations. Once an
+// Local orders only - Daraz has its own courier integrations. Once an
 // order's own order_status reaches a terminal state there's nothing left to
 // track, so it naturally drops out of every future hourly run.
 async function getOrdersNeedingTracking() {

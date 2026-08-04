@@ -2,7 +2,6 @@ const db = require("../../config/marketplace_management_db/cm_marketplace_manage
 
 const TABLE_NAME = "account_credentials";
 const DARAZ_CREDENTIAL_TYPE = "daraz_oauth";
-const WOO_CREDENTIAL_TYPE = "woocommerce_keys";
 
 function plainValue(value) {
   if (value === undefined || value === null || value === "") return null;
@@ -21,7 +20,6 @@ function normalizeCredential(row) {
     access_token: plainValue(row.access_token),
     refresh_token: plainValue(row.refresh_token),
 
-    // WooCommerce normal field names
     consumer_key: plainValue(row.consumer_key),
     consumer_secret: plainValue(row.consumer_secret),
 
@@ -329,16 +327,6 @@ async function upsertDarazCredentials(accountIdOrData, maybeData = null) {
   });
 }
 
-async function upsertWooCredentials(accountIdOrData, maybeData = null) {
-  const data = resolveAccountId(accountIdOrData, maybeData);
-
-  return upsertCredentials({
-    ...data,
-    credential_type: WOO_CREDENTIAL_TYPE,
-    token_status: data.token_status || data.status || "valid",
-  });
-}
-
 async function deleteCredentialsByAccountId(
   accountId,
   credentialType = DARAZ_CREDENTIAL_TYPE
@@ -375,7 +363,6 @@ module.exports = {
 
   upsertCredentials,
   upsertDarazCredentials,
-  upsertWooCredentials,
 
   deleteCredentialsByAccountId,
 };

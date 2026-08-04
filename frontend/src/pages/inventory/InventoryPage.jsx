@@ -378,7 +378,7 @@ export default function InventoryPage() {
     }
   }
 
-  // Stock deducted automatically when order items sync in (Daraz/Woo/local) —
+  // Stock deducted automatically when order items sync in (Daraz/local) —
   // same inventory_logs data already shown on the general Logs page, exposed
   // here too so a search-by-SKU doesn't require leaving the Inventory page.
   async function loadInventoryLogs({ sku = logsSkuSearch, status = logsStatus } = {}) {

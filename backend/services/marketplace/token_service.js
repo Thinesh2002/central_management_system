@@ -297,15 +297,6 @@ async function getValidCredentialsForAccount(accountId) {
 
   const platformCode = String(account.platform_code || "").toUpperCase();
 
-  if (platformCode === "WOO") {
-    return {
-      account,
-      credentials,
-      refreshed: false,
-      message: "WooCommerce credentials loaded successfully.",
-    };
-  }
-
   if (platformCode !== "DARAZ") {
     return {
       account,

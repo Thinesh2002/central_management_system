@@ -337,7 +337,6 @@ export default function VariantViewPage() {
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs font-semibold text-slate-500">
                   {canViewCostPrice && <span>Cost: LKR {money(price?.cost_price)}</span>}
                   <span>Daraz: LKR {money(price?.daraz_price)}</span>
-                  <span>Woo: LKR {money(price?.woo_price)}</span>
                 </div>
               </div>
 

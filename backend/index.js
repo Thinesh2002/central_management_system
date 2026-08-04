@@ -36,7 +36,6 @@ const darazPriceReconciliationRoutes = require("./routes/daraz/pricing/daraz_pri
 const darazInventorySyncRoutes = require("./routes/daraz/inventory/daraz_inventory_sync_route");
 const darazCatalogRoutes = require("./routes/marketplace/daraz_catalog_route");
 const darazSellerMetricsRoutes = require("./routes/daraz/marketplace_management/daraz_seller_metrics_routes");
-const wooRoutes = require("./routes/woo/woo_route");
 const brighthubRoutes = require("./routes/brighthub/brighthub_route");
 
 const skuReportRoutes = require("./routes/order_management/sku_report_routes");
@@ -67,9 +66,6 @@ const {
 const {
   startDarazOrderSyncJob,
 } = require("./jobs/daraz/order_management/daraz_order_sync_job");
-const {
-  startWooOrderSyncJob,
-} = require("./jobs/woo/order_management/woo_order_sync_job");
 
 const {
   startDarazFinanceSyncJob,
@@ -96,10 +92,6 @@ const {
 const {
   startDarazPriceReconciliationJob,
 } = require("./jobs/daraz/pricing/daraz_price_reconciliation_job");
-
-const {
-  startWooProductSyncJob,
-} = require("./jobs/woo/product/woo_product_sync_job");
 
 const {
   startBrightHubProductSyncJob,
@@ -239,7 +231,6 @@ app.use("/api/daraz/price-reconciliation", darazPriceReconciliationRoutes);
 app.use("/api/daraz-inventory", darazInventorySyncRoutes);
 app.use("/api/daraz-catalog", darazCatalogRoutes);
 app.use("/api/daraz/seller-metrics", darazSellerMetricsRoutes);
-app.use("/api/marketplace/woo", wooRoutes);
 app.use("/api/marketplace/brighthub", brighthubRoutes);
 
 app.use("/api/order-management/sku-report", skuReportRoutes);
@@ -299,7 +290,6 @@ async function startServer() {
     startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
     startJob("DARAZ_INVENTORY_SYNC_JOB", startDarazInventorySyncJob);
     startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
-    startJob("WOO_ORDER_SYNC_JOB", startWooOrderSyncJob);
     startJob("DARAZ_FINANCE_SYNC_JOB", startDarazFinanceSyncJob);
     startJob("DARAZ_TITLE_OPTIMIZER_JOB", startDarazTitleOptimizerJob);
     startJob("DARAZ_TITLE_FULL_SCAN_JOB", startDarazTitleFullScanJob);
@@ -307,7 +297,6 @@ async function startServer() {
     startJob("LOW_STOCK_CHECK_JOB", startLowStockCheckJob);
     startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
     startJob("DARAZ_PRICE_RECONCILIATION_JOB", startDarazPriceReconciliationJob);
-    startJob("WOO_PRODUCT_SYNC_JOB", startWooProductSyncJob);
     startJob("BRIGHTHUB_PRODUCT_SYNC_JOB", startBrightHubProductSyncJob);
   });
 }

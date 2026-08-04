@@ -252,12 +252,6 @@ export default function SkuReportPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase text-slate-500">Woo Price</p>
-                      <p className="text-sm font-bold text-slate-200">
-                        {report.price ? money(report.price.woo_price) : "-"}
-                      </p>
-                    </div>
-                    <div>
                       <p className="text-[10px] uppercase text-slate-500">Available Qty</p>
                       <p className="text-sm font-bold text-slate-200">
                         {report.stock ? report.stock.available_qty ?? "-" : "-"}
@@ -309,7 +303,7 @@ export default function SkuReportPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...report.listings.daraz.map((row) => ({ ...row, platform: "DARAZ" })), ...report.listings.woo.map((row) => ({ ...row, platform: "WOO" }))].map(
+                    {report.listings.daraz.map((row) => ({ ...row, platform: "DARAZ" })).map(
                       (row, index) => (
                         <tr key={`${row.platform}-${row.account_id}-${index}`} className="border-b border-slate-800/60">
                           <td className="px-4 py-2 text-slate-300">{row.platform}</td>
@@ -321,7 +315,7 @@ export default function SkuReportPage() {
                         </tr>
                       )
                     )}
-                    {!report.listings.daraz.length && !report.listings.woo.length ? (
+                    {!report.listings.daraz.length ? (
                       <tr>
                         <td colSpan="6" className="px-4 py-6 text-center text-slate-500">
                           No marketplace listings found for this SKU.

@@ -18,8 +18,26 @@ export default function FilterDrawer({ open, filters, setFilters, options, onClo
   if (!open) return null;
 
   function set(key, value) {
+    // Switching marketplace invalidates whatever account was picked for the
+    // previous one (e.g. a Daraz account name won't match any Website
+    // order) - reset it instead of leaving a stale filter that silently
+    // zeroes out the results.
+    if (key === "marketplace") {
+      setFilters((prev) => ({ ...prev, marketplace: value, account: "" }));
+      return;
+    }
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
+
+  // Account list narrows to whichever marketplace is selected - Daraz shows
+  // only Daraz accounts, Website shows only BrightHub accounts, etc.
+  const accountObjs = options.accounts || [];
+  const relevantAccounts = filters.marketplace === "all"
+    ? accountObjs
+    : accountObjs.filter((account) => account.source === filters.marketplace);
+  const accountNames = [...new Set(relevantAccounts.map((account) => account.name))]
+    .filter(Boolean)
+    .sort();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
@@ -47,7 +65,6 @@ export default function FilterDrawer({ open, filters, setFilters, options, onClo
             >
               <option value="all">All Sources</option>
               <option value="daraz">Daraz</option>
-              <option value="woo">WooCommerce</option>
               <option value="local">Manual</option>
               <option value="brighthub">Website</option>
             </select>
@@ -60,7 +77,7 @@ export default function FilterDrawer({ open, filters, setFilters, options, onClo
               className={FIELD_CLASS}
             >
               <option value="">All Accounts</option>
-              {(options.accounts || []).map((account) => (
+              {accountNames.map((account) => (
                 <option key={account} value={account}>
                   {account}
                 </option>

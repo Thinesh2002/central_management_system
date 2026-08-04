@@ -11,34 +11,30 @@ const priceRuleModel = require("../../models/product_management/product/price_ru
 // refresh suggested prices from the price rule engine.
 
 // Price Rule Engine, "suggest only": recomputes suggested_sale_price /
-// suggested_daraz_price / suggested_woo_price from the new cost using
-// whatever active rule matches the SKU's category (or the global rule)
-// per marketplace. Never touches the real sale_price/daraz_price/woo_price
-// fields - those stay manual until a human applies a suggestion on the
-// Price Dashboard. Swallows its own errors; a missing rule/category just
-// means no suggestion, not a failure.
+// suggested_daraz_price from the new cost using whatever active rule
+// matches the SKU's category (or the global rule) per marketplace. Never
+// touches the real sale_price/daraz_price fields - those stay manual until
+// a human applies a suggestion on the Price Dashboard. Swallows its own
+// errors; a missing rule/category just means no suggestion, not a failure.
 async function refreshSuggestedPrices({ resolvedSku, costPrice, changedBy }) {
   try {
     const categoryId = await priceRuleModel.resolveCategoryIdForSku(resolvedSku);
 
-    const [localRule, darazRule, wooRule] = await Promise.all([
+    const [localRule, darazRule] = await Promise.all([
       priceRuleModel.resolveRule({ categoryId, marketplace: "local" }),
       priceRuleModel.resolveRule({ categoryId, marketplace: "daraz" }),
-      priceRuleModel.resolveRule({ categoryId, marketplace: "woocommerce" }),
     ]);
 
     const suggestedSale = priceRuleModel.computeSuggestedPrice({ costPrice, rule: localRule });
     const suggestedDaraz = priceRuleModel.computeSuggestedPrice({ costPrice, rule: darazRule });
-    const suggestedWoo = priceRuleModel.computeSuggestedPrice({ costPrice, rule: wooRule });
 
-    if (suggestedSale === null && suggestedDaraz === null && suggestedWoo === null) return;
+    if (suggestedSale === null && suggestedDaraz === null) return;
 
     await productPriceModel.updateBySku(
       resolvedSku,
       {
         suggested_sale_price: suggestedSale,
         suggested_daraz_price: suggestedDaraz,
-        suggested_woo_price: suggestedWoo,
         suggested_at: new Date(),
       },
       { updated_by: changedBy }

@@ -15,7 +15,6 @@ function isCountableStatus(status) {
 const SOURCES = {
   local: { table: "orders", itemsTable: "order_items", itemsFk: "order_id", label: "Manual" },
   daraz: { table: "daraz_orders", itemsTable: "daraz_order_items", itemsFk: "daraz_order_id", label: "Daraz" },
-  woo: { table: "woo_orders", itemsTable: "woo_order_items", itemsFk: "woo_order_id", label: "WooCommerce" },
 };
 
 function qid(identifier) {
@@ -56,7 +55,7 @@ const ITEM_COLUMN_CANDIDATES = [
   "qty",
   "quantity",
   // The marketplace's own product/item identifier — column name varies per
-  // platform (daraz_order_items vs woo_order_items were never independently
+  // platform (daraz_order_items columns were never independently
   // confirmed, same reason daraz_order_fulfillment_model discovers its own
   // order_item_id column at runtime instead of guessing).
   "product_id",
@@ -114,7 +113,7 @@ function extractItemQty(item = {}) {
   return Number(item.qty || item.quantity || 1);
 }
 
-// The marketplace's own identifier for this line's product (Daraz/Woo), as
+// The marketplace's own identifier for this line's product (Daraz), as
 // opposed to seller_sku/local_sku which is a text code, not a numeric ID.
 function extractItemProductId(item = {}) {
   return (
@@ -132,7 +131,7 @@ function extractItemProductId(item = {}) {
 // multi-pack order needs one thumbnail per product, not just the first
 // item's. Local orders are matched by product_id/variant_id (the sku text
 // column on product_images is sparse — same rule as the SKU Economics
-// Report); daraz/woo item image column names were never independently
+// Report); daraz item image column names were never independently
 // confirmed, so those are scanned defensively by field name.
 async function getLocalOrderItems(orderIds) {
   if (!orderIds.length) return new Map();
@@ -248,12 +247,12 @@ async function findByIdWithItems(id) {
 }
 
 // Every real column an order row might carry the identifying number under —
-// used defensively since local/daraz/woo orders don't share one convention.
-// orders/daraz_orders/woo_orders only ever store a customer_id FK — the
+// used defensively since local/daraz orders don't share one convention.
+// orders/daraz_orders only ever store a customer_id FK — the
 // name/phone/email/shipping/billing fields the frontend reads
 // (customer_name, customer_phone, shipping_address_line1, ...) live on the
 // shared customers table and were never being joined in, so the order
-// detail and list pages rendered blank Customer/Address cards. daraz/woo
+// detail and list pages rendered blank Customer/Address cards. daraz
 // order rows also carry their own marketplace-synced buyer_*/shipping_*
 // columns (often left NULL by the sync job) which take priority over the
 // customer master record when present.
@@ -303,7 +302,7 @@ async function attachCustomerDetails(rows) {
 
 function getOrderNo(row, source) {
   if (source === "local") return row.order_no;
-  return row.order_number || row.daraz_order_id || row.woo_order_id || row.id;
+  return row.order_number || row.daraz_order_id || row.id;
 }
 
 function normalizeOrderRow(row, source) {
@@ -397,7 +396,7 @@ async function updateStatus(source, id, { status, waybill_id, tracking_number } 
   return model.update(id, payload);
 }
 
-// Manual orders only — a Daraz/Woo order is a synced mirror of something
+// Manual orders only — a Daraz order is a synced mirror of something
 // that exists on the real marketplace, so deleting it here would just cause
 // the next sync to silently recreate it (or worse, desync waybill/tracking
 // state). Only orders this app itself created should be deletable.
@@ -421,8 +420,7 @@ async function deleteLocalOrder(id) {
 async function getFilterOptions() {
   const [accountRows] = await db.query(
     `SELECT DISTINCT account_name FROM orders WHERE account_name IS NOT NULL AND account_name <> ''
-     UNION SELECT DISTINCT account_name FROM daraz_orders WHERE account_name IS NOT NULL AND account_name <> ''
-     UNION SELECT DISTINCT account_name FROM woo_orders WHERE account_name IS NOT NULL AND account_name <> ''`
+     UNION SELECT DISTINCT account_name FROM daraz_orders WHERE account_name IS NOT NULL AND account_name <> ''`
   );
 
   const paymentRows = await db
@@ -509,7 +507,7 @@ async function createManualOrder(payload = {}) {
         shipping_postal_code: shipping?.shipping_postal_code,
         shipping_country: shipping?.shipping_country,
         shipping_phone: customer.phone_1,
-        // customers.source_type has its own enum ('MANUAL','DARAZ','WOO',
+        // customers.source_type has its own enum ('MANUAL','DARAZ',
         // 'FACEBOOK','WHATSAPP','TIKTOK','OTHER') - distinct from
         // orders.source_type ('MANUAL_WHATSAPP', etc). Passing the order's
         // value through unmapped hits MySQL strict mode's "Data truncated

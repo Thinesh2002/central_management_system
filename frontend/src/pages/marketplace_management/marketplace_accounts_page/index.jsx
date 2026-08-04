@@ -342,11 +342,6 @@ export default function MarketplaceAccountsPage() {
       daraz: accounts.filter(
         (item) => String(item.platform_code || "").toUpperCase() === "DARAZ"
       ).length,
-      woo: accounts.filter((item) =>
-        ["WOO", "WOOCOMMERCE"].includes(
-          String(item.platform_code || "").toUpperCase()
-        )
-      ).length,
     };
   }, [accounts]);
 
@@ -359,7 +354,7 @@ export default function MarketplaceAccountsPage() {
             Marketplace Accounts
           </h1>
           <p className="text-[13px] text-slate-500">
-            Manage Daraz accounts, WooCommerce stores, tokens, manual sync and API health.
+            Manage Daraz accounts, tokens, manual sync and API health.
           </p>
         </div>
 
@@ -407,12 +402,11 @@ export default function MarketplaceAccountsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatCard title="Total Accounts" value={stats.total} icon={Database} />
         <StatCard title="Active" value={stats.active} icon={CheckCircle2} tone="green" />
         <StatCard title="Token Issues" value={stats.tokenIssues} icon={XCircle} tone="red" />
         <StatCard title="Daraz" value={stats.daraz} icon={Store} tone="orange" />
-        <StatCard title="Woo" value={stats.woo} icon={Store} />
       </div>
 
       <div className="rounded-lg border border-slate-800 bg-slate-950">

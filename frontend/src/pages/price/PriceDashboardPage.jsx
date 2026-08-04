@@ -10,7 +10,7 @@ import { money, calcProductSelling, calcDaraz } from "../product_management/prod
 
 const RAW_API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api").trim();
 const BACKEND_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/?$/, "").replace(/\/$/, "");
-const emptyForm = { sku: "", product_sku: "", variant_sku: "", product_name: "", image_url: "", colour_name: "", cost_price: 0, sale_price: 0, local_selling_price: 0, daraz_price: 0, woo_price: 0, packing_percent: 3, profit_percent: 50, daraz_fee_percent: 20, advertising_percent: 10, currency: "LKR", status: "active" };
+const emptyForm = { sku: "", product_sku: "", variant_sku: "", product_name: "", image_url: "", colour_name: "", cost_price: 0, sale_price: 0, local_selling_price: 0, daraz_price: 0, packing_percent: 3, profit_percent: 50, daraz_fee_percent: 20, advertising_percent: 10, currency: "LKR", status: "active" };
 function clean(v){return String(v??"").trim();}
 function fmt(v){return money(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 function sku(r={}){return clean(r.sku||r.variant_sku||r.product_sku||r.local_sku||r.seller_sku||"-");}
@@ -37,14 +37,14 @@ export default function PriceDashboardPage(){
  const catalogMap=useMemo(()=>{const m=new Map(); catalog.forEach((p)=>m.set(clean(p.sku).toLowerCase(),p)); return m;},[catalog]);
  function meta(row){return catalogMap.get(sku(row).toLowerCase())||{};}
  const filtered=useMemo(()=>{const q=search.toLowerCase().trim(); if(!q)return rows; return rows.filter(r=>[sku(r),r.product_sku,r.variant_sku,r.product_name,meta(r).product_name,meta(r).colour_name,r.currency,r.status].filter(Boolean).join(' ').toLowerCase().includes(q));},[rows,search,catalogMap]);
- const totals=useMemo(()=>filtered.reduce((s,r)=>{s.cost+=money(r.cost_price);s.local+=money(r.local_selling_price||r.sale_price);s.daraz+=money(r.daraz_price);s.woo+=money(r.woo_price);return s;},{cost:0,local:0,daraz:0,woo:0}),[filtered]);
- function resetProductSearch(){setSkuSearch("");setProductMatches([]);setSelectedProduct(null);} function openAdd(){setEditing(null);setForm(emptyForm);resetProductSearch();setModalOpen(true);} function openEdit(row){setEditing(row);const f=normalizeForm(row); const m=meta(row); setForm({...f, product_name:f.product_name||m.product_name||"", image_url:f.image_url||m.image_url||"", colour_name:f.colour_name||m.colour_name||""}); setSelectedProduct(m.sku?m:{sku:f.sku,product_sku:f.product_sku,variant_sku:f.variant_sku,product_name:f.product_name,image_url:f.image_url,colour_name:f.colour_name}); setSkuSearch(f.sku); setProductMatches([]); setModalOpen(true);} const AUTO_CALC_FIELDS=new Set(['cost_price','profit_percent','daraz_fee_percent','advertising_percent','packing_percent']); function setField(n,v){setForm(p=>{const next={...p,[n]:v}; if(AUTO_CALC_FIELDS.has(n)){const productSelling=calcProductSelling(next.cost_price,next.profit_percent).toFixed(2); const daraz=calcDaraz(next.cost_price,next.profit_percent,next.daraz_fee_percent,next.advertising_percent,next.packing_percent).toFixed(2); next.sale_price=productSelling; next.local_selling_price=productSelling; next.daraz_price=daraz; next.woo_price=productSelling;} return next;});}
+ const totals=useMemo(()=>filtered.reduce((s,r)=>{s.cost+=money(r.cost_price);s.local+=money(r.local_selling_price||r.sale_price);s.daraz+=money(r.daraz_price);return s;},{cost:0,local:0,daraz:0}),[filtered]);
+ function resetProductSearch(){setSkuSearch("");setProductMatches([]);setSelectedProduct(null);} function openAdd(){setEditing(null);setForm(emptyForm);resetProductSearch();setModalOpen(true);} function openEdit(row){setEditing(row);const f=normalizeForm(row); const m=meta(row); setForm({...f, product_name:f.product_name||m.product_name||"", image_url:f.image_url||m.image_url||"", colour_name:f.colour_name||m.colour_name||""}); setSelectedProduct(m.sku?m:{sku:f.sku,product_sku:f.product_sku,variant_sku:f.variant_sku,product_name:f.product_name,image_url:f.image_url,colour_name:f.colour_name}); setSkuSearch(f.sku); setProductMatches([]); setModalOpen(true);} const AUTO_CALC_FIELDS=new Set(['cost_price','profit_percent','daraz_fee_percent','advertising_percent','packing_percent']); function setField(n,v){setForm(p=>{const next={...p,[n]:v}; if(AUTO_CALC_FIELDS.has(n)){const productSelling=calcProductSelling(next.cost_price,next.profit_percent).toFixed(2); const daraz=calcDaraz(next.cost_price,next.profit_percent,next.daraz_fee_percent,next.advertising_percent,next.packing_percent).toFixed(2); next.sale_price=productSelling; next.local_selling_price=productSelling; next.daraz_price=daraz;} return next;});}
  async function searchProducts(){const q=clean(skuSearch); if(!q)return alert('First SKU search pannunga.'); const flat=await loadCatalog(q); setProductMatches(flat.filter(x=>[x.sku,x.product_sku,x.product_name,x.colour_name].join(' ').toLowerCase().includes(q.toLowerCase())).slice(0,30));}
  function selectProduct(p){setSelectedProduct(p); setForm(prev=>({...prev, sku:p.sku, product_sku:p.product_sku||p.sku, variant_sku:p.variant_sku||"", product_name:p.product_name||"", image_url:p.image_url||"", colour_name:p.colour_name||""})); setProductMatches([]);}
- function autoCalculate(){const productSelling=calcProductSelling(form.cost_price,form.profit_percent).toFixed(2); const daraz=calcDaraz(form.cost_price,form.profit_percent,form.daraz_fee_percent,form.advertising_percent,form.packing_percent).toFixed(2); setForm(p=>({...p,sale_price:productSelling,local_selling_price:productSelling,daraz_price:daraz,woo_price:productSelling}));}
- const SUGGESTION_FIELD_MAP={local_selling_price:'suggested_sale_price',daraz_price:'suggested_daraz_price',woo_price:'suggested_woo_price'};
+ function autoCalculate(){const productSelling=calcProductSelling(form.cost_price,form.profit_percent).toFixed(2); const daraz=calcDaraz(form.cost_price,form.profit_percent,form.daraz_fee_percent,form.advertising_percent,form.packing_percent).toFixed(2); setForm(p=>({...p,sale_price:productSelling,local_selling_price:productSelling,daraz_price:daraz}));}
+ const SUGGESTION_FIELD_MAP={local_selling_price:'suggested_sale_price',daraz_price:'suggested_daraz_price'};
  function applySuggestion(fieldName,suggestedValue){setForm(p=>({...p,[fieldName]:suggestedValue, ...(fieldName==='local_selling_price'?{sale_price:suggestedValue}:{})}));}
- async function submit(e){e.preventDefault();const s=clean(form.sku); if(!s)return alert('First SKU search panni product/variant select pannunga.'); const payload={...form, sku:s, product_sku:clean(form.product_sku)||s, variant_sku:clean(form.variant_sku), product_name:clean(form.product_name), image_url:clean(form.image_url), colour_name:clean(form.colour_name), cost_price:money(form.cost_price), sale_price:money(form.sale_price||form.local_selling_price), local_selling_price:money(form.local_selling_price||form.sale_price), daraz_price:money(form.daraz_price), woo_price:money(form.woo_price), packing_percent:money(form.packing_percent), profit_percent:money(form.profit_percent), daraz_fee_percent:money(form.daraz_fee_percent), advertising_percent:money(form.advertising_percent), currency:clean(form.currency)||'LKR'}; setSaving(true); try{const id=editing?.id||editing?.price_id; if(id) await localProductsApi.patchPrice(id,payload); else await localProductsApi.createPrice(payload); setModalOpen(false); showToast('Price saved successfully.'); await loadPrices();}catch(e){alert(getErrorMessage(e,'Unable to save price.'));}finally{setSaving(false);}}
+ async function submit(e){e.preventDefault();const s=clean(form.sku); if(!s)return alert('First SKU search panni product/variant select pannunga.'); const payload={...form, sku:s, product_sku:clean(form.product_sku)||s, variant_sku:clean(form.variant_sku), product_name:clean(form.product_name), image_url:clean(form.image_url), colour_name:clean(form.colour_name), cost_price:money(form.cost_price), sale_price:money(form.sale_price||form.local_selling_price), local_selling_price:money(form.local_selling_price||form.sale_price), daraz_price:money(form.daraz_price), packing_percent:money(form.packing_percent), profit_percent:money(form.profit_percent), daraz_fee_percent:money(form.daraz_fee_percent), advertising_percent:money(form.advertising_percent), currency:clean(form.currency)||'LKR'}; setSaving(true); try{const id=editing?.id||editing?.price_id; if(id) await localProductsApi.patchPrice(id,payload); else await localProductsApi.createPrice(payload); setModalOpen(false); showToast('Price saved successfully.'); await loadPrices();}catch(e){alert(getErrorMessage(e,'Unable to save price.'));}finally{setSaving(false);}}
  return (
   <div className="min-h-screen bg-[#070b16] p-3 text-slate-100">
     <div className="mx-auto max-w-[1680px] space-y-3">
@@ -60,12 +60,11 @@ export default function PriceDashboardPage(){
           </button>
         </div>
 
-        <div className={`grid gap-2 px-4 py-3 text-center text-xs font-semibold ${canViewCostPrice ? "grid-cols-4" : "grid-cols-3"}`}>
+        <div className={`grid gap-2 px-4 py-3 text-center text-xs font-semibold ${canViewCostPrice ? "grid-cols-3" : "grid-cols-2"}`}>
           {[
             ...(canViewCostPrice ? [["Cost", totals.cost, "text-slate-200"]] : []),
             ["Product Selling", totals.local, "text-emerald-300"],
             ["Daraz Selling", totals.daraz, "text-orange-300"],
-            ["Woo Selling", totals.woo, "text-cyan-300"],
           ].map(([l, v, c]) => (
             <div key={l} className="border border-slate-800 bg-[#0a101d] px-4 py-2">
               <p className="text-slate-500">{l}</p>
@@ -92,7 +91,6 @@ export default function PriceDashboardPage(){
                 {canViewCostPrice && <th className="px-4 py-3 text-right">Cost</th>}
                 <th className="px-4 py-3 text-right">Product Selling</th>
                 <th className="px-4 py-3 text-right">Daraz Selling</th>
-                <th className="px-4 py-3 text-right">Woo Price</th>
                 <th className="px-4 py-3 text-right">Profit %</th>
                 <th className="px-4 py-3">Currency</th>
                 <th className="px-4 py-3 text-right">Action</th>
@@ -100,7 +98,7 @@ export default function PriceDashboardPage(){
             </thead>
             <tbody className="divide-y divide-slate-800 bg-[#0b1220]">
               {loading ? (
-                <tr><td colSpan={canViewCostPrice ? 9 : 8} className="px-4 py-10"><Loader label="Loading prices..." minHeight="0" /></td></tr>
+                <tr><td colSpan={canViewCostPrice ? 8 : 7} className="px-4 py-10"><Loader label="Loading prices..." minHeight="0" /></td></tr>
               ) : filtered.length ? (
                 filtered.map((r, i) => {
                   const m = meta(r);
@@ -123,7 +121,6 @@ export default function PriceDashboardPage(){
                       {canViewCostPrice && <td className="px-4 py-3 text-right font-semibold text-slate-300">{fmt(r.cost_price)}</td>}
                       <td className="px-4 py-3 text-right font-semibold text-emerald-300">{fmt(r.local_selling_price || r.sale_price)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-orange-300">{fmt(r.daraz_price)}</td>
-                      <td className="px-4 py-3 text-right font-semibold text-cyan-300">{fmt(r.woo_price)}</td>
                       <td className="px-4 py-3 text-right text-slate-300">{fmt(r.profit_percent)}</td>
                       <td className="px-4 py-3 text-slate-400">{r.currency || "LKR"}</td>
                       <td className="px-4 py-3 text-right">
@@ -142,7 +139,7 @@ export default function PriceDashboardPage(){
                   );
                 })
               ) : (
-                <tr><td colSpan={canViewCostPrice ? 9 : 8} className="px-4 py-16 text-center text-slate-500">No price rows found.</td></tr>
+                <tr><td colSpan={canViewCostPrice ? 8 : 7} className="px-4 py-16 text-center text-slate-500">No price rows found.</td></tr>
               )}
             </tbody>
           </table>
@@ -198,7 +195,6 @@ export default function PriceDashboardPage(){
                 ["advertising_percent", "Advertising %", "number"],
                 ["packing_percent", "Packing %", "number"],
                 ["daraz_price", "Daraz Selling Price", "number"],
-                ["woo_price", "Woo Price", "number"],
                 ["currency", "Currency", "text"],
               ].map(([n, l, t]) => {
                 const suggestedField = SUGGESTION_FIELD_MAP[n];

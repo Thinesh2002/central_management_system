@@ -482,13 +482,8 @@ async function getAssignedLookup() {
     `SELECT main_image FROM daraz_products WHERE main_image IS NOT NULL AND main_image <> ''`
   );
 
-  const [wooRows] = await db.query(
-    `SELECT image_src FROM woo_product_images WHERE image_src IS NOT NULL AND image_src <> ''`
-  );
-
   const urls = new Set();
   darazRows.forEach((row) => urls.add(row.main_image));
-  wooRows.forEach((row) => urls.add(row.image_src));
 
   const skus = new Set();
   productSkuRows.forEach((row) => skus.add(normalizeSkuKey(row.sku)));
