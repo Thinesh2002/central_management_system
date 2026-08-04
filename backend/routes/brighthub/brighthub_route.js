@@ -42,4 +42,24 @@ router.get(
   requireHandler(brighthubProductController.getSyncedBrightHubProductDetail, "getSyncedBrightHubProductDetail")
 );
 
+router.get(
+  "/accounts/:accountId/products/:bhid/live",
+  requireHandler(brighthubProductController.getLiveBrightHubProduct, "getLiveBrightHubProduct")
+);
+
+router.post(
+  "/accounts/:accountId/products",
+  requireHandler(brighthubProductController.createBrightHubProduct, "createBrightHubProduct")
+);
+
+router.put(
+  "/accounts/:accountId/products/:bhid",
+  requireHandler(brighthubProductController.updateBrightHubProduct, "updateBrightHubProduct")
+);
+
+router.delete(
+  "/accounts/:accountId/products/:bhid",
+  requireHandler(brighthubProductController.deleteBrightHubProduct, "deleteBrightHubProduct")
+);
+
 module.exports = router;

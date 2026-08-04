@@ -1,5 +1,7 @@
 const brighthubProductSyncService = require("../../../services/brighthub/product/brighthub_product_sync_service");
 const brighthubProductModel = require("../../../models/brighthub/product/brighthub_product_model");
+const brighthubModel = require("../../../models/marketplace/brighthub/brighthub_model");
+const brighthubApi = require("../../../services/marketplace/brighthub/brighthub_api_service");
 
 function getErrorMessage(error) {
   return error?.response?.data?.message || error?.response?.data?.error || error?.message || "Something went wrong.";
@@ -100,8 +102,242 @@ async function getSyncedBrightHubProductDetail(req, res) {
   }
 }
 
+// Live fetch straight from BrightHub (not the local mirror) - used to
+// prefill the Edit form with the freshest full product object, since
+// BrightHub's PUT is a full replace and editing from stale local data
+// could silently wipe fields the form doesn't expose.
+async function getLiveBrightHubProduct(req, res) {
+  const startedAt = new Date();
+  const accountId = getAccountId(req);
+  const bhid = getBhid(req);
+
+  try {
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "Account ID is required." });
+    }
+
+    if (!bhid) {
+      return res.status(400).json({ success: false, message: "BHID is required." });
+    }
+
+    const credentials = await brighthubModel.getBrightHubCredentials(accountId);
+    const product = await brighthubApi.getProduct(credentials, bhid);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found on BrightHub." });
+    }
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: `/products/${bhid}`,
+      http_method: "GET",
+      request_type: "products",
+      response_status_code: 200,
+      api_status: "success",
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.json({ success: true, data: product });
+  } catch (error) {
+    console.error("[GET_LIVE_BRIGHTHUB_PRODUCT_ERROR]:", error);
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: `/products/${bhid}`,
+      http_method: "GET",
+      request_type: "products",
+      response_status_code: error?.response?.status || 500,
+      api_status: "failed",
+      error_message: getErrorMessage(error),
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load the live BrightHub product.",
+      error: getErrorMessage(error),
+    });
+  }
+}
+
+async function createBrightHubProduct(req, res) {
+  const startedAt = new Date();
+  const accountId = getAccountId(req);
+
+  try {
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "Account ID is required." });
+    }
+
+    const credentials = await brighthubModel.getBrightHubCredentials(accountId);
+    const product = await brighthubApi.createProduct(credentials, req.body || {});
+
+    if (product?.bhid) {
+      await brighthubProductModel.upsertBrightHubProduct(accountId, product);
+    }
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: "/products",
+      http_method: "POST",
+      request_type: "products",
+      response_status_code: 201,
+      api_status: "success",
+      request_summary: req.body,
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(201).json({ success: true, message: "Website product created.", data: product });
+  } catch (error) {
+    console.error("[CREATE_BRIGHTHUB_PRODUCT_ERROR]:", error);
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: "/products",
+      http_method: "POST",
+      request_type: "products",
+      response_status_code: error?.response?.status || 500,
+      api_status: "failed",
+      error_message: getErrorMessage(error),
+      request_summary: req.body,
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(error?.response?.status || 500).json({
+      success: false,
+      message: "Failed to create the Website product.",
+      error: getErrorMessage(error),
+    });
+  }
+}
+
+async function updateBrightHubProduct(req, res) {
+  const startedAt = new Date();
+  const accountId = getAccountId(req);
+  const bhid = getBhid(req);
+
+  try {
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "Account ID is required." });
+    }
+
+    if (!bhid) {
+      return res.status(400).json({ success: false, message: "BHID is required." });
+    }
+
+    const credentials = await brighthubModel.getBrightHubCredentials(accountId);
+    const product = await brighthubApi.updateProduct(credentials, bhid, req.body || {});
+
+    await brighthubProductModel.upsertBrightHubProduct(accountId, product || { ...req.body, bhid });
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: `/products/${bhid}`,
+      http_method: "PUT",
+      request_type: "products",
+      response_status_code: 200,
+      api_status: "success",
+      request_summary: req.body,
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.json({ success: true, message: "Website product updated.", data: product });
+  } catch (error) {
+    console.error("[UPDATE_BRIGHTHUB_PRODUCT_ERROR]:", error);
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: `/products/${bhid}`,
+      http_method: "PUT",
+      request_type: "products",
+      response_status_code: error?.response?.status || 500,
+      api_status: "failed",
+      error_message: getErrorMessage(error),
+      request_summary: req.body,
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(error?.response?.status || 500).json({
+      success: false,
+      message: "Failed to update the Website product.",
+      error: getErrorMessage(error),
+    });
+  }
+}
+
+async function deleteBrightHubProduct(req, res) {
+  const startedAt = new Date();
+  const accountId = getAccountId(req);
+  const bhid = getBhid(req);
+
+  try {
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "Account ID is required." });
+    }
+
+    if (!bhid) {
+      return res.status(400).json({ success: false, message: "BHID is required." });
+    }
+
+    const credentials = await brighthubModel.getBrightHubCredentials(accountId);
+    await brighthubApi.deleteProduct(credentials, bhid);
+    await brighthubProductModel.deleteSyncedBrightHubProduct(accountId, bhid);
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: `/products/${bhid}`,
+      http_method: "DELETE",
+      request_type: "products",
+      response_status_code: 200,
+      api_status: "success",
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.json({ success: true, message: "Website product deleted." });
+  } catch (error) {
+    console.error("[DELETE_BRIGHTHUB_PRODUCT_ERROR]:", error);
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: `/products/${bhid}`,
+      http_method: "DELETE",
+      request_type: "products",
+      response_status_code: error?.response?.status || 500,
+      api_status: "failed",
+      error_message: getErrorMessage(error),
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(error?.response?.status || 500).json({
+      success: false,
+      message: "Failed to delete the Website product. Remove any attached variants first if this is a variation parent.",
+      error: getErrorMessage(error),
+    });
+  }
+}
+
 module.exports = {
   syncBrightHubProducts,
   getSyncedBrightHubProducts,
   getSyncedBrightHubProductDetail,
+  getLiveBrightHubProduct,
+  createBrightHubProduct,
+  updateBrightHubProduct,
+  deleteBrightHubProduct,
 };

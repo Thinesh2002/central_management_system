@@ -13,6 +13,18 @@ export const brighthubProductApi = {
 
   getSyncedBrightHubProductDetail: (accountId, bhid) =>
     api.get(`/marketplace/brighthub/accounts/${accountId}/synced-products/${bhid}`),
+
+  getLiveBrightHubProduct: (accountId, bhid) =>
+    api.get(`/marketplace/brighthub/accounts/${accountId}/products/${bhid}/live`),
+
+  createBrightHubProduct: (accountId, payload) =>
+    api.post(`/marketplace/brighthub/accounts/${accountId}/products`, payload),
+
+  updateBrightHubProduct: (accountId, bhid, payload) =>
+    api.put(`/marketplace/brighthub/accounts/${accountId}/products/${bhid}`, payload),
+
+  deleteBrightHubProduct: (accountId, bhid) =>
+    api.delete(`/marketplace/brighthub/accounts/${accountId}/products/${bhid}`),
 };
 
 export default brighthubProductApi;

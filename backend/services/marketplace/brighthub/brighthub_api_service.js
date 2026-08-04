@@ -91,10 +91,37 @@ async function getProduct(credentials, bhid) {
   return response.data?.data || null;
 }
 
+async function createProduct(credentials, payload) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.post("/products", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return response.data?.data || null;
+}
+
+// PUT is a full replace on BrightHub's side - the caller must send the
+// complete product object (fields it omits get cleared), not a partial diff.
+async function updateProduct(credentials, bhid, payload) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.put(`/products/${encodeURIComponent(bhid)}`, payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return response.data?.data || null;
+}
+
+async function deleteProduct(credentials, bhid) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.delete(`/products/${encodeURIComponent(bhid)}`);
+  return response.data || { success: true };
+}
+
 module.exports = {
   DEFAULT_BASE_URL,
   cleanBaseUrl,
   testConnection,
   getProducts,
   getProduct,
+  createProduct,
+  updateProduct,
+  deleteProduct,
 };

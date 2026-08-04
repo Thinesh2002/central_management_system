@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Image as ImageIcon, Package, Tags, Database } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Image as ImageIcon, Package, Tags, Database, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { brighthubProductApi } from "../../../../config/sub_api/brighthub_api/brighthub_product_api";
 import { sanitizeHtml } from "../../../../utils/sanitizeHtml";
 import Loader from "../../../../components/common/Loader";
+import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
+import { useConfirm } from "../../../../components/common/confirm_modal/ConfirmProvider";
+import { useToast } from "../../../../components/common/toast/ToastProvider";
 
 function parseJson(value, fallback) {
   if (!value) return fallback;
@@ -55,11 +58,16 @@ function Info({ label, value }) {
 
 export default function BrightHubProductDetailPage() {
   const { accountId, bhid } = useParams();
+  const navigate = useNavigate();
+  const { openOverlay } = usePageOverlay();
+  const confirm = useConfirm();
+  const showToast = useToast();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const raw = useMemo(() => parseJson(product?.raw_json, {}), [product]);
   const images = useMemo(() => {
@@ -96,6 +104,30 @@ export default function BrightHubProductDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId, bhid]);
 
+  function openEdit() {
+    openOverlay(`/product/brighthub-products/${accountId}/${bhid}/edit`, loadProduct);
+  }
+
+  async function handleDelete() {
+    const confirmed = await confirm(`Delete "${product?.name || bhid}" from BrightHub? This removes it from the live website.`);
+    if (!confirmed) return;
+
+    setDeleting(true);
+
+    try {
+      await brighthubProductApi.deleteBrightHubProduct(accountId, bhid);
+      showToast("Website product deleted.");
+      navigate("/product/brighthub-products");
+    } catch (err) {
+      showToast(
+        err?.response?.data?.error || err?.response?.data?.message || err?.friendlyMessage || "Failed to delete the Website product.",
+        { type: "error" }
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#070B14]">
@@ -116,15 +148,38 @@ export default function BrightHubProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#070B14] px-4 py-5 text-slate-100 md:px-6">
-      <div className="mb-5">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-medium text-yellow-200">
-          <Package size={13} />
-          BHID {product.bhid}
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1 text-xs font-medium text-yellow-200">
+            <Package size={13} />
+            BHID {product.bhid}
+          </div>
+
+          <h1 className="max-w-5xl text-xl font-semibold text-white">{product.name || "Unnamed Product"}</h1>
+
+          <p className="mt-1 font-mono text-xs text-yellow-200/80">SKU: {product.sku || "-"}</p>
         </div>
 
-        <h1 className="max-w-5xl text-xl font-semibold text-white">{product.name || "Unnamed Product"}</h1>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={openEdit}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-semibold text-amber-300 hover:bg-amber-500/20"
+          >
+            <Pencil size={13} />
+            Edit
+          </button>
 
-        <p className="mt-1 font-mono text-xs text-yellow-200/80">SKU: {product.sku || "-"}</p>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-3 text-[12px] font-semibold text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-3">

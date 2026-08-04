@@ -5,6 +5,8 @@ import {
   Loader2,
   Package,
   PlayCircle,
+  Plus,
+  Trash2,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
@@ -14,6 +16,8 @@ import {
 import { brighthubProductApi } from "../../../config/sub_api/brighthub_api/brighthub_product_api";
 import Loader from "../../../components/common/Loader";
 import { usePageOverlay } from "../../../components/common/page_overlay/PageOverlayProvider";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
+import { useToast } from "../../../components/common/toast/ToastProvider";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -138,10 +142,13 @@ function isDateInRange(dateKey, range) {
 
 export default function BrightHubProductDashboardPage() {
   const { openOverlay } = usePageOverlay();
+  const confirm = useConfirm();
+  const showToast = useToast();
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
 
   const [rows, setRows] = useState([]);
+  const [deletingBhid, setDeletingBhid] = useState("");
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -232,6 +239,35 @@ export default function BrightHubProductDashboardPage() {
       setError(err?.friendlyMessage || "BrightHub product sync failed.");
     } finally {
       setSyncing(false);
+    }
+  }
+
+  function openCreateProduct() {
+    if (!selectedAccountId) {
+      setError("No BrightHub account found.");
+      return;
+    }
+
+    openOverlay(`/product/brighthub-products/create/${selectedAccountId}`, loadProducts);
+  }
+
+  async function handleDeleteProduct(row) {
+    const confirmed = await confirm(`Delete "${row.name || row.bhid}" from BrightHub? This removes it from the live website.`);
+    if (!confirmed) return;
+
+    setDeletingBhid(row.bhid);
+
+    try {
+      await brighthubProductApi.deleteBrightHubProduct(row.account_id, row.bhid);
+      showToast("Website product deleted.");
+      await loadProducts();
+    } catch (err) {
+      showToast(
+        err?.response?.data?.error || err?.response?.data?.message || err?.friendlyMessage || "Failed to delete the Website product.",
+        { type: "error" }
+      );
+    } finally {
+      setDeletingBhid("");
     }
   }
 
@@ -337,6 +373,16 @@ export default function BrightHubProductDashboardPage() {
                   </option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                onClick={openCreateProduct}
+                disabled={!selectedAccountId || loadingAccounts}
+                className="flex h-7 items-center gap-1 rounded-sm border border-yellow-400/40 bg-yellow-500 px-3 text-[11px] font-semibold text-slate-950 hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus size={13} />
+                ADD PRODUCT
+              </button>
 
               <button
                 type="button"
@@ -528,26 +574,27 @@ export default function BrightHubProductDashboardPage() {
                 <th className="w-[14%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">SKU</th>
                 <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Price</th>
                 <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Status</th>
-                <th className="w-[12%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Last Synced</th>
+                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Last Synced</th>
+                <th className="w-[8%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Action</th>
               </tr>
             </thead>
 
             <tbody>
               {loadingProducts || loadingAccounts ? (
                 <tr>
-                  <td colSpan="7" className="px-2 py-10 text-center text-zinc-400">
+                  <td colSpan="8" className="px-2 py-10 text-center text-zinc-400">
                     Loading Website products...
                   </td>
                 </tr>
               ) : !accounts.length ? (
                 <tr>
-                  <td colSpan="7" className="px-2 py-10 text-center text-zinc-400">
+                  <td colSpan="8" className="px-2 py-10 text-center text-zinc-400">
                     No BrightHub account connected yet.
                   </td>
                 </tr>
               ) : pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-2 py-10 text-center text-zinc-400">
+                  <td colSpan="8" className="px-2 py-10 text-center text-zinc-400">
                     No Website products found.
                   </td>
                 </tr>
@@ -623,6 +670,22 @@ export default function BrightHubProductDashboardPage() {
 
                       <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
                         {formatDate(row.last_synced_at)}
+                      </td>
+
+                      <td className="px-2 py-2 text-center align-middle">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(row)}
+                          disabled={deletingBhid === row.bhid}
+                          title="Delete from BrightHub"
+                          className="mx-auto flex h-7 w-7 items-center justify-center rounded-sm border border-red-500/30 bg-red-500/10 text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {deletingBhid === row.bhid ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={12} />
+                          )}
+                        </button>
                       </td>
                     </tr>
                   );

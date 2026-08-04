@@ -46,6 +46,7 @@ async function upsertBrightHubProduct(accountId, product) {
         variant_attributes_json = VALUES(variant_attributes_json),
         raw_json = VALUES(raw_json),
         last_synced_at = NOW(),
+        deleted_at = NULL,
         updated_at = NOW()`,
     [
       accountId,
@@ -168,7 +169,7 @@ async function listSyncedBrightHubProducts(accountId, { page = 1, limit = 50, se
   const offset = (safePage - 1) * safeLimit;
 
   const values = [accountId];
-  let where = `WHERE account_id = ?`;
+  let where = `WHERE account_id = ? AND deleted_at IS NULL`;
 
   if (search) {
     where += ` AND (name LIKE ? OR sku LIKE ? OR bhid LIKE ?)`;
@@ -196,11 +197,21 @@ async function listSyncedBrightHubProducts(accountId, { page = 1, limit = 50, se
 
 async function getSyncedBrightHubProductDetail(accountId, bhid) {
   const [rows] = await productPool.query(
-    `SELECT * FROM brighthub_products WHERE account_id = ? AND bhid = ? LIMIT 1`,
+    `SELECT * FROM brighthub_products WHERE account_id = ? AND bhid = ? AND deleted_at IS NULL LIMIT 1`,
     [accountId, bhid]
   );
 
   return rows[0] || null;
+}
+
+async function deleteSyncedBrightHubProduct(accountId, bhid) {
+  const [result] = await productPool.query(
+    `UPDATE brighthub_products SET deleted_at = NOW(), updated_at = NOW()
+     WHERE account_id = ? AND bhid = ? AND deleted_at IS NULL`,
+    [accountId, bhid]
+  );
+
+  return result.affectedRows > 0;
 }
 
 module.exports = {
@@ -212,4 +223,5 @@ module.exports = {
   getDueBrightHubAccounts,
   listSyncedBrightHubProducts,
   getSyncedBrightHubProductDetail,
+  deleteSyncedBrightHubProduct,
 };
