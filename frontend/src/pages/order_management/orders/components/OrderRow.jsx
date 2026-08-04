@@ -134,6 +134,7 @@ function OrderRow({
   const isMulti = items.length > 1;
 
   const isDaraz = order.source === "daraz";
+  const isBrightHub = order.source === "brighthub";
   const hasWaybill = Boolean(order.waybill_id || order.tracking_number);
   const darazStep = isDaraz ? nextDarazStep(order) : null;
   const isCancelled = statusBucketKey(order) === "cancelled";
@@ -263,7 +264,7 @@ function OrderRow({
                     />
                   )}
 
-                  {!isDaraz && (
+                  {!isDaraz && !isBrightHub && (
                     <ActionButton
                       label={hasWaybill ? "Edit Waybill" : "Add Waybill"}
                       icon={Truck}

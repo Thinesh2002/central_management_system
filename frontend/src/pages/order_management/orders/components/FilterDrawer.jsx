@@ -49,6 +49,7 @@ export default function FilterDrawer({ open, filters, setFilters, options, onClo
               <option value="daraz">Daraz</option>
               <option value="woo">WooCommerce</option>
               <option value="local">Manual</option>
+              <option value="brighthub">Website</option>
             </select>
           </Field>
 

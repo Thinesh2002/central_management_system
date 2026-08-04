@@ -138,14 +138,6 @@ const staticMenu = [
     exact: true,
   },
   {
-    section: "MARKETPLACE MANAGEMENT",
-    page_key: "brighthub_orders",
-    page_name: "Website Orders",
-    path: "/product/brighthub-orders",
-    icon: "Package",
-    exact: false,
-  },
-  {
     section: "REPORTS",
     page_key: "sales_dashboard",
     page_name: "Sales",

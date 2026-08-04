@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 
 import ordersApi from "../../../config/sub_api/order_management_api/orders_api";
+import { brighthubProductApi } from "../../../config/sub_api/brighthub_api/brighthub_product_api";
+import { brighthubOrderApi } from "../../../config/sub_api/brighthub_api/brighthub_order_api";
 import { getApiError } from "../../../config/api";
 import { useToast } from "../../../components/common/toast/ToastProvider";
 import Loader from "../../../components/common/Loader";
@@ -93,6 +95,67 @@ function filterOrders(orders, filters, query, status) {
   });
 }
 
+// BrightHub orders are fetched live (no local mirror - BrightHub owns its
+// own order/stock ledger) and mapped into the same shape every other
+// source already uses, so they render through the exact same table/filters/
+// status tabs instead of a separate page.
+function mapBrightHubOrder(order, account) {
+  return {
+    source: "brighthub",
+    source_order_id: order.id,
+    account_id: account.id || account.account_id,
+    account_name: account.account_name || account.account_code || "BrightHub",
+    order_no: order.order_no,
+    display_order_no: order.order_no,
+    order_date: order.created_at,
+    order_status: order.status,
+    grand_total: order.total,
+    discount_total: 0,
+    currency: "LKR",
+    payment_method: "COD",
+    customer_name: order.customer_name,
+    customer_phone: order.phone,
+    shipping_address_line1: order.shipping_line1,
+    shipping_address_line2: order.shipping_line2,
+    shipping_city: order.shipping_city || order.city,
+    shipping_postal_code: order.shipping_postal_code || order.postal_code,
+    first_item_title: order.items?.[0]?.name || order.items?.[0]?.product_name,
+    items: (order.items || []).map((item) => ({
+      product_title: item.name || item.product_name,
+      sku: item.bhid,
+      local_sku: item.bhid,
+      qty: item.quantity,
+    })),
+  };
+}
+
+async function loadBrightHubOrders() {
+  try {
+    const accountsRes = await brighthubProductApi.getBrightHubAccounts();
+    const payload = accountsRes?.data;
+    const accounts = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+
+    const perAccountOrders = await Promise.all(
+      accounts.map(async (account) => {
+        try {
+          const accountId = account.id || account.account_id;
+          const res = await brighthubOrderApi.getBrightHubOrders(accountId, { limit: 200 });
+          const rows = Array.isArray(res?.data?.data) ? res.data.data : [];
+          return rows.map((order) => mapBrightHubOrder(order, account));
+        } catch (err) {
+          console.warn("[BRIGHTHUB_ORDERS_LOAD]", account.account_name, err);
+          return [];
+        }
+      })
+    );
+
+    return perAccountOrders.flat();
+  } catch (err) {
+    console.warn("[BRIGHTHUB_ORDERS_LOAD]", err);
+    return [];
+  }
+}
+
 function activeFilterCount(filters) {
   return Object.entries(filters).filter(([key, value]) => {
     if (!value) return false;
@@ -134,7 +197,7 @@ export default function OrdersPage() {
     setLoading(true);
 
     try {
-      const [ordersRes, optionsRes] = await Promise.all([
+      const [ordersRes, optionsRes, brighthubOrders] = await Promise.all([
         ordersApi.listOrders({
           // Status tab counts and the list itself are both derived from
           // this one fetch (see countByStatus below) - capped at 1000 it
@@ -148,9 +211,10 @@ export default function OrdersPage() {
           date_to: filters.dateTo || undefined,
         }),
         ordersApi.filterOptions().catch(() => ({ data: {} })),
+        loadBrightHubOrders(),
       ]);
 
-      setOrders(ordersRes?.data?.orders || []);
+      setOrders([...(ordersRes?.data?.orders || []), ...brighthubOrders]);
       setFilterOptions(optionsRes?.data || { accounts: [], payment_methods: [] });
     } catch (error) {
       alert(getApiError(error, "Failed to load orders"));
@@ -213,16 +277,36 @@ export default function OrdersPage() {
     setSelectedKeys((prev) => Array.from(new Set([...prev, ...pagedKeys])));
   }
 
+  // BrightHub orders are viewed on their own detail page (order/status live
+  // straight from BrightHub's API) instead of the generic source/id route,
+  // which only knows about daraz/woo/local. No separate invoice/tracking
+  // view exists for BrightHub yet, so Print/Track fall back to the same page.
+  function brightHubDetailUrl(order) {
+    return `/product/brighthub-orders/${order.account_id}/${order.source_order_id}`;
+  }
+
   const handleView = useCallback((order) => {
-    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}`);
+    openOverlay(
+      order.source === "brighthub"
+        ? brightHubDetailUrl(order)
+        : `/order-management/orders/${order.source}/${order.source_order_id}`
+    );
   }, []);
 
   const handlePrintInvoice = useCallback((order) => {
-    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}?print=1`);
+    openOverlay(
+      order.source === "brighthub"
+        ? brightHubDetailUrl(order)
+        : `/order-management/orders/${order.source}/${order.source_order_id}?print=1`
+    );
   }, []);
 
   const handleTrack = useCallback((order) => {
-    openOverlay(`/order-management/orders/${order.source}/${order.source_order_id}`);
+    openOverlay(
+      order.source === "brighthub"
+        ? brightHubDetailUrl(order)
+        : `/order-management/orders/${order.source}/${order.source_order_id}`
+    );
   }, []);
 
   // Manual orders only — the detail page is where waybill/status/items get

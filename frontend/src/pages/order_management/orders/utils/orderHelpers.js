@@ -60,6 +60,7 @@ export function sourceMeta(source) {
   if (s === "daraz") return { label: "Daraz", className: "text-orange-400" };
   if (s === "woo") return { label: "WooCommerce", className: "text-violet-400" };
   if (s === "local") return { label: "Manual", className: "text-emerald-400" };
+  if (s === "brighthub") return { label: "Website", className: "text-yellow-400" };
 
   return { label: source || "-", className: "text-slate-400" };
 }
@@ -90,7 +91,10 @@ export function canDarazReady(order) {
 const STATUS_BUCKETS = {
   to_pack: (order) =>
     ["unpaid", "pending", "new"].includes(normalize(order.order_status)) && !order.waybill_id,
-  to_arrange_shipment: (order) => normalize(order.order_status) === "packed",
+  // "packed" is this app's own local status; "confirmed" is BrightHub's own
+  // raw status for a Website order that's accepted but not yet shipped -
+  // same bucket, no local "packed" step exists for BrightHub orders.
+  to_arrange_shipment: (order) => ["packed", "confirmed"].includes(normalize(order.order_status)),
   ready_to_ship: (order) => normalize(order.order_status) === "ready_to_ship",
   shipped: (order) => ["shipped", "dispatched"].includes(normalize(order.order_status)),
   delivered: (order) => normalize(order.order_status) === "delivered",
