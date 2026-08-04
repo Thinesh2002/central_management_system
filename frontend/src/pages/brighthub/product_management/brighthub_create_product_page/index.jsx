@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PackagePlus, Save, Loader2 } from "lucide-react";
 import { brighthubProductApi } from "../../../../config/sub_api/brighthub_api/brighthub_product_api";
+import BrightHubImageUploader from "../components/BrightHubImageUploader";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-[#070B14] px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/60";
@@ -33,6 +34,7 @@ export default function BrightHubCreateProductPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(emptyForm);
+  const [images, setImages] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,6 +63,7 @@ export default function BrightHubCreateProductPage() {
     if (form.category_id) payload.category_id = Number(form.category_id);
     if (form.short_description.trim()) payload.short_description = form.short_description.trim();
     if (form.description.trim()) payload.description = form.description.trim();
+    if (images.length) payload.images = images;
 
     try {
       await brighthubProductApi.createBrightHubProduct(accountId, payload);
@@ -159,6 +162,10 @@ export default function BrightHubCreateProductPage() {
               />
             </Field>
           </div>
+
+          <Field label="Images">
+            <BrightHubImageUploader accountId={accountId} images={images} onChange={setImages} />
+          </Field>
 
           <Field label="Status">
             <select

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PackageCheck, Save, Loader2 } from "lucide-react";
 import { brighthubProductApi } from "../../../../config/sub_api/brighthub_api/brighthub_product_api";
 import Loader from "../../../../components/common/Loader";
+import BrightHubImageUploader from "../components/BrightHubImageUploader";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-[#070B14] px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/60";
@@ -26,6 +27,7 @@ export default function BrightHubEditProductPage() {
   // BrightHub's update is a full replace, anything omitted gets cleared.
   const [liveProduct, setLiveProduct] = useState(null);
   const [form, setForm] = useState(null);
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +43,7 @@ export default function BrightHubEditProductPage() {
       if (!product) throw new Error("Product not found on BrightHub.");
 
       setLiveProduct(product);
+      setImages(Array.isArray(product.images) ? product.images : []);
       setForm({
         name: product.name || "",
         sku: product.sku || "",
@@ -90,6 +93,7 @@ export default function BrightHubEditProductPage() {
       category_id: form.category_id ? Number(form.category_id) : liveProduct.category_id,
       short_description: form.short_description,
       description: form.description,
+      images,
     };
 
     delete payload.id;
@@ -132,7 +136,7 @@ export default function BrightHubEditProductPage() {
             Edit Website Product — {bhid}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Loaded live from BrightHub. Images and other fields not shown here are kept as-is.
+            Loaded live from BrightHub. Fields not shown here are kept as-is.
           </p>
         </div>
 
@@ -209,6 +213,10 @@ export default function BrightHubEditProductPage() {
               />
             </Field>
           </div>
+
+          <Field label="Images">
+            <BrightHubImageUploader accountId={accountId} images={images} onChange={setImages} />
+          </Field>
 
           <Field label="Status">
             <select

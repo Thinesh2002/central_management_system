@@ -332,6 +332,65 @@ async function deleteBrightHubProduct(req, res) {
   }
 }
 
+async function uploadBrightHubMedia(req, res) {
+  const startedAt = new Date();
+  const accountId = getAccountId(req);
+
+  try {
+    if (!accountId) {
+      return res.status(400).json({ success: false, message: "Account ID is required." });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "An image file is required." });
+    }
+
+    const credentials = await brighthubModel.getBrightHubCredentials(accountId);
+    const media = await brighthubApi.uploadMedia(
+      credentials,
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: "/media/upload",
+      http_method: "POST",
+      request_type: "media",
+      response_status_code: 200,
+      api_status: "success",
+      request_summary: { file_name: req.file.originalname, size_bytes: req.file.size },
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(201).json({ success: true, message: "Image uploaded.", data: media });
+  } catch (error) {
+    console.error("[UPLOAD_BRIGHTHUB_MEDIA_ERROR]:", error);
+
+    await brighthubModel.logApiRequest({
+      account_id: accountId,
+      endpoint: "/media/upload",
+      http_method: "POST",
+      request_type: "media",
+      response_status_code: error?.response?.status || 500,
+      api_status: "failed",
+      error_message: getErrorMessage(error),
+      request_time: startedAt,
+      response_time: new Date(),
+      duration_ms: new Date() - startedAt,
+    });
+
+    return res.status(error?.response?.status || 500).json({
+      success: false,
+      message: "Failed to upload the image to BrightHub.",
+      error: getErrorMessage(error),
+    });
+  }
+}
+
 module.exports = {
   syncBrightHubProducts,
   getSyncedBrightHubProducts,
@@ -340,4 +399,5 @@ module.exports = {
   createBrightHubProduct,
   updateBrightHubProduct,
   deleteBrightHubProduct,
+  uploadBrightHubMedia,
 };

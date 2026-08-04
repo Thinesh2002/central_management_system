@@ -25,6 +25,15 @@ export const brighthubProductApi = {
 
   deleteBrightHubProduct: (accountId, bhid) =>
     api.delete(`/marketplace/brighthub/accounts/${accountId}/products/${bhid}`),
+
+  uploadMedia: (accountId, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post(`/marketplace/brighthub/accounts/${accountId}/media/upload`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 60000,
+    });
+  },
 };
 
 export default brighthubProductApi;

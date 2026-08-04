@@ -1,4 +1,5 @@
 const axios = require("axios");
+const FormData = require("form-data");
 
 const DEFAULT_BASE_URL = "https://admin.brighthub.lk/api/v1";
 
@@ -115,6 +116,24 @@ async function deleteProduct(credentials, bhid) {
   return response.data || { success: true };
 }
 
+// Max 8MB, JPEG/PNG/WEBP/GIF/SVG per BrightHub's docs - fileFilter/limits on
+// our own multer middleware already enforce this before the buffer gets here.
+async function uploadMedia(credentials, fileBuffer, fileName, mimeType) {
+  const client = createBrightHubClient(credentials);
+
+  const form = new FormData();
+  form.append("file", fileBuffer, { filename: fileName, contentType: mimeType });
+
+  // Explicit X-API-Key here too - some axios versions don't reliably merge
+  // instance-level flat headers with a per-request headers object that
+  // form.getHeaders() returns.
+  const response = await client.post("/media/upload", form, {
+    headers: { ...form.getHeaders(), "X-API-Key": credentials.api_key },
+  });
+
+  return response.data?.data || null;
+}
+
 async function getOrders(credentials, query = {}) {
   const client = createBrightHubClient(credentials);
 
@@ -165,4 +184,5 @@ module.exports = {
   getOrders,
   getOrder,
   updateOrderStatus,
+  uploadMedia,
 };
