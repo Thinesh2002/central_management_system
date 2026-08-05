@@ -755,6 +755,10 @@ export default function BrightHubProductDashboardPage() {
                         {isExpanded && (
                           <tr>
                             <td colSpan="9" className="bg-[#101827] px-4 py-3">
+                              <p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-slate-500">
+                                Variants of BHID {row.bhid}
+                              </p>
+
                               {variantState?.loading ? (
                                 <p className="py-2 text-center text-[11px] text-slate-500">Loading variants...</p>
                               ) : variantState?.error ? (
@@ -768,28 +772,26 @@ export default function BrightHubProductDashboardPage() {
                                   <table className="w-full text-left text-[11px]">
                                     <thead className="bg-white/[0.03] text-[10px] uppercase tracking-wide text-slate-500">
                                       <tr>
+                                        <th className="px-3 py-2 font-medium">Image</th>
                                         <th className="px-3 py-2 font-medium">Name</th>
                                         <th className="px-3 py-2 font-medium">SKU</th>
-                                        <th className="px-3 py-2 font-medium">BHID</th>
                                         <th className="px-3 py-2 text-right font-medium">Price</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
                                       {variantState.variants.map((variant) => (
                                         <tr key={variant.id || variant.bhid}>
+                                          <td className="px-3 py-2">
+                                            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded bg-white ring-1 ring-slate-600">
+                                              {imageUrl ? (
+                                                <img src={imageUrl} alt={variant.name || row.name} className="h-full w-full object-contain" />
+                                              ) : (
+                                                <Package size={13} className="text-zinc-400" />
+                                              )}
+                                            </div>
+                                          </td>
                                           <td className="px-3 py-2 text-slate-200">{variant.name || "-"}</td>
                                           <td className="px-3 py-2 font-mono text-xs text-slate-400">{variant.sku || "-"}</td>
-                                          <td className="px-3 py-2">
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                openOverlay(`/product/brighthub-products/${row.account_id}/${variant.bhid}`)
-                                              }
-                                              className="font-mono text-xs text-orange-300 underline decoration-dotted hover:text-orange-200"
-                                            >
-                                              {variant.bhid || "-"}
-                                            </button>
-                                          </td>
                                           <td className="px-3 py-2 text-right text-slate-300">{money(variant.price)}</td>
                                         </tr>
                                       ))}
