@@ -179,10 +179,10 @@ async function listSyncedBrightHubProducts(accountId, { page = 1, limit = 50, se
   const [countRows] = await productPool.query(`SELECT COUNT(*) AS total FROM brighthub_products ${where}`, values);
 
   const [rows] = await productPool.query(
-    `SELECT id, account_id, bhid, source_product_id, sku, name, price, category_id, status, images_json, last_synced_at, updated_at
+    `SELECT id, account_id, bhid, source_product_id, sku, name, price, category_id, status, images_json, created_at, last_synced_at, updated_at
      FROM brighthub_products
      ${where}
-     ORDER BY last_synced_at DESC, id DESC
+     ORDER BY created_at DESC, id DESC
      LIMIT ? OFFSET ?`,
     [...values, safeLimit, offset]
   );
