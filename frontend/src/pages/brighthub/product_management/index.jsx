@@ -641,6 +641,7 @@ export default function BrightHubProductDashboardPage() {
                     const key = `${row.account_id}-${row.bhid}`;
                     const isExpanded = Boolean(expandedKeys[key]);
                     const variantState = rowVariants[key];
+                    const hasVariants = Number(row.children_count || 0) > 0;
 
                     return (
                       <Fragment key={key}>
@@ -648,11 +649,21 @@ export default function BrightHubProductDashboardPage() {
                           <td className="px-2 py-3 text-center align-middle">
                             <button
                               type="button"
-                              onClick={() => toggleExpanded(row)}
-                              className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-orange-300 transition hover:bg-white/10 hover:text-orange-200"
-                              title={isExpanded ? "Hide variants" : "Show variants"}
+                              onClick={() => hasVariants && toggleExpanded(row)}
+                              disabled={!hasVariants}
+                              className={cx(
+                                "inline-flex h-6 w-6 items-center justify-center rounded transition",
+                                hasVariants
+                                  ? "cursor-pointer text-orange-300 hover:bg-white/10 hover:text-orange-200"
+                                  : "cursor-default text-slate-600"
+                              )}
+                              title={hasVariants ? (isExpanded ? "Hide variants" : "Show variants") : "No variants"}
                             >
-                              {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                              {hasVariants ? (
+                                isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />
+                              ) : (
+                                <span className="text-slate-600">•</span>
+                              )}
                             </button>
                           </td>
 

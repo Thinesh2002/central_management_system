@@ -32,9 +32,9 @@ async function upsertBrightHubProduct(accountId, product) {
 
   await productPool.query(
     `INSERT INTO brighthub_products
-      (account_id, bhid, source_product_id, sku, name, price, stock_quantity, category_id, status,
+      (account_id, bhid, source_product_id, sku, name, price, stock_quantity, category_id, children_count, status,
        images_json, variant_attributes_json, raw_json, last_synced_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE
         source_product_id = VALUES(source_product_id),
         sku = VALUES(sku),
@@ -42,6 +42,7 @@ async function upsertBrightHubProduct(accountId, product) {
         price = VALUES(price),
         stock_quantity = VALUES(stock_quantity),
         category_id = VALUES(category_id),
+        children_count = VALUES(children_count),
         status = VALUES(status),
         images_json = VALUES(images_json),
         variant_attributes_json = VALUES(variant_attributes_json),
@@ -58,6 +59,7 @@ async function upsertBrightHubProduct(accountId, product) {
       decimalOrNull(product.price),
       product.stock_quantity ?? null,
       product.category_id || null,
+      product.children_count ?? null,
       product.status || null,
       json(product.images),
       json(product.variant_attributes),
@@ -181,7 +183,7 @@ async function listSyncedBrightHubProducts(accountId, { page = 1, limit = 50, se
   const [countRows] = await productPool.query(`SELECT COUNT(*) AS total FROM brighthub_products ${where}`, values);
 
   const [rows] = await productPool.query(
-    `SELECT id, account_id, bhid, source_product_id, sku, name, price, category_id, status, images_json, created_at, last_synced_at, updated_at
+    `SELECT id, account_id, bhid, source_product_id, sku, name, price, category_id, children_count, status, images_json, created_at, last_synced_at, updated_at
      FROM brighthub_products
      ${where}
      ORDER BY created_at DESC, id DESC
