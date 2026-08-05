@@ -32,14 +32,15 @@ async function upsertBrightHubProduct(accountId, product) {
 
   await productPool.query(
     `INSERT INTO brighthub_products
-      (account_id, bhid, source_product_id, sku, name, price, category_id, status,
+      (account_id, bhid, source_product_id, sku, name, price, stock_quantity, category_id, status,
        images_json, variant_attributes_json, raw_json, last_synced_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE
         source_product_id = VALUES(source_product_id),
         sku = VALUES(sku),
         name = VALUES(name),
         price = VALUES(price),
+        stock_quantity = VALUES(stock_quantity),
         category_id = VALUES(category_id),
         status = VALUES(status),
         images_json = VALUES(images_json),
@@ -55,6 +56,7 @@ async function upsertBrightHubProduct(accountId, product) {
       product.sku || null,
       product.name || null,
       decimalOrNull(product.price),
+      product.stock_quantity ?? null,
       product.category_id || null,
       product.status || null,
       json(product.images),
@@ -214,6 +216,34 @@ async function deleteSyncedBrightHubProduct(accountId, bhid) {
   return result.affectedRows > 0;
 }
 
+// Read-only, batched across every BrightHub account - mirrors
+// daraz_inventory_sync_model's findDarazListingsBySkus for the Inventory
+// page's "Website Stock" column. Matches case-insensitively since BrightHub
+// SKUs are plain text with no alias/mapping table like Daraz's seller_sku.
+async function getStockForSkus(skus = []) {
+  const cleanSkus = [...new Set(skus.map((s) => String(s || "").trim()).filter(Boolean))];
+  if (!cleanSkus.length) return [];
+
+  const placeholders = cleanSkus.map(() => "?").join(",");
+
+  const [rows] = await productPool.query(
+    `SELECT id, account_id, bhid, sku, stock_quantity
+     FROM brighthub_products
+     WHERE deleted_at IS NULL AND LOWER(sku) IN (${placeholders})`,
+    cleanSkus.map((s) => s.toLowerCase())
+  );
+
+  return rows;
+}
+
+async function updateStockQuantity(accountId, bhid, quantity) {
+  await productPool.query(
+    `UPDATE brighthub_products SET stock_quantity = ?, last_synced_at = NOW(), updated_at = NOW()
+     WHERE account_id = ? AND bhid = ?`,
+    [quantity, accountId, bhid]
+  );
+}
+
 module.exports = {
   upsertBrightHubProduct,
   createSyncJob,
@@ -224,4 +254,6 @@ module.exports = {
   listSyncedBrightHubProducts,
   getSyncedBrightHubProductDetail,
   deleteSyncedBrightHubProduct,
+  getStockForSkus,
+  updateStockQuantity,
 };

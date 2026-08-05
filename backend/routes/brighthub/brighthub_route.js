@@ -4,6 +4,7 @@ const multer = require("multer");
 const brighthubAccountController = require("../../controllers/marketplace/brighthub/brighthub_controller");
 const brighthubProductController = require("../../controllers/brighthub/product/brighthub_product_controller");
 const brighthubOrderController = require("../../controllers/brighthub/order/brighthub_order_controller");
+const brighthubInventorySyncController = require("../../controllers/brighthub/inventory/brighthub_inventory_sync_controller");
 
 const router = express.Router();
 
@@ -101,6 +102,16 @@ router.post(
   "/accounts/:accountId/media/upload",
   upload.single("file"),
   requireHandler(brighthubProductController.uploadBrightHubMedia, "uploadBrightHubMedia")
+);
+
+router.post(
+  "/stock-by-skus",
+  requireHandler(brighthubInventorySyncController.getStockForSkus, "getStockForSkus")
+);
+
+router.post(
+  "/sync-sku/:sku",
+  requireHandler(brighthubInventorySyncController.syncSku, "syncSku")
 );
 
 module.exports = router;

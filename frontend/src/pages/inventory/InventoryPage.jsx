@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Boxes, ClipboardList, History, ImageOff, Plus, RefreshCw, Save, Search, X } from "lucide-react";
 import localProductsApi from "../../config/sub_api/product_management_api/local_products_api";
 import productTrendsApi from "../../config/sub_api/order_management_api/product_trends_api";
+import brighthubProductApi from "../../config/sub_api/brighthub_api/brighthub_product_api";
 import { getErrorMessage, normalizeList } from "../product_management/products/utils/productSku";
 import { useToast } from "../../components/common/toast/ToastProvider";
 import { useConfirm } from "../../components/common/confirm_modal/ConfirmProvider";
@@ -114,6 +115,7 @@ export default function InventoryPage() {
   const [addStockSaving, setAddStockSaving] = useState(false);
 
   const [darazStock, setDarazStock] = useState({});
+  const [websiteStock, setWebsiteStock] = useState({});
   const [syncingSku, setSyncingSku] = useState("");
   const [salesTrend, setSalesTrend] = useState({});
 
@@ -186,11 +188,15 @@ export default function InventoryPage() {
   }, [catalog, inventoryMap, rows]);
 
   // Batched once per catalog/inventory load, not per row - one request for
-  // every SKU on the page instead of N.
+  // every SKU on the page instead of N. Daraz and Website stock are
+  // independent lookups (different marketplaces, different accounts), each
+  // failing/loading on its own so one being slow or erroring doesn't block
+  // the other.
   useEffect(() => {
     const skus = [...new Set(displayRows.map((r) => getSku(r)).filter((s) => s && s !== "-"))];
     if (!skus.length) {
       setDarazStock({});
+      setWebsiteStock({});
       return;
     }
 
@@ -206,6 +212,16 @@ export default function InventoryPage() {
         if (!cancelled) setDarazStock({});
       });
 
+    brighthubProductApi
+      .getBrightHubStockForSkus(skus)
+      .then((res) => {
+        if (!cancelled) setWebsiteStock(res?.data?.data || {});
+      })
+      .catch((e) => {
+        console.warn("[INVENTORY_WEBSITE_STOCK_LOAD]", e);
+        if (!cancelled) setWebsiteStock({});
+      });
+
     return () => {
       cancelled = true;
     };
@@ -214,20 +230,46 @@ export default function InventoryPage() {
   function meta(row) { return catalogMap.get(getSku(row).toLowerCase()) || {}; }
   function priceOf(row) { return priceMap.get(getSku(row).toLowerCase()) || {}; }
   function darazStockOf(row) { return darazStock[getSku(row)] || []; }
+  function websiteStockOf(row) { return websiteStock[getSku(row)] || []; }
   function salesTrendOf(row) { return salesTrend[getSku(row)] || 0; }
 
+  // Pushes local stock to both Daraz and the Website (BrightHub) in one
+  // click - same "Sync" button, both marketplaces, so staff don't need two
+  // separate actions to keep a SKU's stock consistent everywhere.
   async function syncRowToDaraz(row) {
     const sku = getSku(row);
     if (!sku || sku === "-") return;
 
     setSyncingSku(sku);
     try {
-      const res = await localProductsApi.syncDarazInventorySku(sku, { quantity: getStock(row) });
-      showToast(res?.data?.message || `Daraz stock synced for ${sku}.`);
-      const stockRes = await localProductsApi.getDarazStockForSkus([sku]);
-      setDarazStock((prev) => ({ ...prev, ...(stockRes?.data?.data || {}) }));
-    } catch (e) {
-      showToast(getErrorMessage(e, `Unable to sync ${sku} to Daraz.`), { type: "error" });
+      const [darazRes, websiteRes] = await Promise.allSettled([
+        localProductsApi.syncDarazInventorySku(sku, { quantity: getStock(row) }),
+        brighthubProductApi.syncBrightHubStockSku(sku, { quantity: getStock(row) }),
+      ]);
+
+      if (darazRes.status === "fulfilled") {
+        showToast(darazRes.value?.data?.message || `Daraz stock synced for ${sku}.`);
+      } else {
+        showToast(getErrorMessage(darazRes.reason, `Unable to sync ${sku} to Daraz.`), { type: "error" });
+      }
+
+      if (websiteRes.status === "fulfilled") {
+        showToast(websiteRes.value?.data?.message || `Website stock synced for ${sku}.`);
+      } else {
+        showToast(getErrorMessage(websiteRes.reason, `Unable to sync ${sku} to the Website.`), { type: "error" });
+      }
+
+      const [darazStockRes, websiteStockRes] = await Promise.allSettled([
+        localProductsApi.getDarazStockForSkus([sku]),
+        brighthubProductApi.getBrightHubStockForSkus([sku]),
+      ]);
+
+      if (darazStockRes.status === "fulfilled") {
+        setDarazStock((prev) => ({ ...prev, ...(darazStockRes.value?.data?.data || {}) }));
+      }
+      if (websiteStockRes.status === "fulfilled") {
+        setWebsiteStock((prev) => ({ ...prev, ...(websiteStockRes.value?.data?.data || {}) }));
+      }
     } finally {
       setSyncingSku("");
     }
@@ -537,7 +579,7 @@ export default function InventoryPage() {
             <table className="min-w-full border-collapse text-left text-[12px]">
               <thead className="bg-slate-900">
                 <tr>
-                  {["Product", "SKU / Colour", "Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale", "Daraz Stock", "Action"].map((header) => (
+                  {["Product", "SKU / Colour", "Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale", "Daraz Stock", "Website Stock", "Action"].map((header) => (
                     <th
                       key={header}
                       className={`border border-slate-800 px-3 py-2 font-normal uppercase tracking-wide text-slate-500 ${["Stock", "Available", "Reserved", "Low Alert", "Last 30 Days Sale"].includes(header) ? "text-right" : header === "Action" ? "text-right" : header === "Product" ? "w-16 text-left" : "text-left"}`}
@@ -553,6 +595,7 @@ export default function InventoryPage() {
                     const m = meta(r);
                     const name = r.product_name || m.product_name || "Product";
                     const darazEntries = darazStockOf(r);
+                    const websiteEntries = websiteStockOf(r);
                     return (
                       <tr key={r.id || r.inventory_id || `${getSku(r)}-${i}`} className="hover:bg-slate-900">
                         <td className="w-16 border border-slate-800 px-3 py-2.5" title={name}>
@@ -575,6 +618,21 @@ export default function InventoryPage() {
                                   <p className="text-slate-300">{entry.account_name}</p>
                                   <p className="font-mono text-[10px] text-slate-500">{entry.seller_sku}</p>
                                   <p className="font-semibold text-purple-300">Stock: {entry.quantity.toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-600">Not linked</span>
+                          )}
+                        </td>
+                        <td className="border border-slate-800 px-3 py-2.5">
+                          {websiteEntries.length ? (
+                            <div className="divide-y divide-slate-800">
+                              {websiteEntries.map((entry) => (
+                                <div key={`${entry.account_id}-${entry.bhid}`} className="whitespace-nowrap py-1 text-[11px] first:pt-0 last:pb-0">
+                                  <p className="text-slate-300">{entry.account_name}</p>
+                                  <p className="font-mono text-[10px] text-slate-500">{entry.sku}</p>
+                                  <p className="font-semibold text-yellow-300">Stock: {entry.quantity.toLocaleString()}</p>
                                 </div>
                               ))}
                             </div>
@@ -606,7 +664,7 @@ export default function InventoryPage() {
                               type="button"
                               onClick={() => syncRowToDaraz(r)}
                               disabled={syncingSku === getSku(r)}
-                              title="Sync this SKU's stock to Daraz"
+                              title="Sync this SKU's stock to Daraz and the Website"
                               className="inline-flex h-7 items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] font-semibold text-emerald-300 transition-all duration-150 hover:scale-105 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
                             >
                               <RefreshCw size={11} className={syncingSku === getSku(r) ? "animate-spin" : ""} />
@@ -648,7 +706,7 @@ export default function InventoryPage() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="9" className="border border-slate-800 px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
+                    <td colSpan="10" className="border border-slate-800 px-3 py-10 text-center text-[12px] text-slate-500">No SKU rows found.</td>
                   </tr>
                 )}
               </tbody>

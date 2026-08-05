@@ -34,6 +34,12 @@ export const brighthubProductApi = {
       timeout: 60000,
     });
   },
+
+  getBrightHubStockForSkus: (skus = []) =>
+    api.post("/marketplace/brighthub/stock-by-skus", { skus }),
+
+  syncBrightHubStockSku: (sku, payload = {}) =>
+    api.post(`/marketplace/brighthub/sync-sku/${encodeURIComponent(sku)}`, payload),
 };
 
 export default brighthubProductApi;
