@@ -136,6 +136,7 @@ export default function BrightHubOrderDetailPage() {
                   <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-3 py-2 font-medium">Product</th>
+                      <th className="px-3 py-2 font-medium">SKU</th>
                       <th className="px-3 py-2 font-medium">BHID</th>
                       <th className="px-3 py-2 text-right font-medium">Qty</th>
                       <th className="px-3 py-2 text-right font-medium">Price</th>
@@ -145,12 +146,24 @@ export default function BrightHubOrderDetailPage() {
                   <tbody className="divide-y divide-white/5">
                     {items.map((item, index) => (
                       <tr key={item.id || index}>
-                        <td className="px-3 py-2 text-slate-200">{item.name || item.product_name || "-"}</td>
+                        <td className="px-3 py-2 text-slate-200">
+                          <div className="flex items-center gap-2">
+                            {item.image_main_url ? (
+                              <img
+                                src={item.image_main_url}
+                                alt={item.product_name || "Product"}
+                                className="h-9 w-9 shrink-0 rounded border border-white/10 bg-white object-contain"
+                              />
+                            ) : null}
+                            <span>{item.product_name || "-"}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs text-slate-400">{item.sku || "-"}</td>
                         <td className="px-3 py-2 font-mono text-xs text-yellow-200/80">{item.bhid || "-"}</td>
                         <td className="px-3 py-2 text-right text-slate-300">{item.quantity ?? "-"}</td>
                         <td className="px-3 py-2 text-right text-slate-300">{money(item.price)}</td>
                         <td className="px-3 py-2 text-right font-semibold text-slate-100">
-                          {money(item.subtotal ?? (item.price && item.quantity ? item.price * item.quantity : null))}
+                          {money(item.line_total ?? (item.price && item.quantity ? item.price * item.quantity : null))}
                         </td>
                       </tr>
                     ))}

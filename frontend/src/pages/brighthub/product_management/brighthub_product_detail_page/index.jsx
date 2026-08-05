@@ -75,6 +75,10 @@ export default function BrightHubProductDetailPage() {
   const [error, setError] = useState("");
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
   const [deleting, setDeleting] = useState(false);
+  // Child variants of a variation family - only present on the live
+  // GET /products/:bhid response, not the local sync mirror (sync only
+  // pulls the list endpoint, which doesn't include this field).
+  const [variants, setVariants] = useState([]);
 
   const raw = useMemo(() => parseJson(product?.raw_json, {}), [product]);
   const images = useMemo(() => {
@@ -96,10 +100,24 @@ export default function BrightHubProductDetailPage() {
       setLoading(true);
       setError("");
 
-      const res = await brighthubProductApi.getSyncedBrightHubProductDetail(accountId, bhid);
-      setProduct(res?.data?.data || null);
+      const [syncedRes, liveRes] = await Promise.allSettled([
+        brighthubProductApi.getSyncedBrightHubProductDetail(accountId, bhid),
+        brighthubProductApi.getLiveBrightHubProduct(accountId, bhid),
+      ]);
+
+      if (syncedRes.status === "fulfilled") {
+        setProduct(syncedRes.value?.data?.data || null);
+      } else {
+        setProduct(null);
+        throw syncedRes.reason;
+      }
+
+      if (liveRes.status === "fulfilled") {
+        setVariants(Array.isArray(liveRes.value?.data?.data?.variants) ? liveRes.value.data.data.variants : []);
+      } else {
+        setVariants([]);
+      }
     } catch (err) {
-      setProduct(null);
       setError(err?.friendlyMessage || "Failed to load BrightHub product details.");
     } finally {
       setLoading(false);
@@ -236,6 +254,47 @@ export default function BrightHubProductDetailPage() {
                 className="text-sm leading-6 text-slate-300"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(raw.features || raw.attributes || "") }}
               />
+            </div>
+          )}
+
+          {variants.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-[#0D1322] p-5 shadow-xl shadow-black/20">
+              <div className="mb-4 flex items-center gap-2">
+                <Package size={18} className="text-yellow-300" />
+                <h2 className="font-semibold text-white">Variants ({variants.length})</h2>
+                <span className="ml-auto text-xs text-slate-500">This product is a variation parent</span>
+              </div>
+
+              <div className="overflow-x-auto rounded-lg border border-white/10">
+                <table className="w-full text-left text-[13px]">
+                  <thead className="bg-white/[0.03] text-[11px] uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Name</th>
+                      <th className="px-3 py-2 font-medium">SKU</th>
+                      <th className="px-3 py-2 font-medium">BHID</th>
+                      <th className="px-3 py-2 text-right font-medium">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {variants.map((variant) => (
+                      <tr key={variant.id || variant.bhid}>
+                        <td className="px-3 py-2 text-slate-200">{variant.name || "-"}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-slate-400">{variant.sku || "-"}</td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/product/brighthub-products/${accountId}/${variant.bhid}`)}
+                            className="font-mono text-xs text-yellow-300 underline decoration-dotted hover:text-yellow-200"
+                          >
+                            {variant.bhid || "-"}
+                          </button>
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-300">{money(variant.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </section>

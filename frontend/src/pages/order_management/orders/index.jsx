@@ -119,11 +119,14 @@ function mapBrightHubOrder(order, account) {
     shipping_address_line2: order.shipping_line2,
     shipping_city: order.shipping_city || order.city,
     shipping_postal_code: order.shipping_postal_code || order.postal_code,
-    first_item_title: order.items?.[0]?.name || order.items?.[0]?.product_name,
+    first_item_title: order.items?.[0]?.product_name,
     items: (order.items || []).map((item) => ({
-      product_title: item.name || item.product_name,
-      sku: item.bhid,
-      local_sku: item.bhid,
+      product_title: item.product_name,
+      sku: item.sku,
+      local_sku: item.sku,
+      image_url: item.image_main_url,
+      product_id: item.product_variant_id || item.product_id,
+      bhid: item.bhid,
       qty: item.quantity,
     })),
   };
