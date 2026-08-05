@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PackageCheck, Save, Loader2 } from "lucide-react";
 import { brighthubProductApi } from "../../../../config/sub_api/brighthub_api/brighthub_product_api";
 import Loader from "../../../../components/common/Loader";
-import BrightHubImageUploader from "../components/BrightHubImageUploader";
+import BrightHubImageUploader, { normalizeBrightHubImages } from "../components/BrightHubImageUploader";
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-[#070B14] px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-yellow-400/60";
@@ -43,7 +43,7 @@ export default function BrightHubEditProductPage() {
       if (!product) throw new Error("Product not found on BrightHub.");
 
       setLiveProduct(product);
-      setImages(Array.isArray(product.images) ? product.images : []);
+      setImages(normalizeBrightHubImages(product.images));
       setForm({
         name: product.name || "",
         sku: product.sku || "",

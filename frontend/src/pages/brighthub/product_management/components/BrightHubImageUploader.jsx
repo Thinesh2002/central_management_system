@@ -2,9 +2,13 @@ import { useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { brighthubProductApi } from "../../../../config/sub_api/brighthub_api/brighthub_product_api";
 
-// `images` is an array of { image_url } objects, matching the shape
-// BrightHub's own GET /products/:bhid response uses for its images field -
-// PUT/POST send the same shape back for symmetry.
+// `images` is a plain array of URL strings. BrightHub's GET response
+// returns richer objects ({id, product_id, image_url, image_type,
+// sort_order, ...}) for display, but its PUT/POST accepts (and expects
+// back) a plain array of hosted URLs - sending the object shape back
+// caused BrightHub to stringify one straight into "[object Object]" and
+// store that literally. Callers normalize GET's shape down to strings
+// before handing images to this component (see normalizeBrightHubImages).
 export default function BrightHubImageUploader({ accountId, images, onChange }) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -24,7 +28,7 @@ export default function BrightHubImageUploader({ accountId, images, onChange }) 
 
       if (!media?.url) throw new Error("BrightHub did not return an image URL.");
 
-      onChange([...(images || []), { image_url: media.url }]);
+      onChange([...(images || []), media.url]);
     } catch (err) {
       setError(
         err?.response?.data?.error || err?.response?.data?.message || err?.friendlyMessage || "Failed to upload image."
@@ -41,12 +45,12 @@ export default function BrightHubImageUploader({ accountId, images, onChange }) 
   return (
     <div>
       <div className="mb-2 flex flex-wrap gap-3">
-        {(images || []).map((image, index) => (
+        {(images || []).map((url, index) => (
           <div
-            key={image.image_url || index}
+            key={url || index}
             className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white"
           >
-            <img src={image.image_url} alt="Product" className="h-full w-full object-contain" />
+            <img src={url} alt="Product" className="h-full w-full object-contain" />
             <button
               type="button"
               onClick={() => removeImage(index)}
@@ -81,4 +85,18 @@ export default function BrightHubImageUploader({ accountId, images, onChange }) 
       <p className="text-xs text-slate-500">JPEG, PNG, WEBP, GIF, or SVG — max 8MB.</p>
     </div>
   );
+}
+
+// Shared so the Create/Edit pages normalize GET's richer image objects
+// (or any already-corrupted "[object Object]" leftovers) down to a plain
+// string array before handing them to this uploader or submitting a payload.
+export function normalizeBrightHubImages(images) {
+  if (!Array.isArray(images)) return [];
+
+  return images
+    .map((item) => {
+      if (typeof item === "string") return item;
+      return item?.image_url || item?.url || item?.src || "";
+    })
+    .filter((url) => url && url !== "[object Object]");
 }

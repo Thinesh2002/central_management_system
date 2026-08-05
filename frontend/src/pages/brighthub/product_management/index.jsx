@@ -75,9 +75,12 @@ function getFirstImage(imagesJson) {
   if (!Array.isArray(images) || !images.length) return "";
 
   const first = images[0];
-  if (typeof first === "string") return first;
+  const url = typeof first === "string" ? first : first?.url || first?.src || first?.image_url || "";
 
-  return first?.url || first?.src || first?.image_url || "";
+  // A past bug sent BrightHub an object where it expected a URL string,
+  // and it stored the literal stringified object instead of failing -
+  // treat that leftover the same as "no image" rather than rendering it.
+  return url === "[object Object]" ? "" : url;
 }
 
 function formatInputDate(date) {

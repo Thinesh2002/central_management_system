@@ -18,6 +18,15 @@ function parseJson(value, fallback) {
   }
 }
 
+// BrightHub's GET response returns richer image objects ({image_url, ...})
+// while a plain string is what our own Create/Edit pages now save - handle
+// both, and treat a leftover "[object Object]" string (from a past bug that
+// sent BrightHub an object where it expected a URL) as no image at all.
+function getImgSrc(item) {
+  const url = typeof item === "string" ? item : item?.image_url || item?.url || item?.src || "";
+  return url === "[object Object]" ? "" : url;
+}
+
 function money(value) {
   if (value === null || value === undefined || value === "") return "-";
 
@@ -75,7 +84,7 @@ export default function BrightHubProductDetailPage() {
   const usageImages = useMemo(() => (Array.isArray(raw.usage_images) ? raw.usage_images : []), [raw]);
 
   const galleryImages = useMemo(() => [...images, ...usageImages], [images, usageImages]);
-  const defaultImage = raw.image_main_url || images?.[0]?.image_url || "";
+  const defaultImage = raw.image_main_url || getImgSrc(images?.[0]) || "";
   const mainImage = selectedImageUrl || defaultImage;
 
   useEffect(() => {
@@ -254,18 +263,23 @@ export default function BrightHubProductDetailPage() {
               <p className="text-sm text-slate-500">No product images found.</p>
             ) : (
               <div className="grid grid-cols-5 gap-2">
-                {galleryImages.map((image, index) => (
-                  <button
-                    key={image.id || index}
-                    type="button"
-                    onClick={() => setSelectedImageUrl(image.image_url)}
-                    className={`block cursor-pointer overflow-hidden rounded-lg border bg-white ${
-                      mainImage === image.image_url ? "border-yellow-400" : "border-white/10 hover:border-yellow-400/50"
-                    }`}
-                  >
-                    <img src={image.image_url} alt={product.name || "Website image"} className="aspect-square w-full object-contain" />
-                  </button>
-                ))}
+                {galleryImages.map((image, index) => {
+                  const src = getImgSrc(image);
+                  if (!src) return null;
+
+                  return (
+                    <button
+                      key={image?.id || index}
+                      type="button"
+                      onClick={() => setSelectedImageUrl(src)}
+                      className={`block cursor-pointer overflow-hidden rounded-lg border bg-white ${
+                        mainImage === src ? "border-yellow-400" : "border-white/10 hover:border-yellow-400/50"
+                      }`}
+                    >
+                      <img src={src} alt={product.name || "Website image"} className="aspect-square w-full object-contain" />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </section>
