@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Search,
   RefreshCw,
@@ -10,6 +10,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   AlertTriangle,
   CheckCircle,
   X,
@@ -174,6 +175,13 @@ export default function BrightHubProductDashboardPage() {
   const [error, setError] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
 
+  // Only GET /products/:bhid (the detail endpoint) returns a product's
+  // `variants` array - the list endpoint our sync uses doesn't, so we can't
+  // know in advance which rows are variation parents. Expanding a row lazily
+  // fetches its live detail once and caches the result here.
+  const [expandedKeys, setExpandedKeys] = useState({});
+  const [rowVariants, setRowVariants] = useState({});
+
   async function loadAccounts() {
     try {
       setLoadingAccounts(true);
@@ -276,6 +284,25 @@ export default function BrightHubProductDashboardPage() {
       );
     } finally {
       setDeletingBhid("");
+    }
+  }
+
+  async function toggleExpanded(row) {
+    const key = `${row.account_id}-${row.bhid}`;
+    const isOpen = Boolean(expandedKeys[key]);
+
+    setExpandedKeys((prev) => ({ ...prev, [key]: !isOpen }));
+
+    if (isOpen || rowVariants[key]) return;
+
+    setRowVariants((prev) => ({ ...prev, [key]: { loading: true } }));
+
+    try {
+      const res = await brighthubProductApi.getLiveBrightHubProduct(row.account_id, row.bhid);
+      const variants = Array.isArray(res?.data?.data?.variants) ? res.data.data.variants : [];
+      setRowVariants((prev) => ({ ...prev, [key]: { loading: false, variants } }));
+    } catch (err) {
+      setRowVariants((prev) => ({ ...prev, [key]: { loading: false, variants: [], error: true } }));
     }
   }
 
@@ -572,147 +599,215 @@ export default function BrightHubProductDashboardPage() {
           </div>
         </div>
 
-        <div className="w-full overflow-x-auto rounded-sm border border-zinc-800/40 bg-[#050817]">
-          <table className="w-full min-w-[1100px] table-fixed border-collapse text-[13px]">
-            <thead>
-              <tr className="border-b border-zinc-800/60 bg-white/[0.015]">
-                <th className="w-[8%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Image</th>
-                <th className="w-[12%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">BHID</th>
-                <th className="w-[34%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Product Title</th>
-                <th className="w-[14%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">SKU</th>
-                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Price</th>
-                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Status</th>
-                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Last Synced</th>
-                <th className="w-[10%] px-2 py-2 text-center text-[12px] font-semibold uppercase text-zinc-500">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loadingProducts || loadingAccounts ? (
+        <section className="w-full overflow-hidden border border-slate-700/40 bg-[#050917] shadow-lg shadow-black/10">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[1100px] table-fixed border-collapse text-[11px]">
+              <thead className="border-b border-slate-700/40 bg-[#111827] text-left text-[10px] font-semibold uppercase tracking-wide text-orange-300">
                 <tr>
-                  <td colSpan="8" className="px-2 py-10 text-center text-zinc-400">
-                    Loading Website products...
-                  </td>
+                  <th className="w-[4%] px-2 py-3 text-center">&gt;</th>
+                  <th className="w-[8%] px-2 py-3">Image</th>
+                  <th className="w-[12%] px-2 py-3">BHID</th>
+                  <th className="w-[30%] px-2 py-3">Product Title</th>
+                  <th className="w-[13%] px-2 py-3">SKU</th>
+                  <th className="w-[9%] px-2 py-3 text-right">Price</th>
+                  <th className="w-[9%] px-2 py-3">Status</th>
+                  <th className="w-[9%] px-2 py-3">Last Synced</th>
+                  <th className="w-[10%] px-2 py-3 text-center">Action</th>
                 </tr>
-              ) : !accounts.length ? (
-                <tr>
-                  <td colSpan="8" className="px-2 py-10 text-center text-zinc-400">
-                    No BrightHub account connected yet.
-                  </td>
-                </tr>
-              ) : pageRows.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="px-2 py-10 text-center text-zinc-400">
-                    No Website products found.
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((row) => {
-                  const imageUrl = getFirstImage(row.images_json);
+              </thead>
 
-                  return (
-                    <tr key={`${row.account_id}-${row.bhid}`} className="border-b border-zinc-800/60 hover:bg-white/[0.04]">
-                      <td className="px-2 py-2 text-center align-middle">
-                        <button
-                          type="button"
-                          onClick={() => imageUrl && setImagePreview({ image: imageUrl, title: row.name })}
-                          className="mx-auto flex h-14 w-14 cursor-pointer items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
-                        >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={row.name}
-                              className="h-full w-full object-cover"
-                              onError={(event) => {
-                                event.currentTarget.style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <Package size={14} className="text-zinc-600" />
-                          )}
-                        </button>
-                      </td>
+              <tbody className="divide-y divide-slate-800/45 bg-[#111827]">
+                {loadingProducts || loadingAccounts ? (
+                  <tr>
+                    <td colSpan="9" className="px-2 py-10 text-center text-zinc-400">
+                      Loading Website products...
+                    </td>
+                  </tr>
+                ) : !accounts.length ? (
+                  <tr>
+                    <td colSpan="9" className="px-2 py-10 text-center text-zinc-400">
+                      No BrightHub account connected yet.
+                    </td>
+                  </tr>
+                ) : pageRows.length === 0 ? (
+                  <tr>
+                    <td colSpan="9" className="px-2 py-10 text-center text-zinc-400">
+                      No Website products found.
+                    </td>
+                  </tr>
+                ) : (
+                  pageRows.map((row) => {
+                    const imageUrl = getFirstImage(row.images_json);
+                    const key = `${row.account_id}-${row.bhid}`;
+                    const isExpanded = Boolean(expandedKeys[key]);
+                    const variantState = rowVariants[key];
 
-                      <td className="px-2 py-2 text-center align-middle">
-                        <button
-                          type="button"
-                          onClick={() => openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}`)}
-                          title={row.bhid}
-                          className="mx-auto block max-w-full cursor-pointer truncate text-center font-mono text-[12px] font-medium text-yellow-300 underline underline-offset-2 hover:text-yellow-200"
-                        >
-                          {row.bhid || "-"}
-                        </button>
-                      </td>
+                    return (
+                      <Fragment key={key}>
+                        <tr className="group bg-[#1b2a3a] text-[11px] text-slate-200 transition hover:bg-[#21344a]">
+                          <td className="px-2 py-3 text-center align-middle">
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(row)}
+                              className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded text-orange-300 transition hover:bg-white/10 hover:text-orange-200"
+                              title={isExpanded ? "Hide variants" : "Show variants"}
+                            >
+                              {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                            </button>
+                          </td>
 
-                      <td className="px-2 py-2 text-center align-middle">
-                        <button
-                          type="button"
-                          onClick={() => openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}`)}
-                          title={row.name}
-                          className="cursor-pointer whitespace-normal break-words text-center text-[11px] font-normal leading-[1.3] text-zinc-300 hover:text-[#D0E7E6]"
-                        >
-                          {row.name || "Unnamed Product"}
-                        </button>
-                      </td>
+                          <td className="px-2 py-2 align-middle">
+                            <button
+                              type="button"
+                              onClick={() => imageUrl && setImagePreview({ image: imageUrl, title: row.name })}
+                              className="flex h-11 w-11 cursor-pointer items-center justify-center overflow-hidden rounded bg-white ring-1 ring-slate-600 hover:ring-orange-400"
+                            >
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={row.name}
+                                  className="h-full w-full object-contain"
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <Package size={14} className="text-zinc-400" />
+                              )}
+                            </button>
+                          </td>
 
-                      <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
-                        <span className="block truncate">{row.sku || "-"}</span>
-                      </td>
+                          <td className="px-2 py-3 align-middle">
+                            <button
+                              type="button"
+                              onClick={() => openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}`)}
+                              title={row.bhid}
+                              className="block max-w-full cursor-pointer truncate text-left font-mono text-[11px] font-medium text-orange-300 underline decoration-dotted hover:text-orange-200"
+                            >
+                              {row.bhid || "-"}
+                            </button>
+                          </td>
 
-                      <td className="px-2 py-2 text-center align-middle text-[12px] font-semibold text-zinc-100">
-                        {money(row.price)}
-                      </td>
+                          <td className="px-2 py-3 align-middle">
+                            <button
+                              type="button"
+                              onClick={() => openOverlay(`/product/brighthub-products/${row.account_id}/${row.bhid}`)}
+                              title={row.name}
+                              className="line-clamp-2 min-w-0 cursor-pointer text-left text-[11px] font-normal leading-4 text-slate-100 hover:text-orange-300 hover:underline"
+                            >
+                              {row.name || "Unnamed Product"}
+                            </button>
+                          </td>
 
-                      <td className="px-2 py-2 text-center align-middle">
-                        <span
-                          className={cx(
-                            "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                            String(row.status || "").toLowerCase() === "active"
-                              ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
-                              : "border-red-400/25 bg-red-400/10 text-red-300"
-                          )}
-                        >
-                          {row.status || "unknown"}
-                        </span>
-                      </td>
+                          <td className="px-2 py-3 align-middle text-[11px] text-slate-300">
+                            <span className="block truncate">{row.sku || "-"}</span>
+                          </td>
 
-                      <td className="px-2 py-2 text-center align-middle text-[11px] text-zinc-400">
-                        {formatDate(row.last_synced_at)}
-                      </td>
+                          <td className="px-2 py-3 text-right align-middle text-[11px] font-semibold text-slate-100">
+                            {money(row.price)}
+                          </td>
 
-                      <td className="px-2 py-2 text-center align-middle">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openEditProduct(row)}
-                            title="Edit on BrightHub"
-                            className="flex h-7 w-7 items-center justify-center rounded-sm border border-amber-500/30 bg-amber-500/10 text-amber-300 transition hover:bg-amber-500/20"
-                          >
-                            <Pencil size={12} />
-                          </button>
+                          <td className="px-2 py-3 align-middle">
+                            <span
+                              className={cx(
+                                "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                                String(row.status || "").toLowerCase() === "active"
+                                  ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                                  : "border-red-400/25 bg-red-400/10 text-red-300"
+                              )}
+                            >
+                              {row.status || "unknown"}
+                            </span>
+                          </td>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteProduct(row)}
-                            disabled={deletingBhid === row.bhid}
-                            title="Delete from BrightHub"
-                            className="flex h-7 w-7 items-center justify-center rounded-sm border border-red-500/30 bg-red-500/10 text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {deletingBhid === row.bhid ? (
-                              <Loader2 size={12} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={12} />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                          <td className="px-2 py-3 align-middle text-[11px] text-slate-400">
+                            {formatDate(row.last_synced_at)}
+                          </td>
+
+                          <td className="px-2 py-3 align-middle">
+                            <div className="flex items-center justify-center gap-2.5">
+                              <button
+                                type="button"
+                                onClick={() => openEditProduct(row)}
+                                title="Edit on BrightHub"
+                                className="flex h-6 w-6 cursor-pointer items-center justify-center text-amber-300 transition hover:text-amber-200"
+                              >
+                                <Pencil size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteProduct(row)}
+                                disabled={deletingBhid === row.bhid}
+                                title="Delete from BrightHub"
+                                className="flex h-6 w-6 cursor-pointer items-center justify-center text-rose-300 transition hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                {deletingBhid === row.bhid ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={13} />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {isExpanded && (
+                          <tr>
+                            <td colSpan="9" className="bg-[#101827] px-4 py-3">
+                              {variantState?.loading ? (
+                                <p className="py-2 text-center text-[11px] text-slate-500">Loading variants...</p>
+                              ) : variantState?.error ? (
+                                <p className="py-2 text-center text-[11px] text-red-400">Failed to load variants.</p>
+                              ) : !variantState?.variants?.length ? (
+                                <p className="py-2 text-center text-[11px] text-slate-500">
+                                  No variants — this is a standalone product.
+                                </p>
+                              ) : (
+                                <div className="overflow-x-auto rounded border border-white/10">
+                                  <table className="w-full text-left text-[11px]">
+                                    <thead className="bg-white/[0.03] text-[10px] uppercase tracking-wide text-slate-500">
+                                      <tr>
+                                        <th className="px-3 py-2 font-medium">Name</th>
+                                        <th className="px-3 py-2 font-medium">SKU</th>
+                                        <th className="px-3 py-2 font-medium">BHID</th>
+                                        <th className="px-3 py-2 text-right font-medium">Price</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                      {variantState.variants.map((variant) => (
+                                        <tr key={variant.id || variant.bhid}>
+                                          <td className="px-3 py-2 text-slate-200">{variant.name || "-"}</td>
+                                          <td className="px-3 py-2 font-mono text-xs text-slate-400">{variant.sku || "-"}</td>
+                                          <td className="px-3 py-2">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                openOverlay(`/product/brighthub-products/${row.account_id}/${variant.bhid}`)
+                                              }
+                                              className="font-mono text-xs text-orange-300 underline decoration-dotted hover:text-orange-200"
+                                            >
+                                              {variant.bhid || "-"}
+                                            </button>
+                                          </td>
+                                          <td className="px-3 py-2 text-right text-slate-300">{money(variant.price)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <div className="flex flex-col gap-3 border-t border-zinc-800/60 pt-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2 text-zinc-400">
@@ -724,7 +819,7 @@ export default function BrightHubProductDashboardPage() {
                 setPageSize(Number(event.target.value));
                 setPage(1);
               }}
-              className={cx("h-8 bg-[#050817] px-2 text-zinc-200 outline-none", buttonClass)}
+              className={cx("h-8 bg-[#050917] px-2 text-zinc-200 outline-none", buttonClass)}
             >
               {PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>{size}</option>
