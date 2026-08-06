@@ -6,6 +6,20 @@ const execAsync = util.promisify(exec);
 
 const PM2_PROCESS_NAME = "central_management";
 
+// Every app sharing this VPS, and the domain(s) nginx routes to it - hand
+// maintained from /etc/nginx/sites-enabled/*, since that mapping changes
+// far less often than process health stats do. A pm2 process not listed
+// here still shows up (as "Unlisted"), it just has no domain(s) attached.
+const KNOWN_PROJECTS = {
+  central_management: { label: "Central Management System", domains: ["backend.teckvora.com", "system.teckvora.com"] },
+  "brighthub-ecommerce-api": { label: "BrightHub Ecommerce", domains: ["brighthub.lk", "www.brighthub.lk", "admin.brighthub.lk"] },
+  "teckvora-backend": { label: "Teckvora Website", domains: ["api.admin.teckvora.com", "admin.teckvora.com", "teckvora.com"] },
+  "webmail-backend": { label: "Webmail", domains: ["mail.teckvora.com"] },
+  "ebay-backend": { label: "eBay Department Management", domains: ["ebay.teckvora.com"] },
+  "video-downloader-backend": { label: "Video Downloader", domains: ["video.teckvora.com"] },
+  "todo-backend": { label: "Todo App", domains: ["todo.teckvora.com"] },
+};
+
 // `df -B1` reports exact byte counts (no K/M/G rounding) for the root
 // filesystem - that's the partition everything on this VPS (app, uploads,
 // MySQL data) actually lives on, so it's the number that matters for
@@ -65,19 +79,14 @@ function getCpu() {
   };
 }
 
-// PM2 process stats for this app itself (uptime, restart count, its own
-// memory/CPU share) - separate from system-wide disk/memory/CPU above.
-async function getProcessStats() {
-  const { stdout } = await execAsync("pm2 jlist");
-  const processes = JSON.parse(stdout);
-  const proc = processes.find((p) => p.name === PM2_PROCESS_NAME);
-
-  if (!proc) {
-    return null;
-  }
+function mapPm2Process(proc) {
+  const project = KNOWN_PROJECTS[proc.name];
 
   return {
+    pid: proc.pid,
     name: proc.name,
+    label: project?.label || proc.name,
+    domains: project?.domains || [],
     status: proc.pm2_env.status,
     uptime_ms: proc.pm2_env.status === "online" ? Date.now() - proc.pm2_env.pm_uptime : 0,
     restarts: proc.pm2_env.restart_time,
@@ -86,4 +95,14 @@ async function getProcessStats() {
   };
 }
 
-module.exports = { getDiskSpace, getMemory, getCpu, getProcessStats };
+// Every app currently running on this VPS (this one included), with the
+// domain(s) it serves - so the page shows what's sharing the server, not
+// just this app's own footprint.
+async function getAllProcesses() {
+  const { stdout } = await execAsync("pm2 jlist");
+  const processes = JSON.parse(stdout);
+
+  return processes.map(mapPm2Process).sort((a, b) => a.label.localeCompare(b.label));
+}
+
+module.exports = { getDiskSpace, getMemory, getCpu, getAllProcesses, PM2_PROCESS_NAME };

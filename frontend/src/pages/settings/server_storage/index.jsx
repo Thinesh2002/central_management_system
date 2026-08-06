@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HardDrive, RefreshCw, AlertTriangle, Cpu, MemoryStick, Activity } from "lucide-react";
+import { HardDrive, RefreshCw, AlertTriangle, Cpu, MemoryStick, Activity, Globe2, Server } from "lucide-react";
 import diskSpaceApi from "../../../config/sub_api/system_api/disk_space_api";
 import Loader from "../../../components/common/Loader";
 
@@ -114,6 +114,7 @@ export default function ServerStoragePage() {
   const memory = data?.memory;
   const cpu = data?.cpu;
   const proc = data?.process;
+  const processes = data?.processes;
 
   const diskPercent = Math.min(Math.max(Number(disk?.use_percent) || 0, 0), 100);
   const memoryPercent = Math.min(Math.max(Number(memory?.use_percent) || 0, 0), 100);
@@ -226,6 +227,79 @@ export default function ServerStoragePage() {
                 <StatCard label="Uptime" value={formatDuration(proc.uptime_ms)} tone="text-slate-100" />
                 <StatCard label="Restarts" value={proc.restarts} tone={proc.restarts > 20 ? "text-amber-300" : "text-slate-100"} />
                 <StatCard label="Memory / CPU" value={`${formatBytes(proc.memory_bytes)} / ${proc.cpu_percent}%`} tone="text-slate-100" />
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(processes) && processes.length > 0 && (
+            <div className="rounded-lg border border-slate-800 bg-[#0a101d] p-4">
+              <div className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold text-slate-200">
+                <Server size={14} />
+                Running Projects on This Server ({processes.length})
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-180 border-collapse text-left text-[12px]">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-[11px] uppercase tracking-wide text-slate-500">
+                      <th className="px-2 py-2 font-medium">Project</th>
+                      <th className="px-2 py-2 font-medium">Domain(s)</th>
+                      <th className="px-2 py-2 font-medium">Status</th>
+                      <th className="px-2 py-2 font-medium">Uptime</th>
+                      <th className="px-2 py-2 font-medium">Restarts</th>
+                      <th className="px-2 py-2 font-medium">Memory / CPU</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {processes.map((p) => (
+                      <tr
+                        key={p.pid || p.name}
+                        className={`border-b border-slate-900 last:border-0 ${
+                          p.name === proc?.name ? "bg-[#101c33]" : ""
+                        }`}
+                      >
+                        <td className="px-2 py-2 font-semibold text-slate-200">
+                          {p.label}
+                          {p.name === proc?.name && (
+                            <span className="ml-1.5 rounded bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange-300">
+                              this app
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-slate-400">
+                          {p.domains.length > 0 ? (
+                            <span className="flex flex-wrap items-center gap-1">
+                              {p.domains.map((domain) => (
+                                <span key={domain} className="flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[11px]">
+                                  <Globe2 size={10} />
+                                  {domain}
+                                </span>
+                              ))}
+                            </span>
+                          ) : (
+                            <span className="text-slate-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2">
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${
+                              p.status === "online"
+                                ? "bg-emerald-500/15 text-emerald-300"
+                                : "bg-red-500/15 text-red-400"
+                            }`}
+                          >
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2 text-slate-300">{formatDuration(p.uptime_ms)}</td>
+                        <td className="px-2 py-2 text-slate-300">{p.restarts}</td>
+                        <td className="px-2 py-2 text-slate-300">
+                          {formatBytes(p.memory_bytes)} / {p.cpu_percent}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
