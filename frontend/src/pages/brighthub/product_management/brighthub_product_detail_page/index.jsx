@@ -105,18 +105,32 @@ export default function BrightHubProductDetailPage() {
         brighthubProductApi.getLiveBrightHubProduct(accountId, bhid),
       ]);
 
-      if (syncedRes.status === "fulfilled") {
-        setProduct(syncedRes.value?.data?.data || null);
+      const syncedProduct = syncedRes.status === "fulfilled" ? syncedRes.value?.data?.data : null;
+      const liveProduct = liveRes.status === "fulfilled" ? liveRes.value?.data?.data : null;
+
+      if (syncedProduct) {
+        setProduct(syncedProduct);
+      } else if (liveProduct) {
+        // Only top-level (parent/standalone) products are ever pulled into
+        // the local sync mirror - a variant's own bhid never gets its own
+        // row there, so viewing one always misses here. Fall back to the
+        // live object, reshaped to the same fields this page reads.
+        setProduct({
+          bhid: liveProduct.bhid,
+          sku: liveProduct.sku,
+          name: liveProduct.name,
+          price: liveProduct.price,
+          status: liveProduct.status,
+          last_synced_at: null,
+          images_json: JSON.stringify(liveProduct.images || []),
+          raw_json: JSON.stringify(liveProduct),
+        });
       } else {
         setProduct(null);
-        throw syncedRes.reason;
+        throw syncedRes.reason || liveRes.reason || new Error("BrightHub product not found.");
       }
 
-      if (liveRes.status === "fulfilled") {
-        setVariants(Array.isArray(liveRes.value?.data?.data?.variants) ? liveRes.value.data.data.variants : []);
-      } else {
-        setVariants([]);
-      }
+      setVariants(Array.isArray(liveProduct?.variants) ? liveProduct.variants : []);
     } catch (err) {
       setError(err?.friendlyMessage || "Failed to load BrightHub product details.");
     } finally {
