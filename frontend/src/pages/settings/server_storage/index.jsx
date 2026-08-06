@@ -248,6 +248,7 @@ export default function ServerStoragePage() {
                       <th className="px-2 py-2 font-medium">Uptime</th>
                       <th className="px-2 py-2 font-medium">Restarts</th>
                       <th className="px-2 py-2 font-medium">Memory / CPU</th>
+                      <th className="px-2 py-2 font-medium">Storage</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -295,6 +296,9 @@ export default function ServerStoragePage() {
                         <td className="px-2 py-2 text-slate-300">{p.restarts}</td>
                         <td className="px-2 py-2 text-slate-300">
                           {formatBytes(p.memory_bytes)} / {p.cpu_percent}%
+                        </td>
+                        <td className="px-2 py-2 text-slate-300">
+                          {p.disk_bytes != null ? formatBytes(p.disk_bytes) : <span className="text-slate-600">—</span>}
                         </td>
                       </tr>
                     ))}

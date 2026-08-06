@@ -10,14 +10,16 @@ const PM2_PROCESS_NAME = "central_management";
 // maintained from /etc/nginx/sites-enabled/*, since that mapping changes
 // far less often than process health stats do. A pm2 process not listed
 // here still shows up (as "Unlisted"), it just has no domain(s) attached.
+// `dir` is the project's folder name directly under /var/www - used to
+// look up its on-disk storage footprint via `du`.
 const KNOWN_PROJECTS = {
-  central_management: { label: "Central Management System", domains: ["backend.teckvora.com", "system.teckvora.com"] },
-  "brighthub-ecommerce-api": { label: "BrightHub Ecommerce", domains: ["brighthub.lk", "www.brighthub.lk", "admin.brighthub.lk"] },
-  "teckvora-backend": { label: "Teckvora Website", domains: ["api.admin.teckvora.com", "admin.teckvora.com", "teckvora.com"] },
-  "webmail-backend": { label: "Webmail", domains: ["mail.teckvora.com"] },
-  "ebay-backend": { label: "eBay Department Management", domains: ["ebay.teckvora.com"] },
-  "video-downloader-backend": { label: "Video Downloader", domains: ["video.teckvora.com"] },
-  "todo-backend": { label: "Todo App", domains: ["todo.teckvora.com"] },
+  central_management: { label: "Central Management System", domains: ["backend.teckvora.com", "system.teckvora.com"], dir: "central_management_system" },
+  "brighthub-ecommerce-api": { label: "BrightHub Ecommerce", domains: ["brighthub.lk", "www.brighthub.lk", "admin.brighthub.lk"], dir: "brighthub-ecommerce" },
+  "teckvora-backend": { label: "Teckvora Website", domains: ["api.admin.teckvora.com", "admin.teckvora.com", "teckvora.com"], dir: "teckvora_website" },
+  "webmail-backend": { label: "Webmail", domains: ["mail.teckvora.com"], dir: "webmail" },
+  "ebay-backend": { label: "eBay Department Management", domains: ["ebay.teckvora.com"], dir: "ebay_department_management" },
+  "video-downloader-backend": { label: "Video Downloader", domains: ["video.teckvora.com"], dir: "video_downloader" },
+  "todo-backend": { label: "Todo App", domains: ["todo.teckvora.com"], dir: "todo" },
 };
 
 // `df -B1` reports exact byte counts (no K/M/G rounding) for the root
@@ -79,7 +81,26 @@ function getCpu() {
   };
 }
 
-function mapPm2Process(proc) {
+// Disk usage of every top-level /var/www project folder, in one `du` call
+// (far cheaper than one `du` per project). Directories that don't exist
+// under a project's KNOWN_PROJECTS `dir` simply won't have a match.
+async function getProjectStorageByDir() {
+  const { stdout } = await execAsync("du -sb /var/www/*/");
+  const sizeByDir = {};
+
+  stdout
+    .trim()
+    .split("\n")
+    .forEach((line) => {
+      const [bytes, path] = line.trim().split(/\s+/);
+      const dir = path.replace(/\/+$/, "").split("/").pop();
+      sizeByDir[dir] = Number(bytes);
+    });
+
+  return sizeByDir;
+}
+
+function mapPm2Process(proc, sizeByDir) {
   const project = KNOWN_PROJECTS[proc.name];
 
   return {
@@ -87,6 +108,7 @@ function mapPm2Process(proc) {
     name: proc.name,
     label: project?.label || proc.name,
     domains: project?.domains || [],
+    disk_bytes: project?.dir && sizeByDir ? sizeByDir[project.dir] ?? null : null,
     status: proc.pm2_env.status,
     uptime_ms: proc.pm2_env.status === "online" ? Date.now() - proc.pm2_env.pm_uptime : 0,
     restarts: proc.pm2_env.restart_time,
@@ -96,13 +118,19 @@ function mapPm2Process(proc) {
 }
 
 // Every app currently running on this VPS (this one included), with the
-// domain(s) it serves - so the page shows what's sharing the server, not
-// just this app's own footprint.
+// domain(s) it serves and how much disk space its project folder is using -
+// so the page shows what's sharing the server, not just this app's own
+// footprint.
 async function getAllProcesses() {
-  const { stdout } = await execAsync("pm2 jlist");
+  const [{ stdout }, sizeByDir] = await Promise.all([
+    execAsync("pm2 jlist"),
+    getProjectStorageByDir().catch(() => null),
+  ]);
   const processes = JSON.parse(stdout);
 
-  return processes.map(mapPm2Process).sort((a, b) => a.label.localeCompare(b.label));
+  return processes
+    .map((proc) => mapPm2Process(proc, sizeByDir))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 module.exports = { getDiskSpace, getMemory, getCpu, getAllProcesses, PM2_PROCESS_NAME };
