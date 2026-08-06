@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { HardDrive, RefreshCw, AlertTriangle, Cpu, MemoryStick, Activity, Globe2, Server } from "lucide-react";
+import { HardDrive, RefreshCw, AlertTriangle, Cpu, MemoryStick, Activity, Globe2, Server, DatabaseZap, Sparkles } from "lucide-react";
 import diskSpaceApi from "../../../config/sub_api/system_api/disk_space_api";
 import Loader from "../../../components/common/Loader";
+import { useConfirm } from "../../../components/common/confirm_modal/ConfirmProvider";
 
 function formatBytes(bytes) {
   const value = Number(bytes);
@@ -85,9 +86,12 @@ function UsageBar({ icon: Icon, title, subtitle, percent, warningLabel }) {
 }
 
 export default function ServerStoragePage() {
+  const confirm = useConfirm();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanMsg, setCleanMsg] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -110,11 +114,40 @@ export default function ServerStoragePage() {
     load();
   }, []);
 
+  async function handleCleanBinlogs() {
+    const ok = await confirm(
+      "Deletes MySQL binary log files older than 3 days to free up disk space. Safe as long as nothing is replicating off this database — this server has no replicas. This cannot be undone.",
+      { title: "Clean Binary Logs", confirmLabel: "Clean Now" }
+    );
+    if (!ok) return;
+
+    setCleaning(true);
+    setCleanMsg(null);
+
+    try {
+      const res = await diskSpaceApi.cleanBinlogs(3);
+      const result = res?.data?.data;
+      setCleanMsg({
+        type: "success",
+        text: `Freed ${formatBytes(result?.freed_bytes)} — ${result?.file_count ?? 0} binlog file(s) remaining.`,
+      });
+      await load();
+    } catch (err) {
+      setCleanMsg({
+        type: "error",
+        text: err?.response?.data?.message || err?.friendlyMessage || "Failed to clean binary logs.",
+      });
+    } finally {
+      setCleaning(false);
+    }
+  }
+
   const disk = data?.disk;
   const memory = data?.memory;
   const cpu = data?.cpu;
   const proc = data?.process;
   const processes = data?.processes;
+  const binlogs = data?.binlogs;
 
   const diskPercent = Math.min(Math.max(Number(disk?.use_percent) || 0, 0), 100);
   const memoryPercent = Math.min(Math.max(Number(memory?.use_percent) || 0, 0), 100);
@@ -286,16 +319,22 @@ export default function ServerStoragePage() {
                             className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${
                               p.status === "online"
                                 ? "bg-emerald-500/15 text-emerald-300"
-                                : "bg-red-500/15 text-red-400"
+                                : p.status === "static"
+                                  ? "bg-sky-500/15 text-sky-300"
+                                  : "bg-red-500/15 text-red-400"
                             }`}
                           >
                             {p.status}
                           </span>
                         </td>
                         <td className="px-2 py-2 text-slate-300">{formatDuration(p.uptime_ms)}</td>
-                        <td className="px-2 py-2 text-slate-300">{p.restarts}</td>
+                        <td className="px-2 py-2 text-slate-300">{p.restarts ?? <span className="text-slate-600">—</span>}</td>
                         <td className="px-2 py-2 text-slate-300">
-                          {formatBytes(p.memory_bytes)} / {p.cpu_percent}%
+                          {p.memory_bytes != null ? (
+                            `${formatBytes(p.memory_bytes)} / ${p.cpu_percent}%`
+                          ) : (
+                            <span className="text-slate-600">—</span>
+                          )}
                         </td>
                         <td className="px-2 py-2 text-slate-300">
                           {p.disk_bytes != null ? formatBytes(p.disk_bytes) : <span className="text-slate-600">—</span>}
@@ -305,6 +344,43 @@ export default function ServerStoragePage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {binlogs && (
+            <div className="rounded-lg border border-slate-800 bg-[#0a101d] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-slate-200">
+                    <DatabaseZap size={14} />
+                    MySQL Binary Logs
+                  </div>
+                  <p className="text-[12px] text-slate-500">
+                    {binlogs.file_count} file(s), {formatBytes(binlogs.total_bytes)} — these accumulate
+                    with normal database writes and auto-expire after 30 days.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCleanBinlogs}
+                  disabled={cleaning || binlogs.total_bytes === 0}
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-orange-700 bg-orange-950/40 px-3 text-[11px] font-semibold text-orange-300 hover:bg-orange-900/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Sparkles size={13} className={cleaning ? "animate-spin" : ""} />
+                  {cleaning ? "Cleaning..." : "Clean Binary Logs"}
+                </button>
+              </div>
+
+              {cleanMsg && (
+                <p
+                  className={`mt-2 text-[12px] font-semibold ${
+                    cleanMsg.type === "success" ? "text-emerald-300" : "text-red-400"
+                  }`}
+                >
+                  {cleanMsg.text}
+                </p>
+              )}
             </div>
           )}
         </>

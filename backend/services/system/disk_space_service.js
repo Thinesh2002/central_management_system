@@ -22,6 +22,14 @@ const KNOWN_PROJECTS = {
   "todo-backend": { label: "Todo App", domains: ["todo.teckvora.com"], dir: "todo" },
 };
 
+// Sites nginx serves directly (static build, no pm2 process behind them) -
+// keyed by their /var/www dir since there's no pm2 process name to key on.
+// These get real live disk usage but no process/uptime/CPU stats, since
+// there genuinely is no process to report those for.
+const STATIC_ONLY_SITES = {
+  thinesh_website: { label: "Thinesh Portfolio", domains: ["thinesh.teckvora.com"], dir: "thinesh_website" },
+};
+
 // `df -B1` reports exact byte counts (no K/M/G rounding) for the root
 // filesystem - that's the partition everything on this VPS (app, uploads,
 // MySQL data) actually lives on, so it's the number that matters for
@@ -117,20 +125,80 @@ function mapPm2Process(proc, sizeByDir) {
   };
 }
 
+function mapStaticSite(dir, project, sizeByDir) {
+  return {
+    pid: null,
+    name: dir,
+    label: project.label,
+    domains: project.domains,
+    disk_bytes: sizeByDir ? sizeByDir[project.dir] ?? null : null,
+    status: "static",
+    uptime_ms: null,
+    restarts: null,
+    memory_bytes: null,
+    cpu_percent: null,
+  };
+}
+
 // Every app currently running on this VPS (this one included), with the
 // domain(s) it serves and how much disk space its project folder is using -
 // so the page shows what's sharing the server, not just this app's own
-// footprint.
+// footprint. Static-only sites (no pm2 process) are appended with real
+// live disk usage but no process stats, since none exist for them.
 async function getAllProcesses() {
   const [{ stdout }, sizeByDir] = await Promise.all([
     execAsync("pm2 jlist"),
     getProjectStorageByDir().catch(() => null),
   ]);
-  const processes = JSON.parse(stdout);
+  const processes = JSON.parse(stdout).map((proc) => mapPm2Process(proc, sizeByDir));
 
-  return processes
-    .map((proc) => mapPm2Process(proc, sizeByDir))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  const staticSites = Object.entries(STATIC_ONLY_SITES).map(([dir, project]) =>
+    mapStaticSite(dir, project, sizeByDir)
+  );
+
+  return [...processes, ...staticSites].sort((a, b) => a.label.localeCompare(b.label));
 }
 
-module.exports = { getDiskSpace, getMemory, getCpu, getAllProcesses, PM2_PROCESS_NAME };
+// Binary log files pile up under /var/lib/mysql (binlog.NNNNNN) with
+// nothing to bound them until MySQL's own 30-day auto-expiry kicks in -
+// this reports their real current footprint for the storage page.
+async function getBinlogStorage() {
+  try {
+    const { stdout } = await execAsync("du -cb /var/lib/mysql/binlog.* 2>/dev/null");
+    const lines = stdout.trim().split("\n").filter(Boolean);
+    const totalBytes = Number(lines[lines.length - 1]?.trim().split(/\s+/)[0]) || 0;
+
+    return { total_bytes: totalBytes, file_count: Math.max(lines.length - 1, 0) };
+  } catch {
+    return { total_bytes: 0, file_count: 0 };
+  }
+}
+
+// Deletes MySQL binary log files older than `keepDays` days. Safe as long
+// as nothing is replicating off this server (verify with SHOW REPLICAS /
+// SHOW FULL PROCESSLIST before exposing this to a wider audience).
+async function purgeBinlogs(keepDays) {
+  const safeDays = Math.min(Math.max(Number.parseInt(keepDays, 10) || 3, 1), 30);
+  const before = await getBinlogStorage();
+
+  await execAsync(`mysql -e "PURGE BINARY LOGS BEFORE (NOW() - INTERVAL ${safeDays} DAY);"`);
+
+  const after = await getBinlogStorage();
+
+  return {
+    keep_days: safeDays,
+    freed_bytes: Math.max(before.total_bytes - after.total_bytes, 0),
+    files_before: before.file_count,
+    ...after,
+  };
+}
+
+module.exports = {
+  getDiskSpace,
+  getMemory,
+  getCpu,
+  getAllProcesses,
+  getBinlogStorage,
+  purgeBinlogs,
+  PM2_PROCESS_NAME,
+};
