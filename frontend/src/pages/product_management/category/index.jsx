@@ -1159,7 +1159,7 @@ export default function CategoryPage() {
 
                                             <td className="px-3 py-2.5 text-right">
                                               <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-                                                <ActionLabel
+                                                <ActionBtn
                                                   title="Add Model"
                                                   accent="emerald"
                                                   onClick={() =>
@@ -1170,33 +1170,33 @@ export default function CategoryPage() {
                                                     )
                                                   }
                                                 >
-                                                  Add Model
-                                                </ActionLabel>
+                                                  <Plus size={14} />
+                                                </ActionBtn>
 
-                                                <ActionLabel
+                                                <ActionBtn
                                                   title="View Sub Category"
                                                   accent="sky"
                                                   onClick={() =>
                                                     openSub("view", row, child)
                                                   }
                                                 >
-                                                  View
-                                                </ActionLabel>
+                                                  <Eye size={14} />
+                                                </ActionBtn>
 
                                                 {canEdit && (
-                                                  <ActionLabel
+                                                  <ActionBtn
                                                     title="Edit Sub Category"
                                                     accent="amber"
                                                     onClick={() =>
                                                       openSub("edit", row, child)
                                                     }
                                                   >
-                                                    Edit
-                                                  </ActionLabel>
+                                                    <Edit size={14} />
+                                                  </ActionBtn>
                                                 )}
 
                                                 {canDelete && (
-                                                  <ActionLabel
+                                                  <ActionBtn
                                                     title="Delete Sub Category"
                                                     accent="red"
                                                     onClick={() =>
@@ -1207,8 +1207,8 @@ export default function CategoryPage() {
                                                       })
                                                     }
                                                   >
-                                                    Delete
-                                                  </ActionLabel>
+                                                    <Trash2 size={14} />
+                                                  </ActionBtn>
                                                 )}
                                               </div>
                                             </td>
@@ -1311,7 +1311,7 @@ export default function CategoryPage() {
 
                                                               <td className="px-3 py-2.5 text-right">
                                                                 <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-                                                                  <ActionLabel
+                                                                  <ActionBtn
                                                                     title="View Model"
                                                                     accent="sky"
                                                                     onClick={() =>
@@ -1323,11 +1323,11 @@ export default function CategoryPage() {
                                                                       )
                                                                     }
                                                                   >
-                                                                    View
-                                                                  </ActionLabel>
+                                                                    <Eye size={14} />
+                                                                  </ActionBtn>
 
                                                                   {canEdit && (
-                                                                    <ActionLabel
+                                                                    <ActionBtn
                                                                       title="Edit Model"
                                                                       accent="amber"
                                                                       onClick={() =>
@@ -1339,12 +1339,12 @@ export default function CategoryPage() {
                                                                         )
                                                                       }
                                                                     >
-                                                                      Edit
-                                                                    </ActionLabel>
+                                                                      <Edit size={14} />
+                                                                    </ActionBtn>
                                                                   )}
 
                                                                   {canDelete && (
-                                                                    <ActionLabel
+                                                                    <ActionBtn
                                                                       title="Delete Model"
                                                                       accent="red"
                                                                       onClick={() =>
@@ -1357,8 +1357,8 @@ export default function CategoryPage() {
                                                                         )
                                                                       }
                                                                     >
-                                                                      Delete
-                                                                    </ActionLabel>
+                                                                      <Trash2 size={14} />
+                                                                    </ActionBtn>
                                                                   )}
                                                                 </div>
                                                               </td>
