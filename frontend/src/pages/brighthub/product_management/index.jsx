@@ -7,6 +7,7 @@ import {
   PlayCircle,
   Plus,
   Pencil,
+  Eye,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -787,6 +788,7 @@ export default function BrightHubProductDashboardPage() {
                                         <th className="px-3 py-2 font-medium">Name</th>
                                         <th className="px-3 py-2 font-medium">SKU</th>
                                         <th className="px-3 py-2 text-right font-medium">Price</th>
+                                        <th className="px-3 py-2 text-center font-medium">Action</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
@@ -804,6 +806,33 @@ export default function BrightHubProductDashboardPage() {
                                           <td className="px-3 py-2 text-slate-200">{variant.name || "-"}</td>
                                           <td className="px-3 py-2 font-mono text-xs text-slate-400">{variant.sku || "-"}</td>
                                           <td className="px-3 py-2 text-right text-slate-300">{money(variant.price)}</td>
+                                          <td className="px-3 py-2">
+                                            <div className="flex items-center justify-center gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  openOverlay(`/product/brighthub-products/${row.account_id}/${variant.bhid}`)
+                                                }
+                                                title="View variant"
+                                                className="flex h-6 w-6 items-center justify-center text-sky-300 transition hover:text-sky-200"
+                                              >
+                                                <Eye size={13} />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  openOverlay(
+                                                    `/product/brighthub-products/${row.account_id}/${variant.bhid}/edit`,
+                                                    loadProducts
+                                                  )
+                                                }
+                                                title="Edit variant"
+                                                className="flex h-6 w-6 items-center justify-center text-amber-300 transition hover:text-amber-200"
+                                              >
+                                                <Pencil size={13} />
+                                              </button>
+                                            </div>
+                                          </td>
                                         </tr>
                                       ))}
                                     </tbody>

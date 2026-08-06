@@ -13,6 +13,7 @@ import {
   getVariantName,
   getVariantSku,
 } from "../utils/localProductsTableHelpers";
+import HoverZoomImage from "./HoverZoomImage";
 
 
 function getVariantOwnImage(variant = {}) {
@@ -256,26 +257,21 @@ export default function VariantTable({
                   className="bg-[#1b2a3a] text-[11px] text-slate-200 transition hover:bg-[#21344a]"
                 >
                   <td className="px-3 py-3 align-middle">
-                    <button
-                      type="button"
+                    <HoverZoomImage
+                      src={variantImage}
+                      alt={variantName}
+                      title="View variant image"
+                      ringClassName="hover:ring-cyan-400"
                       onClick={() =>
                         setImagePreview({
                           title: variantName,
                           image: variantImage,
                         })
                       }
-                      className="relative z-0 h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition-transform duration-150 ease-out hover:z-20 hover:scale-[2.4] hover:shadow-xl hover:ring-cyan-400"
-                      title="View variant image"
-                    >
-                      <img
-                        src={variantImage}
-                        alt={variantName}
-                        className="h-full w-full object-contain"
-                        onError={(event) => {
-                          event.currentTarget.src = EMPTY_IMAGE;
-                        }}
-                      />
-                    </button>
+                      onError={(event) => {
+                        event.currentTarget.src = EMPTY_IMAGE;
+                      }}
+                    />
                   </td>
 
                   <td className="px-3 py-3 align-middle">

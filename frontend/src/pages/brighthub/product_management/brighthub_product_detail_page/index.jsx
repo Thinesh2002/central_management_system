@@ -273,6 +273,7 @@ export default function BrightHubProductDetailPage() {
                       <th className="px-3 py-2 font-medium">SKU</th>
                       <th className="px-3 py-2 font-medium">BHID</th>
                       <th className="px-3 py-2 text-right font-medium">Price</th>
+                      <th className="px-3 py-2 text-center font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -290,6 +291,18 @@ export default function BrightHubProductDetailPage() {
                           </button>
                         </td>
                         <td className="px-3 py-2 text-right text-slate-300">{money(variant.price)}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/product/brighthub-products/${accountId}/${variant.bhid}/edit`)}
+                              title="Edit variant"
+                              className="flex h-6 w-6 items-center justify-center text-amber-300 transition hover:text-amber-200"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

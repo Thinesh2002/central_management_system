@@ -24,6 +24,7 @@ import {
 } from "../utils/localProductsTableHelpers";
 import VariantTable from "./VariantTable";
 import TransferAccountModal from "./TransferAccountModal";
+import HoverZoomImage from "./HoverZoomImage";
 
 const TABLE_COL_SPAN = 7;
 
@@ -156,26 +157,21 @@ export default function ProductRow({
 
         {/* Image */}
         <td className="px-3 py-3 align-middle">
-          <button
-            type="button"
+          <HoverZoomImage
+            src={primaryImage}
+            alt={title}
+            title="View product image"
+            ringClassName="hover:ring-orange-400"
             onClick={() =>
               setImagePreview({
                 title,
                 image: primaryImage,
               })
             }
-            className="relative z-0 h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded bg-white ring-1 ring-slate-600 transition-transform duration-150 ease-out hover:z-20 hover:scale-[2.4] hover:shadow-xl hover:ring-orange-400"
-            title="View product image"
-          >
-            <img
-              src={primaryImage}
-              alt={title}
-              className="h-full w-full object-contain"
-              onError={(event) => {
-                event.currentTarget.src = EMPTY_IMAGE;
-              }}
-            />
-          </button>
+            onError={(event) => {
+              event.currentTarget.src = EMPTY_IMAGE;
+            }}
+          />
         </td>
 
         {/* Name */}
