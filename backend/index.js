@@ -14,6 +14,7 @@ const userRoutes = require("./routes/userRoutes");
 const accessRoutes = require("./routes/accessRoutes");
 const logRoutes = require("./routes/logRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const diskSpaceRoutes = require("./routes/system/disk_space_routes");
 
 const productModelRoutes = require("./routes/product_management/product_model/product_model_routes");
 const productColourRoutes = require("./routes/product_management/product_colour/product_colour_routes");
@@ -193,6 +194,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/access", accessRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/system/disk-space", diskSpaceRoutes);
 
 app.use("/api/product-management/models", productModelRoutes);
 app.use("/api/product-management/colours", productColourRoutes);

@@ -283,6 +283,14 @@ const staticMenu = [
     icon: "DownloadCloud",
     exact: true,
   },
+  {
+    section: "SETTINGS",
+    page_key: "server_storage",
+    page_name: "Server Storage",
+    path: "/settings/server-storage",
+    icon: "HardDrive",
+    exact: true,
+  },
 ];
 
 function groupMenu(menuItems) {
