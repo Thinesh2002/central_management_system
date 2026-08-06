@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HardDrive, RefreshCw, AlertTriangle } from "lucide-react";
+import { HardDrive, RefreshCw, AlertTriangle, Cpu, MemoryStick, Activity } from "lucide-react";
 import diskSpaceApi from "../../../config/sub_api/system_api/disk_space_api";
 import Loader from "../../../components/common/Loader";
 
@@ -19,10 +19,30 @@ function formatBytes(bytes) {
   return `${size.toFixed(size >= 100 || unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
 }
 
+function formatDuration(ms) {
+  const value = Number(ms);
+  if (!Number.isFinite(value) || value <= 0) return "-";
+
+  const minutes = Math.floor(value / 60000);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
 function barTone(percent) {
   if (percent >= 90) return "bg-red-500";
   if (percent >= 75) return "bg-amber-400";
   return "bg-orange-500";
+}
+
+function toneForPercent(percent) {
+  if (percent >= 90) return "text-red-400";
+  if (percent >= 75) return "text-amber-300";
+  return "text-emerald-300";
 }
 
 function StatCard({ label, value, tone = "text-slate-100" }) {
@@ -30,6 +50,36 @@ function StatCard({ label, value, tone = "text-slate-100" }) {
     <div className="rounded-lg border border-slate-800 bg-[#0a101d] px-4 py-3">
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-1 text-[18px] font-bold ${tone}`}>{value}</p>
+    </div>
+  );
+}
+
+function UsageBar({ icon: Icon, title, subtitle, percent, warningLabel }) {
+  const safePercent = Math.min(Math.max(Number(percent) || 0, 0), 100);
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-[#0a101d] p-4">
+      <div className="mb-2 flex items-center justify-between text-[12px] text-slate-400">
+        <span className="flex items-center gap-1.5 font-semibold text-slate-200">
+          <Icon size={14} />
+          {title}
+        </span>
+        <span>{subtitle}</span>
+      </div>
+
+      <div className="h-3 w-full overflow-hidden rounded-full bg-slate-800">
+        <div
+          className={`h-full rounded-full transition-all ${barTone(safePercent)}`}
+          style={{ width: `${safePercent}%` }}
+        />
+      </div>
+
+      {safePercent >= 90 && warningLabel && (
+        <p className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-red-400">
+          <AlertTriangle size={13} />
+          {warningLabel}
+        </p>
+      )}
     </div>
   );
 }
@@ -49,7 +99,7 @@ export default function ServerStoragePage() {
     } catch (err) {
       setData(null);
       setError(
-        err?.response?.data?.message || err?.friendlyMessage || "Failed to load server disk space."
+        err?.response?.data?.message || err?.friendlyMessage || "Failed to load server stats."
       );
     } finally {
       setLoading(false);
@@ -60,7 +110,14 @@ export default function ServerStoragePage() {
     load();
   }, []);
 
-  const percent = Math.min(Math.max(Number(data?.use_percent) || 0, 0), 100);
+  const disk = data?.disk;
+  const memory = data?.memory;
+  const cpu = data?.cpu;
+  const proc = data?.process;
+
+  const diskPercent = Math.min(Math.max(Number(disk?.use_percent) || 0, 0), 100);
+  const memoryPercent = Math.min(Math.max(Number(memory?.use_percent) || 0, 0), 100);
+  const cpuPercent = Math.min(Math.max(Number(cpu?.load_percent_1m) || 0, 0), 100);
 
   return (
     <div className="space-y-3">
@@ -71,8 +128,8 @@ export default function ServerStoragePage() {
             Server Storage
           </h1>
           <p className="text-[13px] text-slate-500">
-            Disk space on the server hosting this app — the root filesystem, where the app, uploads
-            and database all live.
+            Live disk, memory and CPU usage on the server hosting this app, plus this app's own
+            process health.
           </p>
         </div>
 
@@ -96,47 +153,86 @@ export default function ServerStoragePage() {
 
       {loading ? (
         <div className="rounded-lg border border-slate-800 bg-[#0b1220]">
-          <Loader label="Reading disk space..." minHeight="0" className="py-16" />
+          <Loader label="Reading server stats..." minHeight="0" className="py-16" />
         </div>
-      ) : data ? (
+      ) : disk ? (
         <>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <StatCard label="Total Space" value={formatBytes(data.total_bytes)} tone="text-slate-100" />
-            <StatCard label="Used" value={formatBytes(data.used_bytes)} tone="text-amber-300" />
-            <StatCard label="Available" value={formatBytes(data.available_bytes)} tone="text-emerald-300" />
-            <StatCard
-              label="Used %"
-              value={`${percent}%`}
-              tone={percent >= 90 ? "text-red-400" : percent >= 75 ? "text-amber-300" : "text-emerald-300"}
-            />
+            <StatCard label="Disk Total" value={formatBytes(disk.total_bytes)} tone="text-slate-100" />
+            <StatCard label="Disk Used" value={formatBytes(disk.used_bytes)} tone="text-amber-300" />
+            <StatCard label="Disk Available" value={formatBytes(disk.available_bytes)} tone="text-emerald-300" />
+            <StatCard label="Disk Used %" value={`${diskPercent}%`} tone={toneForPercent(diskPercent)} />
           </div>
 
-          <div className="rounded-lg border border-slate-800 bg-[#0a101d] p-4">
-            <div className="mb-2 flex items-center justify-between text-[12px] text-slate-400">
-              <span>{data.mount_point || "/"}</span>
-              <span>
-                {formatBytes(data.used_bytes)} of {formatBytes(data.total_bytes)} used
-              </span>
-            </div>
+          <UsageBar
+            icon={HardDrive}
+            title={disk.mount_point || "/"}
+            subtitle={`${formatBytes(disk.used_bytes)} of ${formatBytes(disk.total_bytes)} used`}
+            percent={diskPercent}
+            warningLabel="Disk space is critically low — free up space soon."
+          />
 
-            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-800">
-              <div
-                className={`h-full rounded-full transition-all ${barTone(percent)}`}
-                style={{ width: `${percent}%` }}
+          {memory && (
+            <>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <StatCard label="RAM Total" value={formatBytes(memory.total_bytes)} tone="text-slate-100" />
+                <StatCard label="RAM Used" value={formatBytes(memory.used_bytes)} tone="text-amber-300" />
+                <StatCard label="RAM Available" value={formatBytes(memory.available_bytes)} tone="text-emerald-300" />
+                <StatCard label="RAM Used %" value={`${memoryPercent}%`} tone={toneForPercent(memoryPercent)} />
+              </div>
+
+              <UsageBar
+                icon={MemoryStick}
+                title="Memory"
+                subtitle={`${formatBytes(memory.used_bytes)} of ${formatBytes(memory.total_bytes)} used`}
+                percent={memoryPercent}
+                warningLabel="Memory usage is critically high — check for runaway processes."
               />
-            </div>
+            </>
+          )}
 
-            {percent >= 90 && (
-              <p className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold text-red-400">
-                <AlertTriangle size={13} />
-                Disk space is critically low — free up space soon.
-              </p>
-            )}
-          </div>
+          {cpu && (
+            <>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <StatCard label="CPU Cores" value={cpu.cores} tone="text-slate-100" />
+                <StatCard label="Load (1m)" value={cpu.load_1m.toFixed(2)} tone="text-amber-300" />
+                <StatCard label="Load (5m / 15m)" value={`${cpu.load_5m.toFixed(2)} / ${cpu.load_15m.toFixed(2)}`} tone="text-slate-100" />
+                <StatCard label="Load %" value={`${cpuPercent}%`} tone={toneForPercent(cpuPercent)} />
+              </div>
+
+              <UsageBar
+                icon={Cpu}
+                title="CPU Load (1 min avg)"
+                subtitle={`${cpu.load_1m.toFixed(2)} / ${cpu.cores} cores`}
+                percent={cpuPercent}
+                warningLabel="CPU load is critically high — the server may be struggling to keep up."
+              />
+            </>
+          )}
+
+          {proc && (
+            <div className="rounded-lg border border-slate-800 bg-[#0a101d] p-4">
+              <div className="mb-3 flex items-center gap-1.5 text-[12px] font-semibold text-slate-200">
+                <Activity size={14} />
+                This App ({proc.name})
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <StatCard
+                  label="Status"
+                  value={proc.status}
+                  tone={proc.status === "online" ? "text-emerald-300" : "text-red-400"}
+                />
+                <StatCard label="Uptime" value={formatDuration(proc.uptime_ms)} tone="text-slate-100" />
+                <StatCard label="Restarts" value={proc.restarts} tone={proc.restarts > 20 ? "text-amber-300" : "text-slate-100"} />
+                <StatCard label="Memory / CPU" value={`${formatBytes(proc.memory_bytes)} / ${proc.cpu_percent}%`} tone="text-slate-100" />
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="rounded-lg border border-slate-800 bg-[#0b1220] px-4 py-10 text-center text-[13px] text-slate-500">
-          No disk space data available.
+          No server stats available.
         </div>
       )}
     </div>
