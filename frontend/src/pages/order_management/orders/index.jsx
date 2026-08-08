@@ -268,9 +268,16 @@ export default function OrdersPage() {
     [visibleOrders, page]
   );
 
+  // Derived from the full `orders` set, not `visibleOrders` - a bulk Pack
+  // moves selected orders from "To Pack" into "Packed" and, since the
+  // status tab doesn't auto-switch, they'd otherwise vanish from
+  // `visibleOrders` (still on the "To Pack" tab) the instant the reload
+  // after packing lands, silently dropping them from the selection banner
+  // and hiding the "Ready to Ship" bulk button for orders that just became
+  // eligible for it.
   const selectedOrders = useMemo(
-    () => visibleOrders.filter((order) => selectedKeys.includes(orderKey(order))),
-    [visibleOrders, selectedKeys]
+    () => orders.filter((order) => selectedKeys.includes(orderKey(order))),
+    [orders, selectedKeys]
   );
 
   const selectedDaraz = useMemo(
