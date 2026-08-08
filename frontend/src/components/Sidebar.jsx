@@ -154,14 +154,6 @@ const staticMenu = [
     exact: false,
   },
   {
-    section: "REPORTS",
-    page_key: "price_rules",
-    page_name: "Price Rules",
-    path: "/price-rules",
-    icon: "SlidersHorizontal",
-    exact: true,
-  },
-  {
     section: "ORDER MANAGEMENT",
     page_key: "orders",
     page_name: "Orders",
@@ -183,14 +175,6 @@ const staticMenu = [
     page_name: "Product Trends",
     path: "/order-management/product-trends",
     icon: "BarChart3",
-    exact: true,
-  },
-  {
-    section: "ORDER MANAGEMENT",
-    page_key: "order_sync_settings",
-    page_name: "Daraz Sync Settings",
-    path: "/order-management/sync-settings",
-    icon: "Clock",
     exact: true,
   },
   {
@@ -277,10 +261,10 @@ const staticMenu = [
   },
   {
     section: "SETTINGS",
-    page_key: "sync_logs",
-    page_name: "Daraz Sync Logs",
-    path: "/product/sync-logs",
-    icon: "DownloadCloud",
+    page_key: "order_sync_settings",
+    page_name: "Daraz Sync Settings",
+    path: "/order-management/sync-settings",
+    icon: "Clock",
     exact: true,
   },
   {

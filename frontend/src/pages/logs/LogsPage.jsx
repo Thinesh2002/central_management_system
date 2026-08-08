@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Boxes,
   RotateCcw,
+  Search,
   Sparkles,
   Webhook,
   X,
@@ -667,6 +668,22 @@ export default function LogsPage() {
 
   const [syncRuns, setSyncRuns] = useState([]);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [syncFilters, setSyncFilters] = useState({
+    accountId: "",
+    status: "all",
+    syncType: "all",
+    dateFrom: "",
+    dateTo: "",
+    limit: "100",
+  });
+
+  function setSyncFilter(key, value) {
+    setSyncFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function resetSyncFilters() {
+    setSyncFilters({ accountId: "", status: "all", syncType: "all", dateFrom: "", dateTo: "", limit: "100" });
+  }
 
   const [orderInventoryLogs, setOrderInventoryLogs] = useState([]);
   const [orderInventoryLoading, setOrderInventoryLoading] = useState(false);
@@ -773,7 +790,14 @@ export default function LogsPage() {
     setSyncLoading(true);
 
     try {
-      const res = await darazProductsApi.runs({ limit: 100 });
+      const res = await darazProductsApi.runs({
+        account_id: syncFilters.accountId || undefined,
+        status: syncFilters.status !== "all" ? syncFilters.status : undefined,
+        sync_type: syncFilters.syncType !== "all" ? syncFilters.syncType : undefined,
+        date_from: syncFilters.dateFrom || undefined,
+        date_to: syncFilters.dateTo || undefined,
+        limit: syncFilters.limit,
+      });
       setSyncRuns(res?.data?.data || []);
     } catch {
       setSyncRuns([]);
@@ -928,6 +952,89 @@ export default function LogsPage() {
       )}
 
       <div className="w-full space-y-4 p-4">
+        {activeTab === "sync" && (
+          <div className="overflow-hidden border border-slate-800 bg-slate-900">
+            <div className="grid grid-cols-1 gap-2 p-4 md:grid-cols-2 xl:grid-cols-6">
+              <input
+                value={syncFilters.accountId}
+                onChange={(e) => setSyncFilter("accountId", e.target.value)}
+                placeholder="Account ID"
+                className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-100 outline-none placeholder:text-slate-500 focus:border-blue-500"
+              />
+
+              <select
+                value={syncFilters.status}
+                onChange={(e) => setSyncFilter("status", e.target.value)}
+                className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-100 outline-none focus:border-blue-500"
+              >
+                <option value="all">All Status</option>
+                <option value="running">Running</option>
+                <option value="success">Success</option>
+                <option value="failed">Failed</option>
+              </select>
+
+              <select
+                value={syncFilters.syncType}
+                onChange={(e) => setSyncFilter("syncType", e.target.value)}
+                className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-100 outline-none focus:border-blue-500"
+              >
+                <option value="all">All Sync Type</option>
+                <option value="manual">Manual</option>
+                <option value="auto">Auto</option>
+                <option value="scheduled">Scheduled</option>
+              </select>
+
+              <input
+                value={syncFilters.dateFrom}
+                onChange={(e) => setSyncFilter("dateFrom", e.target.value)}
+                type="date"
+                className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-100 outline-none focus:border-blue-500"
+              />
+
+              <input
+                value={syncFilters.dateTo}
+                onChange={(e) => setSyncFilter("dateTo", e.target.value)}
+                type="date"
+                className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-100 outline-none focus:border-blue-500"
+              />
+
+              <select
+                value={syncFilters.limit}
+                onChange={(e) => setSyncFilter("limit", e.target.value)}
+                className="h-8 rounded-md border border-slate-700 bg-slate-950 px-2.5 text-xs text-slate-100 outline-none focus:border-blue-500"
+              >
+                <option value="50">50 Rows</option>
+                <option value="100">100 Rows</option>
+                <option value="200">200 Rows</option>
+                <option value="500">500 Rows</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-800 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => {
+                  resetSyncFilters();
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-950 px-3 text-xs font-medium text-slate-300 hover:border-red-400 hover:text-red-300"
+              >
+                <RotateCcw size={14} />
+                Reset
+              </button>
+
+              <button
+                type="button"
+                onClick={loadSyncRuns}
+                disabled={syncLoading}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800 px-3 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+              >
+                <Search size={14} />
+                Search
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeTab === "inventory" && (
           <div className="overflow-hidden border border-slate-800 bg-slate-900">
             <div className="border-b border-slate-800 px-4 py-3">

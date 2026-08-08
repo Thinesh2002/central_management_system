@@ -159,7 +159,7 @@ export default function ServerStoragePage() {
         <div>
           <h1 className="flex items-center gap-2 text-xl font-medium text-slate-100">
             <HardDrive size={20} />
-            Server Storage
+            Server
           </h1>
           <p className="text-[13px] text-slate-500">
             Live disk, memory and CPU usage on the server hosting this app, plus this app's own

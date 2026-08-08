@@ -10,7 +10,6 @@ import DarazEditProductPage from "../../../pages/daraz/product_management/daraz_
 import DarazCreateProductPage from "../../../pages/daraz/product_management/daraz_create_product_page/index";
 import DarazTransferProductPage from "../../../pages/daraz/product_management/daraz_transfer_product_page/index";
 import DarazTransferPreviewPage from "../../../pages/daraz/product_management/daraz_transfer_preview_page/index";
-import DarazProductLogsPage from "../../../pages/daraz/daraz_logs/daraz_sync_logs_page";
 
 function ProtectedProductPage({ children }) {
   return (
@@ -82,19 +81,11 @@ export default function DarazProductRoutes() {
         }
       />
 
-      <Route
-        path="/product/sync-logs"
-        element={
-          <ProtectedProductPage>
-            <DarazProductLogsPage />
-          </ProtectedProductPage>
-        }
-      />
-
       {/* Old paths redirect to new Product Management section */}
       <Route path="/daraz/products" element={<Navigate to="/product/daraz-products" replace />} />
       <Route path="/Daraz/products" element={<Navigate to="/product/daraz-products" replace />} />
-      <Route path="/daraz-products/logs" element={<Navigate to="/product/sync-logs" replace />} />
+      <Route path="/daraz-products/logs" element={<Navigate to="/logs" replace />} />
+      <Route path="/product/sync-logs" element={<Navigate to="/logs" replace />} />
       <Route path="/daraz-products/view/:id" element={<RedirectDarazView />} />
     </>
   );
