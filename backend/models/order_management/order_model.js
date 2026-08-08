@@ -234,6 +234,38 @@ async function getOrderItemsMap(source, config, orderIds) {
   return getMarketplaceOrderItems(config, orderIds);
 }
 
+// daraz_orders has no waybill_id/tracking_number columns at all (confirmed
+// via SHOW COLUMNS) — unlike local orders, where those live directly on the
+// `orders` row. The real values only ever exist per-item on
+// daraz_order_items.package_id/tracking_number (set by a successful Pack),
+// so every Daraz order object built by this file must derive them from
+// there instead of reading a column that doesn't exist. Without this, every
+// Daraz order's waybill_id silently reads as undefined forever - the
+// bulk/row-level "Ready to Ship" gating (which checks Boolean(waybill_id))
+// never lights up no matter how many orders are actually packed.
+async function getDarazWaybillMap(orderIds) {
+  if (!orderIds.length) return new Map();
+
+  const [rows] = await db.query(
+    `SELECT daraz_order_id, package_id, tracking_number FROM daraz_order_items
+     WHERE daraz_order_id IN (${inClause(orderIds)}) AND package_id IS NOT NULL AND package_id <> ''
+     ORDER BY id ASC`,
+    orderIds
+  );
+
+  const map = new Map();
+  rows.forEach((row) => {
+    if (!map.has(row.daraz_order_id)) {
+      map.set(row.daraz_order_id, {
+        waybill_id: row.package_id,
+        tracking_number: row.tracking_number || null,
+      });
+    }
+  });
+
+  return map;
+}
+
 async function findByIdWithItems(id) {
   const order = await base.findById(id);
   if (!order) return null;
@@ -344,13 +376,16 @@ async function listUnified({ limit = 1000, dateFrom, dateTo } = {}) {
 
     await attachCustomerDetails(rows);
     const itemsMap = await getOrderItemsMap(source, config, rows.map((row) => row.id));
+    const waybillMap = source === "daraz" ? await getDarazWaybillMap(rows.map((row) => row.id)) : new Map();
 
     return rows.map((row) => {
       const items = itemsMap.get(row.id) || [];
       const firstItem = items[0] || {};
+      const waybillInfo = waybillMap.get(row.id);
 
       return {
         ...normalizeOrderRow(row, source),
+        ...(waybillInfo || {}),
         items,
         thumbnail_url: firstItem.image_url || null,
         first_item_title: firstItem.product_title || null,
@@ -366,6 +401,7 @@ async function listUnified({ limit = 1000, dateFrom, dateTo } = {}) {
 
 async function getUnified(source, id) {
   const config = getSourceConfig(source);
+  const cleanSource = String(source).toLowerCase();
 
   const [orderRows] = await db.query(
     `SELECT * FROM ${qid(config.table)} WHERE id = ? LIMIT 1`,
@@ -381,7 +417,17 @@ async function getUnified(source, id) {
     [id]
   );
 
-  return { ...normalizeOrderRow(orderRows[0], String(source).toLowerCase()), items };
+  const normalized = normalizeOrderRow(orderRows[0], cleanSource);
+
+  if (cleanSource === "daraz") {
+    const withPackage = items.find((item) => item.package_id);
+    if (withPackage) {
+      normalized.waybill_id = withPackage.package_id;
+      normalized.tracking_number = withPackage.tracking_number || null;
+    }
+  }
+
+  return { ...normalized, items };
 }
 
 async function updateStatus(source, id, { status, waybill_id, tracking_number } = {}) {
