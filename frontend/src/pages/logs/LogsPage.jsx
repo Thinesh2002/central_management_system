@@ -4,7 +4,9 @@ import {
   CheckCircle2,
   ClipboardList,
   DollarSign,
+  ImageOff,
   Monitor,
+  PackageX,
   Play,
   RefreshCcw,
   ShieldAlert,
@@ -25,6 +27,7 @@ import { useIsMasterAdmin } from "../../components/common/permissions/Permission
 const TABS = [
   { key: "all", label: "All Logs", icon: ClipboardList },
   { key: "inventory", label: "Inventory Logs", icon: Boxes },
+  { key: "missing_inventory", label: "Missing Inventory", icon: PackageX },
   { key: "title_optimizer", label: "Title Optimizer Logs", icon: Sparkles },
   { key: "price_reconciliation", label: "Price Reconciliation", icon: DollarSign },
   { key: "daraz_webhooks", label: "Daraz Webhooks", icon: Webhook },
@@ -221,6 +224,83 @@ function SyncLogsTable({ rows, loading }) {
             <tr>
               <td colSpan="10" className="px-3 py-10 text-center text-[12px] text-slate-400">
                 {loading ? "Loading sync logs..." : "No sync logs found."}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MissingInventoryTable({ rows, loading }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="bg-slate-950">
+          <tr>
+            {["Product", "SKU(s) Tried", "Account", "Daraz Qty", "Orders Affected", "Last Seen", "Action"].map((header) => (
+              <th key={header} className="px-3 py-2.5 text-left text-[11px] font-semibold text-slate-400">
+                {header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-slate-800 bg-slate-900">
+          {rows.map((row) => (
+            <tr key={row.skus.join("|")} className="hover:bg-slate-800/70">
+              <td className="px-3 py-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-700 bg-slate-950">
+                    {row.image_url ? (
+                      <img src={row.image_url} alt={row.product_name || "Product"} className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageOff size={14} className="text-slate-600" />
+                    )}
+                  </div>
+                  <span className="max-w-70 truncate text-[12px] font-semibold text-white" title={row.product_name || ""}>
+                    {row.product_name || "Unknown product"}
+                  </span>
+                </div>
+              </td>
+
+              <td className="px-3 py-2.5">
+                <div className="flex flex-wrap gap-1">
+                  {row.skus.map((sku) => (
+                    <span key={sku} className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[11px] text-slate-300">
+                      {sku}
+                    </span>
+                  ))}
+                </div>
+              </td>
+
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.account_name || "-"}</td>
+              <td className="px-3 py-2.5 text-[12px] text-slate-300">{row.current_daraz_quantity ?? "-"}</td>
+
+              <td className="px-3 py-2.5">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-900 bg-amber-950 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                  {row.order_count} order{row.order_count === 1 ? "" : "s"}
+                </span>
+              </td>
+
+              <td className="whitespace-nowrap px-3 py-2.5 text-[12px] text-slate-400">{formatDate(row.last_seen)}</td>
+
+              <td className="px-3 py-2.5">
+                <a
+                  href="/product/local-products/create"
+                  className="inline-flex h-7 items-center rounded-md border border-slate-700 bg-slate-950 px-2.5 text-[11px] font-semibold text-slate-300 hover:border-emerald-400 hover:text-emerald-300"
+                >
+                  Create Product
+                </a>
+              </td>
+            </tr>
+          ))}
+
+          {!rows.length && (
+            <tr>
+              <td colSpan="7" className="px-3 py-10 text-center text-[12px] text-slate-400">
+                {loading ? "Loading missing inventory..." : "No missing inventory in this window — every recent order deducted stock successfully."}
               </td>
             </tr>
           )}
@@ -688,6 +768,9 @@ export default function LogsPage() {
   const [orderInventoryLogs, setOrderInventoryLogs] = useState([]);
   const [orderInventoryLoading, setOrderInventoryLoading] = useState(false);
 
+  const [missingInventory, setMissingInventory] = useState([]);
+  const [missingInventoryLoading, setMissingInventoryLoading] = useState(false);
+
   const [titleOptimizerLogs, setTitleOptimizerLogs] = useState([]);
   const [titleOptimizerLoading, setTitleOptimizerLoading] = useState(false);
   const [impactLogId, setImpactLogId] = useState(null);
@@ -709,6 +792,19 @@ export default function LogsPage() {
       setOrderInventoryLogs([]);
     } finally {
       setOrderInventoryLoading(false);
+    }
+  }
+
+  async function loadMissingInventory() {
+    setMissingInventoryLoading(true);
+
+    try {
+      const { data } = await api.get("/logs/missing-inventory?days=14");
+      setMissingInventory(toArray(data));
+    } catch {
+      setMissingInventory([]);
+    } finally {
+      setMissingInventoryLoading(false);
     }
   }
 
@@ -812,6 +908,11 @@ export default function LogsPage() {
       return;
     }
 
+    if (activeTab === "missing_inventory") {
+      loadMissingInventory();
+      return;
+    }
+
     if (activeTab === "title_optimizer") {
       loadTitleOptimizerLogs();
       return;
@@ -839,6 +940,7 @@ export default function LogsPage() {
     loadLogs();
     loadSyncRuns();
     loadOrderInventoryLogs();
+    loadMissingInventory();
     loadTitleOptimizerLogs();
     loadPriceReconciliationLogs();
     loadDarazWebhookLogs();
@@ -875,6 +977,8 @@ export default function LogsPage() {
   const loading =
     activeTab === "sync"
       ? syncLoading
+      : activeTab === "missing_inventory"
+      ? missingInventoryLoading
       : activeTab === "price_reconciliation"
       ? priceReconciliationLoading
       : activeTab === "daraz_webhooks"
@@ -1058,6 +1162,8 @@ export default function LogsPage() {
               <p className="text-[11px] text-slate-400">
                 {activeTab === "all" && `Showing ${unifiedRows.length} combined records.`}
                 {activeTab === "inventory" && `Showing ${inventoryLogs.length} inventory/price records.`}
+                {activeTab === "missing_inventory" &&
+                  `${missingInventory.length} SKU(s) failed stock deduction in the last 14 days because they have no local product/inventory record — not a SKU Mapping issue, these need to be created as Local Products with a real stock count.`}
                 {activeTab === "title_optimizer" && `Showing ${titleOptimizerLogs.length} scan and title-change records.`}
                 {activeTab === "price_reconciliation" &&
                   `Showing ${priceReconciliationLogs.length} price correction records. Runs nightly at 01:00 Colombo, comparing internal Daraz target prices against Daraz's live cache and correcting drift.`}
@@ -1071,6 +1177,9 @@ export default function LogsPage() {
 
           {activeTab === "all" && <AllLogsTable rows={unifiedRows} loading={logsLoading || syncLoading} />}
           {activeTab === "inventory" && <SystemLogsTable rows={inventoryLogs} loading={logsLoading} />}
+          {activeTab === "missing_inventory" && (
+            <MissingInventoryTable rows={missingInventory} loading={missingInventoryLoading} />
+          )}
           {activeTab === "title_optimizer" && (
             <TitleOptimizerLogsTable
               rows={titleOptimizerLogs}

@@ -35,6 +35,24 @@ async function findLatestDeduction(source, orderItemId) {
   return rows[0] || null;
 }
 
+// Raw feed for the Missing Inventory report - grouping/enrichment happens
+// in the controller (needs a second DB, cm_product_management, to look up
+// product name/image, which this model has no business knowing about).
+async function listMissingSince({ days = 14, limit = 2000 } = {}) {
+  const safeDays = Math.min(Math.max(Number(days) || 14, 1), 90);
+  const safeLimit = Math.min(Math.max(Number(limit) || 2000, 1), 5000);
+
+  const [rows] = await db.query(
+    `SELECT sku, source_order_id, message, created_at FROM inventory_logs
+     WHERE status = 'sku_missing' AND created_at >= NOW() - INTERVAL ? DAY
+     ORDER BY created_at DESC
+     LIMIT ?`,
+    [safeDays, safeLimit]
+  );
+
+  return rows;
+}
+
 async function listRecent({ status, sku, limit = 200 } = {}) {
   const params = [];
   let whereSql = "WHERE 1=1";
@@ -57,4 +75,4 @@ async function listRecent({ status, sku, limit = 200 } = {}) {
   return rows;
 }
 
-module.exports = { create, listRecent, findLatestDeduction };
+module.exports = { create, listRecent, listMissingSince, findLatestDeduction };
