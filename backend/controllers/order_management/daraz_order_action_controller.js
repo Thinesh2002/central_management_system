@@ -73,13 +73,41 @@ async function getShippingAllocateType({ account, credentials, order, orderItemI
   }
 }
 
+// Dropshipping orders reject the pack call with "delivery_type ... mandatory
+// ... not supplied" unless delivery_type is explicitly set to "dropship".
+// Daraz's own order/items/get response says which this is (shipping_type:
+// "Dropshipping"), so ask it rather than guessing - most orders aren't
+// dropship and don't need this field at all. Best-effort, same as the
+// shipping_allocate_type lookup above: a failed lookup just proceeds
+// without it.
+async function getDeliveryType({ account, credentials, order }) {
+  try {
+    const response = await darazOrderApiService.getOrderItems({
+      account,
+      credentials,
+      orderId: order.daraz_order_id,
+    });
+
+    const items = pick(response?.data, ["data"]) || [];
+    const shippingType = String(items[0]?.shipping_type || "").toLowerCase();
+
+    return shippingType.includes("dropship") ? "dropship" : null;
+  } catch (error) {
+    console.error(`[DARAZ_PACK] Delivery type lookup failed for order ${order.id}:`, error.message);
+    return null;
+  }
+}
+
 // Pack an order: needs Daraz's own order_id (daraz_order_id) plus every
 // line item's Daraz order_item_id. If this table's item-id column can't be
 // found, refuse rather than send an empty/guessed item list to a live
 // seller account.
 async function runPack({ account, credentials, order }) {
   const orderItemIds = await getOrderItemIds(order);
-  const shippingAllocateType = await getShippingAllocateType({ account, credentials, order, orderItemIds });
+  const [shippingAllocateType, deliveryType] = await Promise.all([
+    getShippingAllocateType({ account, credentials, order, orderItemIds }),
+    getDeliveryType({ account, credentials, order }),
+  ]);
 
   const response = await fulfillmentService.packOrder({
     account,
@@ -91,6 +119,7 @@ async function runPack({ account, credentials, order }) {
       },
     ],
     shippingAllocateType,
+    deliveryType,
   });
 
   const result = darazResultOf(response);
