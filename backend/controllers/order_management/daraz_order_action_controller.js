@@ -217,6 +217,21 @@ async function runAction({ action, account, credentials, order, invoiceNumber })
     }
 
     case "ready_to_ship": {
+      // A package ID alone isn't enough to gate this - it's assigned once
+      // at Pack time and stays on the order forever, so a delivered,
+      // shipped, cancelled or already ready_to_ship order all still have
+      // one. Only an order still sitting in "packed" is actually eligible;
+      // this mirrors the frontend's own canDarazReady() check server-side
+      // so a frontend selection bug can't forward an inappropriate order
+      // to Daraz's API at all.
+      if (String(order.order_status || "").toLowerCase() !== "packed") {
+        const error = new Error(
+          `Order is "${order.order_status || "unknown"}", not "packed" - it isn't eligible for Ready to Ship.`
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+
       const packageIds = await requirePackageId({ account, credentials, order });
       const response = await fulfillmentService.readyToShip({ account, credentials, packageIds });
       await fulfillmentModel.savePackageResult(order.id, { orderStatus: "ready_to_ship" });

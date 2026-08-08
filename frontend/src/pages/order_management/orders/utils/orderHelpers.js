@@ -73,9 +73,16 @@ export function canDarazPack(order) {
   return ["pending", "unpaid", "new"].includes(s) && !order.waybill_id;
 }
 
+// Only "packed" (waybill assigned, not yet marked ready) is eligible — not
+// just "not literally ready_to_ship". Every order that was ever packed
+// keeps its waybill_id forever (it's derived from daraz_order_items, which
+// isn't cleared on later status changes), so a looser "has a waybill and
+// isn't ready_to_ship" check also matched delivered/shipped/cancelled/
+// returned orders — any selection mixing those in with genuinely packed
+// ones would offer to mark them all "Ready to Ship".
 export function canDarazReady(order) {
   if (normalize(order.source) !== "daraz") return false;
-  return Boolean(order.waybill_id) && normalize(order.order_status) !== "ready_to_ship";
+  return Boolean(order.waybill_id) && normalize(order.order_status) === "packed";
 }
 
 // Buckets for the status tabs. "unpaid" and "pending" (Daraz's own raw
