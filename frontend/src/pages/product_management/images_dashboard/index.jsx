@@ -8,6 +8,7 @@ import {
   ImagePlus,
   Lock,
   Package,
+  Pencil,
   RefreshCw,
   Search,
   Tag,
@@ -149,8 +150,13 @@ function ImageDetailModal({ image, onClose }) {
   );
 }
 
+// `value` is both the confirmed filter AND the live-typed text — typing
+// filters the grid immediately (matching `sku LIKE %value%`, same as the
+// general Search box), the dropdown is just a convenience picker on top.
+// Previously typing did nothing until a suggestion was clicked, so an
+// exact/close SKU typed and then clicked away from never actually filtered
+// anything.
 function SkuSearchDropdown({ skuOptions, value, onSelect }) {
-  const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const containerRef = useRef(null);
 
@@ -168,32 +174,26 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
   const results = useMemo(() => {
     if (!focused) return [];
 
-    const q = query.trim().toLowerCase();
+    const q = value.trim().toLowerCase();
     const pool = q ? skuOptions.filter((row) => row.sku.toLowerCase().includes(q)) : skuOptions;
 
     return pool.slice(0, 50);
-  }, [focused, query, skuOptions]);
+  }, [focused, value, skuOptions]);
 
   return (
     <div ref={containerRef} className="relative w-44">
       <div className="flex h-7 items-center gap-1.5 border border-slate-600 bg-[#2b3441] pl-2.5 pr-1 focus-within:border-orange-400">
         <input
-          value={value || query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            if (value) onSelect("");
-          }}
+          value={value}
+          onChange={(e) => onSelect(e.target.value)}
           onFocus={() => setFocused(true)}
-          placeholder="Enter SKU"
+          placeholder="Search SKU"
           className="h-full w-full min-w-0 bg-transparent text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500"
         />
         {value ? (
           <button
             type="button"
-            onClick={() => {
-              onSelect("");
-              setQuery("");
-            }}
+            onClick={() => onSelect("")}
             className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-500 hover:text-white"
           >
             <X size={12} />
@@ -209,7 +209,6 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
               type="button"
               onClick={() => {
                 onSelect(row.sku);
-                setQuery("");
                 setFocused(false);
               }}
               className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800 hover:text-orange-300"
@@ -224,16 +223,43 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
   );
 }
 
-function ImageCard({ image, onSaveAltText, onDelete, onPreview, busy }) {
+function splitFileName(fileName) {
+  const raw = String(fileName || "");
+  const dotIndex = raw.lastIndexOf(".");
+  if (dotIndex <= 0) return { base: raw, ext: "" };
+  return { base: raw.slice(0, dotIndex), ext: raw.slice(dotIndex) };
+}
+
+function ImageCard({ image, onSaveAltText, onRename, onDelete, onPreview, busy }) {
   const [altText, setAltText] = useState(image.alt_text || "");
   const [copied, setCopied] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newBaseName, setNewBaseName] = useState("");
 
   const previewUrl = resolveImageUrl(image.image_url || image.image_path);
   const isAssigned = Boolean(image.is_assigned);
+  const { base: currentBase, ext: currentExt } = splitFileName(image.file_name);
 
   useEffect(() => {
     setAltText(image.alt_text || "");
   }, [image.alt_text]);
+
+  function startRename() {
+    setNewBaseName(currentBase);
+    setRenaming(true);
+  }
+
+  function submitRename() {
+    const trimmed = newBaseName.trim();
+
+    if (!trimmed || trimmed === currentBase) {
+      setRenaming(false);
+      return;
+    }
+
+    onRename(image, trimmed);
+    setRenaming(false);
+  }
 
   function copyUrl() {
     navigator.clipboard?.writeText(previewUrl).then(() => {
@@ -288,9 +314,52 @@ function ImageCard({ image, onSaveAltText, onDelete, onPreview, busy }) {
       </button>
 
       <div className="flex flex-1 flex-col gap-1.5 p-2 text-xs">
-        <p className="truncate text-[10px] font-medium text-slate-200" title={image.file_name}>
-          {image.file_name || "-"}
-        </p>
+        {renaming ? (
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              value={newBaseName}
+              onChange={(e) => setNewBaseName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submitRename();
+                if (e.key === "Escape") setRenaming(false);
+              }}
+              className="h-6 min-w-0 flex-1 border border-orange-500 bg-slate-950 px-1.5 text-[10px] text-slate-100 outline-none"
+            />
+            <span className="shrink-0 text-[9px] text-slate-500">{currentExt}</span>
+            <button
+              type="button"
+              onClick={submitRename}
+              title="Save name"
+              className="flex h-6 w-6 shrink-0 items-center justify-center border border-emerald-700 text-emerald-400 hover:bg-emerald-500/10"
+            >
+              <CheckCircle size={11} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setRenaming(false)}
+              title="Cancel"
+              className="flex h-6 w-6 shrink-0 items-center justify-center border border-slate-800 text-slate-400 hover:text-white"
+            >
+              <X size={11} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            <p className="min-w-0 flex-1 truncate text-[10px] font-medium text-slate-200" title={image.file_name}>
+              {image.file_name || "-"}
+            </p>
+            <button
+              type="button"
+              onClick={startRename}
+              disabled={isAssigned || busy}
+              title={isAssigned ? "Assigned images can't be renamed" : "Rename"}
+              className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-500 hover:text-orange-300 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <Pencil size={10} />
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-1">
           <input
@@ -401,7 +470,9 @@ export default function ImagesDashboardPage() {
         (tab === "unassigned" && !image.is_assigned);
 
       if (!matchesTab) return false;
-      if (skuFilter && String(image.sku || "") !== skuFilter) return false;
+      if (skuFilter && !String(image.sku || "").toLowerCase().includes(skuFilter.trim().toLowerCase())) {
+        return false;
+      }
       if (!q) return true;
 
       const haystack = `${image.file_name || ""} ${image.alt_text || ""} ${
@@ -436,6 +507,35 @@ export default function ImagesDashboardPage() {
       setError(getErrorMessage(err, "Failed to upload image."));
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleRename(image, newBaseName) {
+    setBusyId(String(image.id));
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await localProductsApi.renameImage(image.id, newBaseName);
+      const updated = res?.data?.data;
+
+      setImages((prev) =>
+        prev.map((row) =>
+          row.id === image.id
+            ? {
+                ...row,
+                file_name: updated?.file_name || row.file_name,
+                image_url: updated?.image_url || row.image_url,
+                image_path: updated?.image_path || row.image_path,
+              }
+            : row
+        )
+      );
+      setSuccess("Image renamed.");
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to rename image."));
+    } finally {
+      setBusyId("");
     }
   }
 
@@ -589,6 +689,7 @@ export default function ImagesDashboardPage() {
               image={image}
               busy={busyId === String(image.id)}
               onSaveAltText={handleSaveAltText}
+              onRename={handleRename}
               onDelete={handleDelete}
               onPreview={setPreviewImage}
             />
