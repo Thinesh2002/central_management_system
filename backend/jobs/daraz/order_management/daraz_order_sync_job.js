@@ -6,6 +6,10 @@ const orderSyncSettingsModel = require("../../../models/order_management/order_s
 
 let isRunning = false;
 
+function isSyncRunning() {
+  return isRunning;
+}
+
 async function syncAllDarazOrders() {
   if (isRunning) {
     console.log("[DARAZ_ORDER_SYNC] Previous sync still running. Skipped.");
@@ -76,4 +80,5 @@ function startDarazOrderSyncJob() {
 module.exports = {
   startDarazOrderSyncJob,
   syncAllDarazOrders,
+  isSyncRunning,
 };

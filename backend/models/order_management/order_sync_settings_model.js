@@ -11,6 +11,16 @@ const model = createGenericModel("order_sync_settings");
 const READONLY_COLUMNS = new Set(["id", "created_at", "updated_at"]);
 const READONLY_PATTERN = /(^last_sync|_at$)/i;
 
+// This job runs every sync_interval_minutes (as low as a few minutes) and
+// walks every order updated in the last fetch_order_days sequentially,
+// one Daraz API call per order item — a window this wide turns every run
+// into one that takes longer than the interval between runs, so the next
+// tick (and any manual "Run Now" click) just finds the previous run still
+// going and silently no-ops forever. Confirmed live: fetch_order_days=200
+// produced runs that took 10-30+ minutes against a 5-minute interval,
+// permanently starving both scheduled and manual sync.
+const MAX_FETCH_ORDER_DAYS = 60;
+
 async function getSettings() {
   const [rows] = await db.query("SELECT * FROM order_sync_settings ORDER BY id ASC LIMIT 1");
   return rows[0] || null;
@@ -23,6 +33,11 @@ async function updateSettings(data = {}) {
   Object.keys(payload).forEach((column) => {
     if (READONLY_COLUMNS.has(column) || READONLY_PATTERN.test(column)) delete payload[column];
   });
+
+  if (payload.fetch_order_days !== undefined) {
+    const days = Number(payload.fetch_order_days);
+    payload.fetch_order_days = Number.isFinite(days) && days > 0 ? Math.min(days, MAX_FETCH_ORDER_DAYS) : 7;
+  }
 
   if (!current) {
     return model.create(payload);
