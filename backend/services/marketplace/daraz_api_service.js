@@ -163,7 +163,16 @@ function getNestedResult(responseData) {
 function isNestedResultError(nested) {
   if (!nested) return false;
   if (nested.success !== undefined && String(nested.success).toLowerCase() !== "true") return true;
-  if (nested.error_code && String(nested.error_code) !== "0") return true;
+
+  // error_code is sometimes an object even on a genuine success - Daraz's
+  // own GetOrderTrace docs show {"display_message":"null"} in their success
+  // example, and a live call confirmed it (empty object `{}`). Objects are
+  // always truthy in JS, so treating any truthy error_code as an error
+  // misclassified every successful call to that endpoint as failed. Only a
+  // real scalar code counts.
+  const errorCode = nested.error_code;
+  if (errorCode && typeof errorCode !== "object" && String(errorCode) !== "0") return true;
+
   if (nested.error_msg) return true;
   return false;
 }
