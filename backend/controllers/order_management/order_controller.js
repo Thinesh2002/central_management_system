@@ -147,7 +147,15 @@ const getTracking = asyncHandler(async (req, res) => {
 
   const { credentials } = await tokenService.getValidCredentialsForAccount(account.id);
 
-  const packageIds = order.waybill_id ? [order.waybill_id] : [];
+  // order.waybill_id doesn't exist - daraz_orders has no such column (same
+  // root cause fixed for listUnified/getUnified in order_model.js). The
+  // real package ID(s) only ever live on daraz_order_items.package_id, so
+  // this was silently sending an empty ofcPackageIdList on every call,
+  // which is why the tracking timeline showed "No tracking events yet" even
+  // for orders whose Package ID/Tracking No display correctly elsewhere on
+  // the same page (that display already reads the fixed order_model path).
+  const items = await fulfillmentModel.getOrderItems(id);
+  const packageIds = [...new Set(items.map((item) => item.package_id).filter(Boolean))];
 
   const response = await darazOrderApiService.getOrderTrace({
     account,
@@ -257,6 +265,17 @@ const sendOrderMessage = asyncHandler(async (req, res) => {
 
   if (!order) {
     return res.status(404).json({ success: false, message: "Order not found." });
+  }
+
+  // Same fix as getTracking above: order.waybill_id/tracking_number don't
+  // exist on daraz_orders, so a {{waybill_id}}/{{tracking_number}} template
+  // placeholder always rendered blank in the actual message sent to the
+  // buyer, regardless of whether the order was packed.
+  const orderItems = await fulfillmentModel.getOrderItems(id);
+  const itemWithPackage = orderItems.find((item) => item.package_id);
+  if (itemWithPackage) {
+    order.waybill_id = itemWithPackage.package_id;
+    order.tracking_number = itemWithPackage.tracking_number || order.tracking_number;
   }
 
   const account = await fulfillmentModel.resolveDarazAccount(order.account_name);
