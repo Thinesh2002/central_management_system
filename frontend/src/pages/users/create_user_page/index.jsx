@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Save, UserPlus, Loader2 } from "lucide-react";
 import api, { getApiError } from "../../../config/api";
 import { getStoredUser } from "../../../config/auth";
+import { closeEmbeddedOverlay } from "../../../utils/pageOverlayBridge";
 
 const inputClass =
   "w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 transition focus:border-blue-500";
@@ -42,7 +43,7 @@ export default function CreateUserPage() {
 
     try {
       await api.post("/users", form);
-      navigate("/users");
+      if (!closeEmbeddedOverlay()) navigate("/users");
     } catch (err) {
       setError(getApiError(err));
     } finally {

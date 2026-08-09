@@ -1,5 +1,6 @@
-import { createContext, useCallback, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { isPageOverlayCloseMessage } from "../../../utils/pageOverlayBridge";
 
 const OverlayContext = createContext(null);
 
@@ -33,6 +34,19 @@ export function PageOverlayProvider({ children }) {
       return null;
     });
   }, []);
+
+  // Lets an embedded page (running in the iframe below) ask the outer
+  // window to close it directly, instead of navigating its own internal
+  // router - see utils/pageOverlayBridge.js for why that matters.
+  useEffect(() => {
+    function handleMessage(event) {
+      if (event.origin !== window.location.origin) return;
+      if (isPageOverlayCloseMessage(event.data)) closeOverlay();
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [closeOverlay]);
 
   return (
     <OverlayContext.Provider value={{ openOverlay, closeOverlay }}>

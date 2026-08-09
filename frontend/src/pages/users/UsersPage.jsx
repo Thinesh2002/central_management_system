@@ -68,7 +68,7 @@ export default function UsersPage() {
             {canEdit && (
               <button
                 type="button"
-                onClick={() => openOverlay("/users/create")}
+                onClick={() => openOverlay("/users/create", loadUsers)}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md bg-blue-700 px-3 text-[12px] font-semibold text-white hover:bg-blue-600"
               >
                 <Plus size={14} />
@@ -200,7 +200,7 @@ export default function UsersPage() {
                         {canEdit && (
                           <button
                             type="button"
-                            onClick={() => openOverlay(`/users/edit/${user.id}`)}
+                            onClick={() => openOverlay(`/users/edit/${user.id}`, loadUsers)}
                             title="Edit user"
                             className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
                           >
