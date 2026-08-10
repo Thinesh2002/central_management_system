@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Check,
   CheckCircle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -556,7 +557,12 @@ function getSku(product) {
 
 function getSkuCount(product) {
   const raw = readRawObject(product);
-  const skus = raw?.skus || product?.skus;
+  // The list endpoint never sends raw_json (too large to select for every
+  // row), only skus_json - raw?.skus/product?.skus were always undefined,
+  // so every product silently looked like a standalone (count 1), even
+  // genuine multi-variant parents. skus_json is the one field the list
+  // response actually carries this in.
+  const skus = raw?.skus || product?.skus || parseJsonMaybe(product?.skus_json);
   return Array.isArray(skus) ? skus.length : 1;
 }
 
@@ -691,6 +697,10 @@ export default function DarazDashboardPage() {
   const [pageSize, setPageSize] = useState(50);
 
   const [selectedRows, setSelectedRows] = useState([]);
+
+  const [expandedRowKey, setExpandedRowKey] = useState("");
+  const [variantsByRow, setVariantsByRow] = useState({});
+  const [variantsLoadingKey, setVariantsLoadingKey] = useState("");
 
   const [accountFilterOpen, setAccountFilterOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
@@ -1062,6 +1072,29 @@ export default function DarazDashboardPage() {
     setSelectedRows((prev) =>
       prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
     );
+  }
+
+  async function toggleExpand(row, key) {
+    if (expandedRowKey === key) {
+      setExpandedRowKey("");
+      return;
+    }
+
+    setExpandedRowKey(key);
+
+    if (variantsByRow[key] || !row.id) return;
+
+    setVariantsLoadingKey(key);
+
+    try {
+      const res = await darazProductsApi.view(row.id);
+      const variants = res?.data?.data?.variants || res?.data?.variants || [];
+      setVariantsByRow((prev) => ({ ...prev, [key]: variants }));
+    } catch {
+      setVariantsByRow((prev) => ({ ...prev, [key]: [] }));
+    } finally {
+      setVariantsLoadingKey("");
+    }
   }
 
   function openProduct(row) {
@@ -1540,22 +1573,39 @@ export default function DarazDashboardPage() {
                   const key = String(row.id || row.listingId || row.sku || index);
                   const selected = selectedRows.includes(key);
                   const isNonActive = Boolean(row.statusLabel) && row.statusLabel.toLowerCase() !== "active";
+                  const hasChildren = row.skuCount > 1;
+                  const isExpanded = hasChildren && expandedRowKey === key;
 
                   return (
+                    <Fragment key={key}>
                     <tr
-                      key={key}
                       className={cx(
                         "border-b border-zinc-800/60 hover:bg-white/[0.04]",
                         isNonActive && "opacity-60"
                       )}
                     >
                       <td className="px-2 py-2 text-center align-middle">
-                        <input
-                          type="checkbox"
-                          checked={selected}
-                          onChange={() => toggleRow(key)}
-                          className="h-3 w-3 cursor-pointer accent-[#D0E7E6]"
-                        />
+                        <div className="flex items-center justify-center gap-1">
+                          {hasChildren ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(row, key)}
+                              title={isExpanded ? "Hide variants" : `Show ${row.skuCount} variants`}
+                              className="flex h-4 w-4 shrink-0 items-center justify-center text-zinc-400 hover:text-[#D0E7E6]"
+                            >
+                              {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                            </button>
+                          ) : (
+                            <span className="inline-block w-4 shrink-0" />
+                          )}
+
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleRow(key)}
+                            className="h-3 w-3 cursor-pointer accent-[#D0E7E6]"
+                          />
+                        </div>
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle">
@@ -1760,6 +1810,53 @@ export default function DarazDashboardPage() {
                         </div>
                       </td>
                     </tr>
+
+                    {isExpanded && (
+                      <tr className="border-b border-zinc-800/60 bg-black/20">
+                        <td colSpan="11" className="px-4 py-3">
+                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                            Variants of {row.listingId}
+                          </p>
+
+                          {variantsLoadingKey === key ? (
+                            <Loader label="Loading variants..." minHeight="0" />
+                          ) : (variantsByRow[key] || []).length === 0 ? (
+                            <p className="py-3 text-center text-[12px] text-zinc-500">No variants found.</p>
+                          ) : (
+                            <table className="w-full border-collapse text-[12px]">
+                              <thead>
+                                <tr className="border-b border-zinc-800/60 text-left text-[10px] font-semibold uppercase text-zinc-500">
+                                  <th className="px-2 py-1.5">Seller SKU</th>
+                                  <th className="px-2 py-1.5">Name</th>
+                                  <th className="px-2 py-1.5 text-center">Status</th>
+                                  <th className="px-2 py-1.5 text-right">Price</th>
+                                  <th className="px-2 py-1.5 text-right">Qty</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {variantsByRow[key].map((variant) => (
+                                  <tr key={variant.id || variant.daraz_sku_id} className="border-b border-zinc-900">
+                                    <td className="px-2 py-1.5 font-mono text-zinc-300">{variant.seller_sku || "-"}</td>
+                                    <td className="px-2 py-1.5 text-zinc-300">{variant.name || "-"}</td>
+                                    <td className="px-2 py-1.5 text-center text-zinc-400">{variant.status || "-"}</td>
+                                    <td className="px-2 py-1.5 text-right text-zinc-300">
+                                      {Number.isFinite(Number(variant.price))
+                                        ? `LKR ${Number(variant.price).toLocaleString(undefined, {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                          })}`
+                                        : "-"}
+                                    </td>
+                                    <td className="px-2 py-1.5 text-right text-zinc-300">{variant.quantity ?? "-"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })
               )}
