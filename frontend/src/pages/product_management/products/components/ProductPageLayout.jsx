@@ -30,6 +30,22 @@ const PRODUCT_TABS = [
   },
 ];
 
+// A parent (variable) product's price/stock is managed per variant - each
+// variant already has its own dedicated Price & Inventory page reached via
+// the Variations tab - so the parent-level tab here is redundant and, per
+// request, hidden entirely for parents. Mirrors the has_variants/
+// variant_count fields LocalProductBasicPage already sets when a product is
+// marked "variable", with a variants-array fallback for safety.
+function isParentProduct(product) {
+  const type = String(product?.product_type || product?.type || "").toLowerCase();
+
+  return (
+    type === "variable" ||
+    Number(product?.has_variants || 0) === 1 ||
+    Number(product?.variant_count || product?.variants_count || 0) > 0
+  );
+}
+
 function getProductTitle(product) {
   return (
     product?.title ||
@@ -53,6 +69,9 @@ export default function ProductPageLayout({
   actions,
 }) {
   const navigate = useNavigate();
+  const visibleTabs = isParentProduct(product)
+    ? PRODUCT_TABS.filter((tab) => tab.key !== "price-inventory")
+    : PRODUCT_TABS;
 
   return (
     <div className="min-h-screen bg-[#080d16] text-slate-100">
@@ -95,7 +114,7 @@ export default function ProductPageLayout({
 
           <div className="overflow-x-auto px-4">
             <div className="flex min-w-max items-center gap-7">
-              {PRODUCT_TABS.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const isActive = active === tab.key;
 
                 return (
