@@ -123,9 +123,17 @@ export default function DarazEditProductPage() {
       if (form.name.trim()) payload.name = form.name.trim();
       if (form.short_description.trim()) payload.short_description = form.short_description.trim();
       if (form.brand.trim()) payload.brand = form.brand.trim();
-      if (form.price !== "") payload.price = Number(form.price);
-      if (form.sale_price !== "") payload.sale_price = Number(form.sale_price);
-      if (form.quantity !== "") payload.quantity = Number(form.quantity);
+
+      // A parent (multi-variant) listing's real price/stock live per
+      // variant - see the SKU Variants table above - so these fields are
+      // hidden for parents and must never be sent, even if `form` still
+      // holds a stale value from whatever Daraz happened to return at the
+      // product level for a multi-SKU listing.
+      if (variants.length === 0) {
+        if (form.price !== "") payload.price = Number(form.price);
+        if (form.sale_price !== "") payload.sale_price = Number(form.sale_price);
+        if (form.quantity !== "") payload.quantity = Number(form.quantity);
+      }
 
       await darazProductsApi.update(id, payload);
 
@@ -259,47 +267,56 @@ export default function DarazEditProductPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-400">
-                      Price
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={form.price}
-                      onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-yellow-500 focus:outline-none"
-                    />
-                  </div>
+                {variants.length === 0 ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-400">
+                          Price
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={form.price}
+                          onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-yellow-500 focus:outline-none"
+                        />
+                      </div>
 
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-400">
-                      Sale Price
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={form.sale_price}
-                      onChange={(e) =>
-                        setForm((prev) => ({ ...prev, sale_price: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-yellow-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-slate-400">
+                          Sale Price
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={form.sale_price}
+                          onChange={(e) =>
+                            setForm((prev) => ({ ...prev, sale_price: e.target.value }))
+                          }
+                          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-yellow-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-400">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={form.quantity}
-                    onChange={(e) => setForm((prev) => ({ ...prev, quantity: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-yellow-500 focus:outline-none"
-                  />
-                </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-400">
+                        Quantity
+                      </label>
+                      <input
+                        type="number"
+                        value={form.quantity}
+                        onChange={(e) => setForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-yellow-500 focus:outline-none"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p className="rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-xs text-slate-500">
+                    Price and quantity aren't edited here for a parent product — each variant has its
+                    own, shown in the SKU Variants table above.
+                  </p>
+                )}
 
                 <div className="flex justify-end gap-2 border-t border-slate-800 pt-4">
                   <Link
