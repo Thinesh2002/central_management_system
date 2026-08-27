@@ -1,5 +1,4 @@
 import { normalizeArray } from "./localProductsImageHelpers";
-import { getMainImageFromRows, getProductImageRows } from "./localProductsImageHelpers";
 
 export function normalizeProductList(response) {
   const parsed = response?.data ?? response;
@@ -188,13 +187,11 @@ export function getStableVariantKey(variant = {}, productKey = "product", index 
   );
 }
 
-export function applyTextAndPopupFilters(list, filters, imageRows) {
+export function applyTextAndPopupFilters(list, filters) {
   const search = filters.search.trim().toLowerCase();
 
   return list.filter((product) => {
-    const productId = product.id || product.product_id || product.local_product_id;
     const variants = getProductVariants(product);
-    const mainImage = getMainImageFromRows(getProductImageRows(imageRows, productId));
     const productStatus = getProductStatus(product);
 
     const text = [
@@ -224,22 +221,12 @@ export function applyTextAndPopupFilters(list, filters, imageRows) {
       !filters.sub_category_id ||
       String(product.sub_category_id) === String(filters.sub_category_id);
 
-    const modelOk =
-      !filters.model_id || String(product.model_id) === String(filters.model_id);
-
-    const imageOk =
-      !filters.image_status ||
-      (filters.image_status === "with_image" && Boolean(mainImage)) ||
-      (filters.image_status === "no_image" && !mainImage);
-
     const statusOk = !filters.status || filters.status === productStatus;
 
     return (
       (!search || text.includes(search)) &&
       categoryOk &&
       subCategoryOk &&
-      modelOk &&
-      imageOk &&
       statusOk
     );
   });

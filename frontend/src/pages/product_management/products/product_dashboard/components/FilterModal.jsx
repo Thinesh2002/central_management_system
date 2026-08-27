@@ -10,7 +10,6 @@ export default function FilterModal({
   tabCounts,
   categories,
   visibleSubCategories,
-  models,
   getName,
   onClose,
   onApply,
@@ -32,7 +31,7 @@ export default function FilterModal({
             <div>
               <h3 className="text-base font-black">Product Filters</h3>
               <p className="text-xs font-semibold text-purple-200/80">
-                Category, product type, model, image and status filters
+                Category, sub category, product type and status filters
               </p>
             </div>
           </div>
@@ -108,31 +107,6 @@ export default function FilterModal({
               options={visibleSubCategories}
               getName={getName}
               keyPrefix="sub-category"
-            />
-
-            <FilterSelect
-              label="Model"
-              value={draftFilters.model_id}
-              onChange={(value) =>
-                setDraftFilters((prev) => ({ ...prev, model_id: value }))
-              }
-              placeholder="All models"
-              options={models}
-              getName={getName}
-              keyPrefix="model"
-            />
-
-            <StaticSelect
-              label="Image Status"
-              value={draftFilters.image_status}
-              onChange={(value) =>
-                setDraftFilters((prev) => ({ ...prev, image_status: value }))
-              }
-              placeholder="All image status"
-              options={[
-                { value: "with_image", label: "With image" },
-                { value: "no_image", label: "No image" },
-              ]}
             />
 
             <StaticSelect

@@ -617,8 +617,8 @@ export default function LocalProductsDashboard() {
   }, []);
 
   const popupFilteredProducts = useMemo(() => {
-    return applyTextAndPopupFilters(products, filters, productImages);
-  }, [products, filters, productImages]);
+    return applyTextAndPopupFilters(products, filters);
+  }, [products, filters]);
 
   const baseFilteredProducts = useMemo(() => {
     return applyLocalFilterBarFilters(popupFilteredProducts, filters);
@@ -636,22 +636,30 @@ export default function LocalProductsDashboard() {
   }, [baseFilteredProducts]);
 
   const activePopupFilterCount = useMemo(() => {
-    return [
-      filters.category_id,
-      filters.sub_category_id,
-      filters.model_id,
-      filters.image_status,
-      filters.status,
-    ].filter(Boolean).length;
+    return [filters.category_id, filters.sub_category_id, filters.status].filter(
+      Boolean
+    ).length;
   }, [filters]);
+
+  // Sub categories link to a category by category_code, not category_id -
+  // there is no category_id column on sub_categories at all - so this must
+  // resolve the selected category's code first, then match on that,
+  // instead of comparing against a field that never exists on the record.
+  const selectedCategoryCode = useMemo(() => {
+    if (!draftFilters.category_id) return "";
+    const match = categories.find(
+      (item) => String(item.id) === String(draftFilters.category_id)
+    );
+    return match?.category_code || "";
+  }, [categories, draftFilters.category_id]);
 
   const visibleSubCategories = useMemo(() => {
     return subCategories.filter(
       (item) =>
-        !draftFilters.category_id ||
-        String(item.category_id) === String(draftFilters.category_id)
+        !selectedCategoryCode ||
+        String(item.category_code || "") === String(selectedCategoryCode)
     );
-  }, [subCategories, draftFilters.category_id]);
+  }, [subCategories, selectedCategoryCode]);
 
   const filteredKeys = useMemo(
     () => filteredProducts.map((product, index) => getStableProductKey(product, index)),
@@ -891,7 +899,6 @@ export default function LocalProductsDashboard() {
         tabCounts={tabCounts}
         categories={categories}
         visibleSubCategories={visibleSubCategories}
-        models={models}
         getName={getName}
         onClose={() => setFilterModalOpen(false)}
         onApply={applyFilters}

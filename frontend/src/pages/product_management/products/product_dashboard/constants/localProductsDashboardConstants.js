@@ -17,8 +17,6 @@ export const EMPTY_FILTERS = {
   search: "",
   category_id: "",
   sub_category_id: "",
-  model_id: "",
-  image_status: "",
   status: "",
 };
 
