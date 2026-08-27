@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Layers, Plus } from "lucide-react";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
@@ -503,10 +504,28 @@ function sortLatestProductsFirst(list = []) {
   return [...list].sort((a, b) => getLatestSortValue(b) - getLatestSortValue(a));
 }
 
+// The Category page's "View Products" action links here with
+// ?category_id=X (and ?sub_category_id=Y for a sub category row) so the
+// filter is already applied on arrival, instead of landing on the
+// unfiltered full list.
+function initialFiltersFromUrl(searchParams) {
+  const categoryId = searchParams.get("category_id");
+  const subCategoryId = searchParams.get("sub_category_id");
+
+  if (!categoryId && !subCategoryId) return EMPTY_FILTERS;
+
+  return {
+    ...EMPTY_FILTERS,
+    category_id: categoryId || "",
+    sub_category_id: subCategoryId || "",
+  };
+}
+
 export default function LocalProductsDashboard() {
   const showToast = useToast();
   const confirm = useConfirm();
   const { openOverlay } = usePageOverlay();
+  const [searchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -520,8 +539,8 @@ export default function LocalProductsDashboard() {
   const [imagePreview, setImagePreview] = useState(null);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [activeView, setActiveView] = useState("all");
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [draftFilters, setDraftFilters] = useState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState(() => initialFiltersFromUrl(searchParams));
+  const [draftFilters, setDraftFilters] = useState(() => initialFiltersFromUrl(searchParams));
   const [draftView, setDraftView] = useState("all");
   const [exportOpen, setExportOpen] = useState(false);
   const [addVariationOpen, setAddVariationOpen] = useState(false);

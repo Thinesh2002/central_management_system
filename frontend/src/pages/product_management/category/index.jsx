@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -13,6 +14,7 @@ import {
   Edit,
   Trash2,
   FolderTree,
+  Package,
 } from "lucide-react";
 
 import { usePagePermission } from "../../../components/common/permissions/PermissionsProvider";
@@ -234,6 +236,13 @@ function ModalFooter({ readOnly, saving, mode, onClose, accent = "amber" }) {
 export default function CategoryPage() {
   const { canEdit, canDelete } = usePagePermission("categories");
   const confirm = useConfirm();
+  const navigate = useNavigate();
+
+  function viewAssignedProducts(categoryId, subCategoryId) {
+    const params = new URLSearchParams({ category_id: categoryId });
+    if (subCategoryId) params.set("sub_category_id", subCategoryId);
+    navigate(`/product/local-products?${params.toString()}`);
+  }
 
   const [categories, setCategories] = useState([]);
   const [subs, setSubs] = useState([]);
@@ -1047,6 +1056,14 @@ export default function CategoryPage() {
                               <Plus size={14} />
                             </ActionBtn>
 
+                            <ActionBtn
+                              title="View All Assigned Products"
+                              accent="sky"
+                              onClick={() => viewAssignedProducts(row.id)}
+                            >
+                              <Package size={14} />
+                            </ActionBtn>
+
                             {canDelete && (
                               <ActionBtn
                                 title="Delete"
@@ -1181,6 +1198,16 @@ export default function CategoryPage() {
                                                   }
                                                 >
                                                   <Eye size={14} />
+                                                </ActionBtn>
+
+                                                <ActionBtn
+                                                  title="View All Assigned Products"
+                                                  accent="sky"
+                                                  onClick={() =>
+                                                    viewAssignedProducts(row.id, child.id)
+                                                  }
+                                                >
+                                                  <Package size={14} />
                                                 </ActionBtn>
 
                                                 {canEdit && (
