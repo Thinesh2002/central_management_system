@@ -555,6 +555,19 @@ function getSku(product) {
   );
 }
 
+// A variant's own variant_json.Images is often empty (confirmed live: e.g.
+// SKU "HKKDTWBBM" on one account has Images: [] while the exact same
+// product on other accounts has real images) - Daraz simply doesn't always
+// carry a per-variant photo separately from the parent listing's own image,
+// so fall back to the parent's already-resolved image rather than showing
+// a blank thumbnail for what is, physically, the same product.
+function getVariantImage(variant, parentImage) {
+  const raw = parseJsonMaybe(variant?.variant_json);
+  const images = raw?.Images || raw?.images;
+  const first = Array.isArray(images) ? images.find(Boolean) : null;
+  return first || parentImage || "";
+}
+
 function getSkuCount(product) {
   const raw = readRawObject(product);
   // The list endpoint never sends raw_json (too large to select for every
@@ -1826,6 +1839,7 @@ export default function DarazDashboardPage() {
                             <table className="w-full border-collapse text-[12px]">
                               <thead>
                                 <tr className="border-b border-zinc-800/60 text-left text-[10px] font-semibold uppercase text-zinc-500">
+                                  <th className="px-2 py-1.5">Image</th>
                                   <th className="px-2 py-1.5">Seller SKU</th>
                                   <th className="px-2 py-1.5">Name</th>
                                   <th className="px-2 py-1.5 text-center">Status</th>
@@ -1834,22 +1848,42 @@ export default function DarazDashboardPage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {variantsByRow[key].map((variant) => (
-                                  <tr key={variant.id || variant.daraz_sku_id} className="border-b border-zinc-900">
-                                    <td className="px-2 py-1.5 font-mono text-zinc-300">{variant.seller_sku || "-"}</td>
-                                    <td className="px-2 py-1.5 text-zinc-300">{variant.name || "-"}</td>
-                                    <td className="px-2 py-1.5 text-center text-zinc-400">{variant.status || "-"}</td>
-                                    <td className="px-2 py-1.5 text-right text-zinc-300">
-                                      {Number.isFinite(Number(variant.price))
-                                        ? `LKR ${Number(variant.price).toLocaleString(undefined, {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                          })}`
-                                        : "-"}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-right text-zinc-300">{variant.quantity ?? "-"}</td>
-                                  </tr>
-                                ))}
+                                {variantsByRow[key].map((variant) => {
+                                  const variantImage = getVariantImage(variant, row.image);
+
+                                  return (
+                                    <tr key={variant.id || variant.daraz_sku_id} className="border-b border-zinc-900">
+                                      <td className="px-2 py-1.5">
+                                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950">
+                                          {variantImage ? (
+                                            <img
+                                              src={variantImage}
+                                              alt={variant.name || variant.seller_sku || "Variant"}
+                                              className="h-full w-full object-cover"
+                                              onError={(event) => {
+                                                event.currentTarget.style.display = "none";
+                                              }}
+                                            />
+                                          ) : (
+                                            <Package size={12} className="text-zinc-600" />
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-2 py-1.5 font-mono text-zinc-300">{variant.seller_sku || "-"}</td>
+                                      <td className="px-2 py-1.5 text-zinc-300">{variant.name || "-"}</td>
+                                      <td className="px-2 py-1.5 text-center text-zinc-400">{variant.status || "-"}</td>
+                                      <td className="px-2 py-1.5 text-right text-zinc-300">
+                                        {Number.isFinite(Number(variant.price))
+                                          ? `LKR ${Number(variant.price).toLocaleString(undefined, {
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                            })}`
+                                          : "-"}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right text-zinc-300">{variant.quantity ?? "-"}</td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           )}
