@@ -1851,14 +1851,23 @@ export default function DarazDashboardPage() {
                                 {variantsByRow[key].map((variant) => {
                                   const variantImage = getVariantImage(variant, row.image);
 
+                                  const variantTitle = variant.name || variant.seller_sku || "Variant";
+
                                   return (
                                     <tr key={variant.id || variant.daraz_sku_id} className="border-b border-zinc-900">
                                       <td className="px-2 py-1.5">
-                                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            variantImage &&
+                                            setImagePreview({ image: variantImage, title: variantTitle })
+                                          }
+                                          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-sm border border-zinc-800/40 bg-zinc-950 hover:border-[#D0E7E6]/50"
+                                        >
                                           {variantImage ? (
                                             <img
                                               src={variantImage}
-                                              alt={variant.name || variant.seller_sku || "Variant"}
+                                              alt={variantTitle}
                                               className="h-full w-full object-cover"
                                               onError={(event) => {
                                                 event.currentTarget.style.display = "none";
@@ -1867,9 +1876,26 @@ export default function DarazDashboardPage() {
                                           ) : (
                                             <Package size={12} className="text-zinc-600" />
                                           )}
-                                        </div>
+                                        </button>
                                       </td>
-                                      <td className="px-2 py-1.5 font-mono text-zinc-300">{variant.seller_sku || "-"}</td>
+                                      <td className="px-2 py-1.5 font-mono text-zinc-300">
+                                        {variant.seller_sku ? (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              openOverlay(
+                                                `/order-management/sku-report/${encodeURIComponent(variant.seller_sku)}`
+                                              )
+                                            }
+                                            className="cursor-pointer text-orange-300 underline decoration-dotted hover:text-orange-200"
+                                            title={`View SKU report for ${variant.seller_sku}`}
+                                          >
+                                            {variant.seller_sku}
+                                          </button>
+                                        ) : (
+                                          "-"
+                                        )}
+                                      </td>
                                       <td className="px-2 py-1.5 text-zinc-300">{variant.name || "-"}</td>
                                       <td className="px-2 py-1.5 text-center text-zinc-400">{variant.status || "-"}</td>
                                       <td className="px-2 py-1.5 text-right text-zinc-300">
