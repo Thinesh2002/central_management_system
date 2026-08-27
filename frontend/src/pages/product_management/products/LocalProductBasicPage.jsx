@@ -480,6 +480,13 @@ export default function LocalProductBasicPage() {
     setForm((prev) => ({
       ...prev,
       title: value,
+      // form was seeded by spreading the loaded product, which also carries
+      // product_name (the real DB column, aliased from title on the way
+      // in) - if only `title` were updated here, submit would send a fresh
+      // title alongside a stale product_name, and the backend's alias
+      // resolution (product_name ?? title ?? name) picks the stale one,
+      // silently discarding the edit. Keep both in lockstep instead.
+      product_name: value,
       slug: makeSlug(`${value}-${prev.sku || "product"}`),
     }));
   }
