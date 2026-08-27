@@ -5,6 +5,7 @@ import localProductsApi from "../../../../../config/sub_api/product_management_a
 import { getStoredUser } from "../../../../../config/auth";
 import { useToast } from "../../../../../components/common/toast/ToastProvider";
 import Loader from "../../../../../components/common/Loader";
+import { RichTextField } from "../../../../../components/common/rich_text_editor/RichTextEditor";
 import {
   generateVariantSku,
   getErrorMessage,
@@ -13,6 +14,7 @@ import {
 } from "../../utils/productSku";
 import {
   getCategoryId,
+  getImageUrl,
   getModelId,
   getRecordId,
   getSubCategoryId,
@@ -64,8 +66,22 @@ export default function VariantBasicPage() {
     colour_name: "",
     variant_name: "",
     variant_sku: "",
+    short_description: "",
+    description: "",
     status: "active",
   });
+
+  async function handleUploadDescriptionImage(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("product_id", productId);
+    if (variantId) formData.append("variant_id", variantId);
+
+    const response = await localProductsApi.uploadImage(formData);
+    const created = response?.data?.data || response?.data;
+    const rawUrl = created?.image_url || created?.url || created?.image_path || "";
+    return getImageUrl(rawUrl);
+  }
 
   const selectedCategory = useMemo(
     () => categories.find((item) => String(item.id) === String(getCategoryId(product))),
@@ -121,6 +137,8 @@ export default function VariantBasicPage() {
             colour_name: variant.colour_name || "",
             variant_name: variant.variant_name || "",
             variant_sku: variant.variant_sku || variant.sku || "",
+            short_description: variant.short_description || "",
+            description: variant.description || "",
             status: variant.status || "active",
           });
         }
@@ -179,6 +197,8 @@ export default function VariantBasicPage() {
         variant_name: form.variant_name || buildVariantTitle(product, selectedColour),
         colour_id: form.colour_id || null,
         colour_name: form.colour_name || getName(selectedColour) || "",
+        short_description: form.short_description || "",
+        description: form.description || "",
         status: form.status || "active",
         created_by: getCurrentUserId(),
         updated_by: getCurrentUserId(),
@@ -310,6 +330,30 @@ export default function VariantBasicPage() {
                 <option value="draft">draft</option>
               </select>
             </label>
+          </div>
+        )}
+
+        {!loading && (
+          <div className="grid grid-cols-1 gap-4 border-t border-slate-800 p-4">
+            <RichTextField
+              label="Short Description"
+              value={form.short_description}
+              onChange={(value) => setForm((prev) => ({ ...prev, short_description: value }))}
+              minHeight={90}
+              placeholder="Short variant description (shown on listing cards)... leave empty to use the parent product's"
+              onUploadImage={handleUploadDescriptionImage}
+              hint="HTML"
+            />
+
+            <RichTextField
+              label="Description"
+              value={form.description}
+              onChange={(value) => setForm((prev) => ({ ...prev, description: value }))}
+              minHeight={220}
+              placeholder="Full variant description... leave empty to use the parent product's"
+              onUploadImage={handleUploadDescriptionImage}
+              hint="HTML"
+            />
           </div>
         )}
 

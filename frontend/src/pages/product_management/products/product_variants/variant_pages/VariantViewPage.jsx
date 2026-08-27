@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import localProductsApi from "../../../../../config/sub_api/product_management_api/local_products_api";
 import { useCanViewCostPrice } from "../../../../../components/common/permissions/PermissionsProvider";
 import Loader from "../../../../../components/common/Loader";
+import { sanitizeHtml } from "../../../../../utils/sanitizeHtml";
 import { getErrorMessage, normalizeList } from "../../utils/productSku";
 import {
   getImageUrl,
@@ -113,6 +114,11 @@ export default function VariantViewPage() {
     }`;
   const sellingPrice = price?.local_selling_price ?? price?.sale_price ?? 0;
   const stockStatus = useMemo(() => getStockStatus(inventory), [inventory]);
+
+  // A variant with no description of its own inherits the parent product's
+  // - same fallback behaviour as the placeholder text on the edit page.
+  const variantShortDescription = variant?.short_description || product?.short_description || "";
+  const variantDescription = variant?.description || product?.description || "";
 
   useEffect(() => {
     async function load() {
@@ -353,6 +359,29 @@ export default function VariantViewPage() {
                     {inventory?.available_qty ?? 0}
                   </p>
                 </div>
+              </div>
+
+              {variantShortDescription ? (
+                <div className="border border-slate-800 bg-[#0b1220] p-4">
+                  <h2 className="text-sm font-black text-white">Short Description</h2>
+                  <div
+                    className="mt-2 max-w-none text-sm leading-6 text-slate-300"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(variantShortDescription) }}
+                  />
+                </div>
+              ) : null}
+
+              <div className="border border-slate-800 bg-[#0b1220] p-4">
+                <h2 className="text-sm font-black text-white">Description</h2>
+
+                {variantDescription ? (
+                  <div
+                    className="mt-2 max-w-none text-sm leading-6 text-slate-300"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(variantDescription) }}
+                  />
+                ) : (
+                  <p className="mt-2 text-sm text-slate-500">No description added.</p>
+                )}
               </div>
 
               <div className="border border-slate-800 bg-[#0b1220]">
