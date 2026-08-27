@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
+const sharp = require("sharp");
 
 const imageSizePackage = require("image-size");
 
@@ -76,7 +77,39 @@ function readImageDimensions(filePath) {
   return imageSize(buffer);
 }
 
-function validateImageMegapixels(req, res, next) {
+const WEBP_QUALITY = 82;
+
+// Every product image (Local Products, Variants, Images Dashboard - all
+// three go through this one shared upload path) is converted to WebP on
+// upload, regardless of what format was submitted. Runs after dimension
+// validation so an oversized image is rejected before spending time
+// re-encoding it.
+async function convertToWebp(req) {
+  const originalPath = req.file.path;
+  const originalExt = path.extname(req.file.filename);
+  const baseName = path.basename(req.file.filename, originalExt);
+  const webpFilename = `${baseName}.webp`;
+  const webpPath = path.join(uploadDir, webpFilename);
+  const tempPath = `${webpPath}.tmp`;
+
+  await sharp(originalPath).webp({ quality: WEBP_QUALITY }).toFile(tempPath);
+  fs.renameSync(tempPath, webpPath);
+
+  if (originalPath !== webpPath) {
+    fs.unlink(originalPath, () => {});
+  }
+
+  const stat = fs.statSync(webpPath);
+
+  req.file.filename = webpFilename;
+  req.file.path = webpPath;
+  req.file.mimetype = "image/webp";
+  req.file.size = stat.size;
+
+  return { file_name: webpFilename, image_path: `/uploads/product-images/${webpFilename}`, size_bytes: stat.size };
+}
+
+async function validateImageMegapixels(req, res, next) {
   if (!req.file) return next();
 
   try {
@@ -108,16 +141,18 @@ function validateImageMegapixels(req, res, next) {
       return next(error);
     }
 
+    const webp = await convertToWebp(req);
+
     req.productImageMeta = {
       width,
       height,
       pixels,
       megapixels: Number((pixels / 1000000).toFixed(2)),
-      file_name: req.file.filename,
+      file_name: webp.file_name,
       original_name: req.file.originalname,
-      mime_type: req.file.mimetype,
-      size_bytes: req.file.size,
-      image_path: `/uploads/product-images/${req.file.filename}`,
+      mime_type: "image/webp",
+      size_bytes: webp.size_bytes,
+      image_path: webp.image_path,
     };
 
     return next();
