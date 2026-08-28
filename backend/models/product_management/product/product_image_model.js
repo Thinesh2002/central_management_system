@@ -506,6 +506,30 @@ function isAssigned(row, assignedLookup) {
   return false;
 }
 
+// Callers that upload/attach an image by product_id + variant_id alone
+// (e.g. VariantImagesPage) never send an explicit sku string - without
+// this, the row's sku column stays NULL forever, which the Images
+// Dashboard's SKU search/filter depends on entirely (it has no product/
+// variant join, just a flat list keyed by this column). Resolves the real
+// SKU from the variant (if given) or the product, so every image row gets
+// a searchable SKU regardless of which upload path created it.
+async function resolveSkuFromIds({ productId, variantId } = {}) {
+  if (variantId) {
+    const [rows] = await db.query(
+      "SELECT variant_sku FROM product_variants WHERE id = ? LIMIT 1",
+      [variantId]
+    );
+    if (rows[0]?.variant_sku) return rows[0].variant_sku;
+  }
+
+  if (productId) {
+    const [rows] = await db.query("SELECT sku FROM products WHERE id = ? LIMIT 1", [productId]);
+    if (rows[0]?.sku) return rows[0].sku;
+  }
+
+  return null;
+}
+
 async function insertMatching(payload = {}) {
   const meta = await getTableMeta();
 
@@ -540,4 +564,5 @@ module.exports = {
   clearTableMetaCache,
   getAssignedLookup,
   isAssigned,
+  resolveSkuFromIds,
 };

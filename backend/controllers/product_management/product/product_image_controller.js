@@ -131,6 +131,25 @@ function buildImagePayload(req) {
   return payload;
 }
 
+// Callers that attach an image by product_id/variant_id alone (no explicit
+// sku field - e.g. VariantImagesPage's upload) leave payload.sku empty,
+// which the Images Dashboard's SKU search depends on entirely. Resolve it
+// from the ids before writing, same fallback the model itself exposes for
+// backfilling already-stored rows.
+async function ensureSkuOnPayload(payload) {
+  if (payload.sku) return payload;
+
+  const variantId = payload.variant_id || payload.product_variant_id || null;
+  const productId = payload.product_id || null;
+
+  if (!variantId && !productId) return payload;
+
+  const resolvedSku = await productImageModel.resolveSkuFromIds({ productId, variantId });
+  if (resolvedSku) payload.sku = resolvedSku;
+
+  return payload;
+}
+
 async function safeWriteProductLog(req, action, recordId, beforeData, afterData) {
   try {
     await productLogModel.insertMatching({
@@ -210,7 +229,7 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const payload = buildImagePayload(req);
+  const payload = await ensureSkuOnPayload(buildImagePayload(req));
 
   const created = await productImageModel.create(payload, {
     userId: getUserId(req),
@@ -240,7 +259,7 @@ const update = asyncHandler(async (req, res) => {
 
   if (!before) throw notFoundError();
 
-  const payload = buildImagePayload(req);
+  const payload = await ensureSkuOnPayload(buildImagePayload(req));
 
   const updated = await productImageModel.updateById(req.params.id, payload, {
     userId: getUserId(req),
