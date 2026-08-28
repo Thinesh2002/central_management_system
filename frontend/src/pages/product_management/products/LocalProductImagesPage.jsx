@@ -603,13 +603,23 @@ export default function LocalProductImagesPage() {
     return splitImages(variantImages);
   }
 
-  function openExtraPopup({ title, images, variantId }) {
+  function openExtraPopup({ title, variantId }) {
     setExtraPopup({
       title,
-      images,
       variantId,
     });
   }
+
+  const extraPopupImages = useMemo(() => {
+    if (!extraPopup) return [];
+    if (!extraPopup.variantId) return parentImageSet.extras;
+
+    const variant = variants.find(
+      (item) => String(getVariantId(item)) === String(extraPopup.variantId)
+    );
+
+    return variant ? getVariantImageSet(variant).extras : [];
+  }, [extraPopup, parentImageSet, variants, allImages, productId]);
 
   return (
     <ProductPageLayout productId={productId} active="images" product={product}>
@@ -691,7 +701,6 @@ export default function LocalProductImagesPage() {
                       onUploadExtra={(_, index) =>
                         openExtraPopup({
                           title: "Parent Product",
-                          images: parentImageSet.extras,
                           variantId: "",
                         })
                       }
@@ -757,7 +766,6 @@ export default function LocalProductImagesPage() {
                             onUploadExtra={(_, extraIndex) =>
                               openExtraPopup({
                                 title: getVariantSku(variant),
-                                images: imageSet.extras,
                                 variantId,
                               })
                             }
@@ -786,7 +794,7 @@ export default function LocalProductImagesPage() {
       {extraPopup ? (
         <ExtraImagesPopup
           title={extraPopup.title}
-          images={extraPopup.images}
+          images={extraPopupImages}
           uploading={Boolean(uploadingKey)}
           onClose={() => setExtraPopup(null)}
           onUploadExtra={(file, index) =>
@@ -794,7 +802,7 @@ export default function LocalProductImagesPage() {
               file,
               isMain: false,
               sortOrder: index + 1,
-              existingImage: extraPopup.images[index],
+              existingImage: extraPopupImages[index],
               variantId: extraPopup.variantId,
             })
           }
@@ -802,7 +810,7 @@ export default function LocalProductImagesPage() {
             openPicker({
               isMain: false,
               sortOrder: index + 1,
-              existingImage: extraPopup.images[index],
+              existingImage: extraPopupImages[index],
               variantId: extraPopup.variantId,
             })
           }
