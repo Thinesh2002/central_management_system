@@ -30,4 +30,20 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
+
+  // A tab a user already had open stays controlled by whichever service
+  // worker was active when it loaded, even after a newer one finishes
+  // installing in the background - the open tab's React app is still the
+  // old build, referencing asset hashes a later deploy already deleted
+  // (confirmed live: repeated hard-refreshes alone didn't clear this,
+  // because the stale *worker*, not just cached HTTP responses, was the
+  // one still in control). `controllerchange` fires exactly when a new
+  // worker takes over - reload once, right then, instead of leaving the
+  // tab stuck until the user manually unregisters it or closes every tab.
+  let reloadedForNewWorker = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloadedForNewWorker) return;
+    reloadedForNewWorker = true;
+    window.location.reload();
+  });
 }
