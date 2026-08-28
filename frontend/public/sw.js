@@ -1,24 +1,26 @@
-// Minimal service worker — exists only to satisfy browser installability
-// criteria (a registered service worker with a fetch handler). No caching
-// strategy on purpose: this app's data (orders, sync jobs, prices) changes
-// constantly, so a cache-first approach would serve stale pages.
+// Self-unregistering "kill switch" — a stuck installed-PWA window keeps
+// whatever worker was active when it launched controlling it indefinitely,
+// even after later deploys fix the page it's serving (main.jsx's
+// controllerchange reload only helps if the OLD page already has that
+// listener, which a client running a pre-fix bundle never does). Once the
+// browser picks up this new sw.js (it always re-fetches the worker script
+// itself, bypassing any HTTP cache), it removes the service worker
+// entirely and forces every open window to reload - breaking the loop
+// without needing a manual uninstall/clear-site-data from every affected
+// user. This intentionally drops PWA "Install app" support; re-add a
+// normal worker in a later deploy if that's still wanted once everyone's
+// unstuck.
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
-});
+  event.waitUntil(
+    (async () => {
+      await self.registration.unregister();
 
-self.addEventListener("fetch", (event) => {
-  // Only pass through same-origin requests. Re-dispatching a cross-origin
-  // request via fetch(event.request) from inside the worker does not
-  // reliably reproduce the original CORS context — it was intermittently
-  // failing on calls to the API host with "No Access-Control-Allow-Origin
-  // header", even though the exact same request succeeds when the page
-  // makes it directly. This worker only exists for PWA installability, so
-  // it has no reason to touch cross-origin API calls at all.
-  if (new URL(event.request.url).origin !== self.location.origin) return;
-
-  event.respondWith(fetch(event.request));
+      const clientsList = await self.clients.matchAll({ type: "window" });
+      clientsList.forEach((client) => client.navigate(client.url));
+    })()
+  );
 });

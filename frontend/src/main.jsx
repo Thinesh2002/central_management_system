@@ -24,22 +24,20 @@ createRoot(document.getElementById("root")).render(
   </React.StrictMode>
 );
 
-// Registers a minimal service worker so the browser offers "Install app" —
-// required for PWA installability alongside the manifest link in index.html.
+// The service worker previously registered here (for PWA installability)
+// caused installed-app windows to get permanently stuck serving an old
+// build after a deploy, surviving even repeated hard-refreshes - because
+// whichever worker was active when the window launched keeps controlling
+// it regardless of what the page itself does. public/sw.js now ships as a
+// one-time kill switch that unregisters itself and reloads every open
+// window; this file must NOT re-register a worker, or every reload would
+// just reinstall that same kill switch forever instead of ever settling
+// into a normal, unstuck, worker-free state.
+//
+// Still listen for controllerchange in case a client is mid-transition
+// away from an old worker when this bundle loads - reload once so it
+// doesn't sit half-upgraded.
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
-
-  // A tab a user already had open stays controlled by whichever service
-  // worker was active when it loaded, even after a newer one finishes
-  // installing in the background - the open tab's React app is still the
-  // old build, referencing asset hashes a later deploy already deleted
-  // (confirmed live: repeated hard-refreshes alone didn't clear this,
-  // because the stale *worker*, not just cached HTTP responses, was the
-  // one still in control). `controllerchange` fires exactly when a new
-  // worker takes over - reload once, right then, instead of leaving the
-  // tab stuck until the user manually unregisters it or closes every tab.
   let reloadedForNewWorker = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (reloadedForNewWorker) return;
