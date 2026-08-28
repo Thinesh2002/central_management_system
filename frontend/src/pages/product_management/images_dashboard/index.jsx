@@ -180,9 +180,11 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
     return pool.slice(0, 50);
   }, [focused, value, skuOptions]);
 
+  const showPanel = focused && results.length > 0;
+
   return (
     <div ref={containerRef} className="relative w-44">
-      <div className="flex h-7 items-center gap-1.5 border border-slate-600 bg-[#2b3441] pl-2.5 pr-1 focus-within:border-orange-400">
+      <div className="flex h-7 items-center gap-1.5 border border-slate-600 bg-[#2b3441] pl-2.5 pr-1 transition-colors duration-150 focus-within:border-orange-400">
         <input
           value={value}
           onChange={(e) => onSelect(e.target.value)}
@@ -194,31 +196,37 @@ function SkuSearchDropdown({ skuOptions, value, onSelect }) {
           <button
             type="button"
             onClick={() => onSelect("")}
-            className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-500 hover:text-white"
+            className="flex h-5 w-5 shrink-0 items-center justify-center text-slate-500 transition-colors duration-150 hover:text-white"
           >
             <X size={12} />
           </button>
         ) : null}
       </div>
 
-      {focused && results.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto border border-slate-700 bg-[#0b1220] shadow-2xl shadow-black/50">
-          {results.map((row) => (
-            <button
-              key={row.sku}
-              type="button"
-              onClick={() => {
-                onSelect(row.sku);
-                setFocused(false);
-              }}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-slate-300 hover:bg-slate-800 hover:text-orange-300"
-            >
-              <span className="truncate">{row.sku}</span>
-              <span className="ml-2 shrink-0 text-[10px] text-slate-500">{row.count} img</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Kept mounted (not conditionally rendered) so opening/closing is a
+          real opacity+translate transition instead of an instant pop. */}
+      <div
+        className={`absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto border border-slate-700 bg-[#0b1220] shadow-2xl shadow-black/50 transition-all duration-150 ease-out ${
+          showPanel
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-1 opacity-0"
+        }`}
+      >
+        {results.map((row) => (
+          <button
+            key={row.sku}
+            type="button"
+            onClick={() => {
+              onSelect(row.sku);
+              setFocused(false);
+            }}
+            className="flex w-full items-center justify-between px-3 py-2 text-left text-xs text-slate-300 transition-colors duration-100 hover:bg-slate-800 hover:text-orange-300"
+          >
+            <span className="truncate">{row.sku}</span>
+            <span className="ml-2 shrink-0 text-[10px] text-slate-500">{row.count} img</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -629,7 +637,7 @@ export default function ImagesDashboardPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search file name or alt text"
-            className="h-7 w-56 border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-slate-100 outline-none placeholder:text-slate-500 focus:border-orange-400"
+            className="h-7 w-56 border border-slate-600 bg-[#2b3441] px-2.5 text-[11px] font-medium text-slate-100 outline-none transition-colors duration-150 placeholder:text-slate-500 focus:border-orange-400"
           />
         </label>
 
