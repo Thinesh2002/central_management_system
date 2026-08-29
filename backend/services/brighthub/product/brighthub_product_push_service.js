@@ -8,7 +8,13 @@ const productModel = require("../../../models/product_management/product/product
 const categoryModel = require("../../../models/product_management/category/category_model");
 const productPriceModel = require("../../../models/product_management/product/product_price_model");
 const productInventoryModel = require("../../../models/product_management/product/product_inventory_model");
+const productVariantModel = require("../../../models/product_management/product/product_variant_model");
+const productImageModel = require("../../../models/product_management/product/product_image_model");
 const db = require("../../../config/product_management_db/product_management_db");
+
+function getErrorMessage(error) {
+  return error?.response?.data?.message || error?.response?.data?.error || error?.message || "Something went wrong.";
+}
 
 const MIME_BY_EXT = {
   ".webp": "image/webp",
@@ -71,7 +77,7 @@ async function pushUnmappedCategories(credentials) {
       }
     } catch (error) {
       result.failed += 1;
-      console.error(`[BRIGHTHUB_CATEGORY_PUSH_FAILED] "${category.name}":`, error.message);
+      console.error(`[BRIGHTHUB_CATEGORY_PUSH_FAILED] "${category.name}":`, getErrorMessage(error));
     }
   }
 
@@ -93,7 +99,7 @@ async function uploadLocalImages(credentials, images = []) {
       const media = await brighthubApi.uploadMedia(credentials, buffer, path.basename(filePath), mimeType);
       if (media?.url) uploadedUrls.push(media.url);
     } catch (error) {
-      console.error(`[BRIGHTHUB_IMAGE_PUSH_FAILED] ${filePath}:`, error.message);
+      console.error(`[BRIGHTHUB_IMAGE_PUSH_FAILED] ${filePath}:`, getErrorMessage(error));
     }
   }
 
@@ -112,10 +118,56 @@ async function getUnpushedProductIds(accountId) {
   return rows.map((row) => Number(row.id)).filter((id) => !pushedIds.has(id));
 }
 
-async function pushOneProduct(accountId, credentials, jobId, id) {
-  const product = await productModel.findById(id);
-  if (!product) return { status: "skipped" };
+// The SKU filter matches partial substrings and checks variant SKUs too
+// (returning the parent row either way), so this narrows candidates down to
+// a true exact match - checking each candidate's own variants (a second
+// fetch, since the list endpoint doesn't include them) only when the
+// parent's own sku isn't the exact match itself.
+async function skuExistsOnBrightHub(credentials, sku) {
+  if (!sku) return false;
+  const target = sku.toLowerCase();
 
+  const result = await brighthubApi.getProducts(credentials, { sku, limit: 5 });
+
+  for (const candidate of result.data || []) {
+    if (String(candidate.sku || "").toLowerCase() === target) return true;
+
+    const full = await brighthubApi.getProduct(credentials, candidate.bhid).catch(() => null);
+    if ((full?.variants || []).some((v) => String(v.sku || "").toLowerCase() === target)) return true;
+  }
+
+  return false;
+}
+
+// Mirrors BrightHub's own slugify() exactly (lowercase, non-alnum runs to a
+// single hyphen, trimmed) - needed because a name collision (an already-
+// existing BrightHub product with the same name but a *different* SKU, e.g.
+// something created directly in the admin panel under its own numeric SKU
+// scheme) fails at slug-uniqueness even when the SKU check passes clean.
+function slugifyLikeBrightHub(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 250);
+}
+
+async function slugExistsOnBrightHub(credentials, name) {
+  const expectedSlug = slugifyLikeBrightHub(name);
+  if (!expectedSlug) return false;
+
+  const result = await brighthubApi.getProducts(credentials, { search: name, limit: 5 });
+  return (result.data || []).some((candidate) => candidate.slug === expectedSlug);
+}
+
+async function resolveCategoryId(product) {
+  if (!product.category_id) return null;
+  const category = await categoryModel.getById(product.category_id);
+  return category?.brighthub_category_id || null;
+}
+
+async function pushStandaloneProduct(accountId, credentials, jobId, id, product) {
   const priceRow = product.sku ? await productPriceModel.findBySku(product.sku) : null;
   const price = resolvePrice(priceRow);
 
@@ -132,14 +184,35 @@ async function pushOneProduct(accountId, credentials, jobId, id) {
     return { status: "skipped" };
   }
 
+  const productName = product.name || product.product_name;
+  if (product.sku && (await skuExistsOnBrightHub(credentials, product.sku))) {
+    await brighthubProductModel.addSyncItem({
+      jobId,
+      accountId,
+      itemType: "product",
+      localReference: String(id),
+      sku: product.sku || null,
+      status: "skipped",
+      message: `SKU "${product.sku}" already exists on BrightHub (likely created there directly) - not creating a duplicate. Resolve the SKU conflict manually to transfer this product.`,
+    });
+    return { status: "skipped" };
+  }
+  if (await slugExistsOnBrightHub(credentials, productName)) {
+    await brighthubProductModel.addSyncItem({
+      jobId,
+      accountId,
+      itemType: "product",
+      localReference: String(id),
+      sku: product.sku || null,
+      status: "skipped",
+      message: `A BrightHub product named "${productName}" already exists (likely created there directly, under a different SKU) - not creating a duplicate. Resolve manually to transfer this product.`,
+    });
+    return { status: "skipped" };
+  }
+
   const inventoryRow = product.sku ? await productInventoryModel.findBySku(product.sku) : null;
   const stockQuantity = inventoryRow ? Math.max(Number(inventoryRow.available_qty) || 0, 0) : 0;
-
-  let categoryId = null;
-  if (product.category_id) {
-    const category = await categoryModel.getById(product.category_id);
-    categoryId = category?.brighthub_category_id || null;
-  }
+  const categoryId = await resolveCategoryId(product);
 
   const images = Array.isArray(product.images) ? product.images : [];
   const uploadedUrls = await uploadLocalImages(credentials, images);
@@ -176,6 +249,150 @@ async function pushOneProduct(accountId, credentials, jobId, id) {
   });
 
   return { status: "success" };
+}
+
+// A variant's own price/stock (never the parent's - parent rows carry no
+// price/stock once they have children, same as BrightHub's own family
+// model) and its own images, keyed by variant_sku rather than the parent's
+// sku. attribute_value prefers colour (this catalog's more common axis)
+// then falls back to size.
+async function buildVariantPayload(credentials, variant) {
+  const sku = variant.variant_sku;
+  const priceRow = sku ? await productPriceModel.findBySku(sku) : null;
+  const price = resolvePrice(priceRow);
+  if (!price) return { error: `Variant "${variant.variant_name || sku}" has no local selling price yet.` };
+
+  const inventoryRow = sku ? await productInventoryModel.findBySku(sku) : null;
+  const stockQuantity = inventoryRow ? Math.max(Number(inventoryRow.available_qty) || 0, 0) : 0;
+
+  const attributeValue = variant.colour_name || variant.size_name || variant.variant_name;
+  if (!attributeValue) return { error: `Variant #${variant.id} has no colour/size value set.` };
+
+  const variantImages = await productImageModel.list({ variant_id: variant.id, limit: 50 });
+  const uploadedUrls = await uploadLocalImages(credentials, variantImages.data || []);
+
+  return {
+    payload: {
+      sku: sku || undefined,
+      attribute_value: attributeValue,
+      swatch_hex: variant.colour_code || undefined,
+      price,
+      stock_quantity: stockQuantity,
+      image_main_url: uploadedUrls[0] || undefined,
+    },
+  };
+}
+
+async function pushProductWithVariants(accountId, credentials, jobId, id, product, localVariants) {
+  const attributeName = localVariants.some((v) => v.colour_name) ? "Colour" : "Size";
+
+  const built = await Promise.all(localVariants.map((variant) => buildVariantPayload(credentials, variant)));
+  const firstError = built.find((entry) => entry.error);
+
+  if (firstError) {
+    await brighthubProductModel.addSyncItem({
+      jobId,
+      accountId,
+      itemType: "product",
+      localReference: String(id),
+      sku: product.sku || null,
+      status: "skipped",
+      message: `Not all variants are ready yet: ${firstError.error}`,
+    });
+    return { status: "skipped" };
+  }
+
+  const skusToCheck = [product.sku, ...built.map((entry) => entry.payload.sku)].filter(Boolean);
+  for (const sku of skusToCheck) {
+    if (await skuExistsOnBrightHub(credentials, sku)) {
+      await brighthubProductModel.addSyncItem({
+        jobId,
+        accountId,
+        itemType: "product",
+        localReference: String(id),
+        sku: product.sku || null,
+        status: "skipped",
+        message: `SKU "${sku}" already exists on BrightHub (likely created there directly) - not creating a duplicate family. Resolve the SKU conflict manually to transfer this product.`,
+      });
+      return { status: "skipped" };
+    }
+  }
+
+  const productName = product.name || product.product_name;
+  if (await slugExistsOnBrightHub(credentials, productName)) {
+    await brighthubProductModel.addSyncItem({
+      jobId,
+      accountId,
+      itemType: "product",
+      localReference: String(id),
+      sku: product.sku || null,
+      status: "skipped",
+      message: `A BrightHub product named "${productName}" already exists (likely created there directly, under a different SKU) - not creating a duplicate family. Resolve manually to transfer this product.`,
+    });
+    return { status: "skipped" };
+  }
+
+  const categoryId = await resolveCategoryId(product);
+  const parentImages = Array.isArray(product.images) ? product.images : [];
+  const parentUploadedUrls = await uploadLocalImages(credentials, parentImages);
+
+  const payload = {
+    parent: {
+      name: product.name || product.product_name,
+      description: product.description || undefined,
+      sku: product.sku || undefined,
+      category_id: categoryId || undefined,
+      status: product.status || "active",
+      image_main_url: parentUploadedUrls[0] || undefined,
+      images: parentUploadedUrls,
+    },
+    attribute_name: attributeName,
+    variants: built.map((entry) => entry.payload),
+  };
+
+  const created = await brighthubApi.createProductWithVariants(credentials, payload);
+
+  if (!created?.parent?.bhid) {
+    throw new Error("BrightHub did not return a product id.");
+  }
+
+  await brighthubProductModel.recordPushedBrightHubProduct(accountId, id, created.parent);
+
+  // Mirrors each variant child into the same table the existing pull sync
+  // uses, keyed by its own bhid - so the Inventory page's "Website Stock"
+  // lookup (which matches by SKU) finds these variant SKUs too, not just
+  // the parent's.
+  for (const variant of created.variants || []) {
+    if (!variant?.bhid) continue;
+    await brighthubProductModel.upsertBrightHubProduct(accountId, variant).catch(() => {});
+  }
+
+  await brighthubProductModel.addSyncItem({
+    jobId,
+    accountId,
+    itemType: "product",
+    localReference: String(id),
+    marketplaceReference: created.parent.bhid,
+    sku: product.sku || null,
+    status: "success",
+    message: `Product and ${(created.variants || []).length} variant(s) pushed to BrightHub.`,
+  });
+
+  return { status: "success" };
+}
+
+async function pushOneProduct(accountId, credentials, jobId, id) {
+  const product = await productModel.findById(id);
+  if (!product) return { status: "skipped" };
+
+  const variantsResult = await productVariantModel.list({ product_id: id, limit: 200 });
+  const localVariants = variantsResult.data || [];
+
+  if (localVariants.length > 0) {
+    return pushProductWithVariants(accountId, credentials, jobId, id, product, localVariants);
+  }
+
+  return pushStandaloneProduct(accountId, credentials, jobId, id, product);
 }
 
 async function pushLocalProductsForAccount(accountId, options = {}) {
@@ -217,10 +434,10 @@ async function pushLocalProductsForAccount(accountId, options = {}) {
           status: "failed",
           message: "Product push failed",
           errorCode: "PRODUCT_PUSH_FAILED",
-          errorDetails: error.message,
+          errorDetails: getErrorMessage(error),
         }).catch(() => {});
 
-        console.error(`[BRIGHTHUB_PRODUCT_PUSH_FAILED] local product #${id}:`, error.message);
+        console.error(`[BRIGHTHUB_PRODUCT_PUSH_FAILED] local product #${id}:`, getErrorMessage(error));
       }
     }
 
@@ -234,7 +451,7 @@ async function pushLocalProductsForAccount(accountId, options = {}) {
     return summary;
   } catch (error) {
     summary.status = "failed";
-    summary.error_details = error.message;
+    summary.error_details = getErrorMessage(error);
 
     await brighthubProductModel.finishPushSyncJob(jobId, summary);
 
@@ -251,7 +468,7 @@ async function pushDueBrightHubAccounts() {
       const result = await pushLocalProductsForAccount(account.id, { triggered_by_type: "system" });
       results.push({ account_id: account.id, success: true, result });
     } catch (error) {
-      results.push({ account_id: account.id, success: false, error: error.message });
+      results.push({ account_id: account.id, success: false, error: getErrorMessage(error) });
     }
   }
 

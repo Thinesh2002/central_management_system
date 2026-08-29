@@ -71,6 +71,7 @@ async function getProducts(credentials, query = {}) {
       page: query.page || 1,
       limit: query.limit || 20,
       search: query.search || undefined,
+      sku: query.sku || undefined,
       category_id: query.category_id || undefined,
       status: query.status || undefined,
       sort: query.sort || undefined,
@@ -95,6 +96,18 @@ async function getProduct(credentials, bhid) {
 async function createProduct(credentials, payload) {
   const client = createBrightHubClient(credentials);
   const response = await client.post("/products", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return response.data?.data || null;
+}
+
+// Creates a grouping parent plus every one of its variant children (colour/
+// size options, each with its own SKU/price/quantity/main image) in one
+// call - the counterpart to createProduct for products that have variants
+// locally instead of being standalone.
+async function createProductWithVariants(credentials, payload) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.post("/products/with-variants", payload, {
     headers: { "Content-Type": "application/json" },
   });
   return response.data?.data || null;
@@ -196,6 +209,7 @@ module.exports = {
   getProducts,
   getProduct,
   createProduct,
+  createProductWithVariants,
   updateProduct,
   deleteProduct,
   getCategories,

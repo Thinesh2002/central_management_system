@@ -424,13 +424,13 @@ export default function BrightHubProductDashboardPage() {
     <div className="w-full overflow-hidden text-[13px] text-zinc-200">
       <div className="space-y-3">
         <div className="rounded-md border border-zinc-700/60 bg-[#1c2838] shadow-sm shadow-black/20">
-          <div className="flex items-center justify-between border-b border-zinc-700/60 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-700/60 px-3 py-2">
             <div className="flex items-center gap-2">
               <Search size={15} className="text-orange-400" />
               <h2 className="text-[13px] font-semibold text-white">Search & Filter Website Products</h2>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select
                 value={selectedAccountId}
                 onChange={(event) => setSelectedAccountId(event.target.value)}
