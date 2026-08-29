@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Layers, Plus } from "lucide-react";
+import { Layers, Plus, RefreshCw } from "lucide-react";
 import localProductsApi from "../../../../config/sub_api/product_management_api/local_products_api";
 import { usePageOverlay } from "../../../../components/common/page_overlay/PageOverlayProvider";
 import { getErrorMessage, getName, normalizeList } from "./../utils/productSku";
@@ -813,6 +813,15 @@ export default function LocalProductsDashboard() {
           <h1 className="text-lg font-bold text-white">Manage All Inventory</h1>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={loading}
+              title="Refresh"
+              className="flex h-8 items-center gap-1.5 rounded-sm border border-slate-600 bg-[#334155] px-3 text-[12px] font-semibold text-slate-100 hover:bg-[#3f4d63] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+            </button>
             <button
               type="button"
               onClick={() => setAddVariationOpen(true)}
