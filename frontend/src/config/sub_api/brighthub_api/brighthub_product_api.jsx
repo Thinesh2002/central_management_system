@@ -8,6 +8,12 @@ export const brighthubProductApi = {
   syncBrightHubProducts: (accountId) =>
     api.post(`/marketplace/brighthub/accounts/${accountId}/sync-products`),
 
+  // Pushes the local catalog (products/categories entered directly in this
+  // system, not pulled from BrightHub) OUT to BrightHub. Only ever creates
+  // products that haven't been sent before - safe to call anytime.
+  pushLocalCatalogToBrightHub: (accountId) =>
+    api.post(`/marketplace/brighthub/accounts/${accountId}/push-local-catalog`, null, { timeout: 120000 }),
+
   getSyncedBrightHubProducts: (accountId, params = {}) =>
     api.get(`/marketplace/brighthub/accounts/${accountId}/synced-products`, { params }),
 

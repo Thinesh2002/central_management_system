@@ -134,6 +134,23 @@ async function uploadMedia(credentials, fileBuffer, fileName, mimeType) {
   return response.data?.data || null;
 }
 
+async function getCategories(credentials) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.get("/categories");
+  return Array.isArray(response.data?.data) ? response.data.data : [];
+}
+
+// Idempotent on BrightHub's side (matches by slug, returns the existing row
+// instead of erroring) - safe to call every push run for a category that
+// was already created on a previous one.
+async function createCategory(credentials, payload) {
+  const client = createBrightHubClient(credentials);
+  const response = await client.post("/categories", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+  return response.data?.data || null;
+}
+
 async function getOrders(credentials, query = {}) {
   const client = createBrightHubClient(credentials);
 
@@ -181,6 +198,8 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  getCategories,
+  createCategory,
   getOrders,
   getOrder,
   updateOrderStatus,

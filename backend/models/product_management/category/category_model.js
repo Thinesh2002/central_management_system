@@ -86,6 +86,7 @@ async function getAll({
       name,
       slug,
       description,
+      brighthub_category_id,
       created_at,
       updated_at,
       deleted_at
@@ -135,6 +136,7 @@ async function getById(id, includeDeleted = false) {
       name,
       slug,
       description,
+      brighthub_category_id,
       created_at,
       updated_at,
       deleted_at
@@ -288,6 +290,26 @@ async function restore(id) {
   return getById(id, false);
 }
 
+// Categories not yet linked to a BrightHub category - the push job creates
+// (or matches) one on BrightHub for each of these, then stores the returned
+// id back via setBrightHubCategoryId so it's never re-created on later runs.
+async function getUnmappedForBrightHub() {
+  const [rows] = await db.query(
+    `SELECT id, category_code, name, slug, description
+     FROM categories
+     WHERE deleted_at IS NULL AND brighthub_category_id IS NULL`
+  );
+
+  return rows;
+}
+
+async function setBrightHubCategoryId(id, brighthubCategoryId) {
+  await db.query(
+    `UPDATE categories SET brighthub_category_id = ?, updated_at = NOW() WHERE id = ?`,
+    [brighthubCategoryId, id]
+  );
+}
+
 module.exports = {
   getAll,
   getById,
@@ -295,4 +317,6 @@ module.exports = {
   update,
   remove,
   restore,
+  getUnmappedForBrightHub,
+  setBrightHubCategoryId,
 };

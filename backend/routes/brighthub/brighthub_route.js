@@ -3,6 +3,7 @@ const multer = require("multer");
 
 const brighthubAccountController = require("../../controllers/marketplace/brighthub/brighthub_controller");
 const brighthubProductController = require("../../controllers/brighthub/product/brighthub_product_controller");
+const brighthubProductPushController = require("../../controllers/brighthub/product/brighthub_product_push_controller");
 const brighthubOrderController = require("../../controllers/brighthub/order/brighthub_order_controller");
 const brighthubInventorySyncController = require("../../controllers/brighthub/inventory/brighthub_inventory_sync_controller");
 
@@ -96,6 +97,11 @@ router.get(
 router.put(
   "/accounts/:accountId/orders/:id/status",
   requireHandler(brighthubOrderController.updateBrightHubOrderStatus, "updateBrightHubOrderStatus")
+);
+
+router.post(
+  "/accounts/:accountId/push-local-catalog",
+  requireHandler(brighthubProductPushController.pushLocalCatalog, "pushLocalCatalog")
 );
 
 router.post(

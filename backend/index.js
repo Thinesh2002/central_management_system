@@ -98,6 +98,10 @@ const {
   startBrightHubProductSyncJob,
 } = require("./jobs/brighthub/product/brighthub_product_sync_job");
 
+const {
+  startBrightHubProductPushJob,
+} = require("./jobs/brighthub/product/brighthub_product_push_job");
+
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
@@ -300,6 +304,7 @@ async function startServer() {
     startJob("TRANS_EXPRESS_TRACKING_SYNC_JOB", startTransExpressTrackingSyncJob);
     startJob("DARAZ_PRICE_RECONCILIATION_JOB", startDarazPriceReconciliationJob);
     startJob("BRIGHTHUB_PRODUCT_SYNC_JOB", startBrightHubProductSyncJob);
+    startJob("BRIGHTHUB_PRODUCT_PUSH_JOB", startBrightHubProductPushJob);
   });
 }
 

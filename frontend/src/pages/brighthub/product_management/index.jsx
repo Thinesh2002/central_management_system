@@ -171,6 +171,7 @@ export default function BrightHubProductDashboardPage() {
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [pushing, setPushing] = useState(false);
 
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -252,6 +253,39 @@ export default function BrightHubProductDashboardPage() {
       setError(err?.friendlyMessage || "BrightHub product sync failed.");
     } finally {
       setSyncing(false);
+    }
+  }
+
+  // Pushes local-catalog products/categories (added directly in this
+  // system, not pulled from BrightHub) out to BrightHub. This also runs
+  // automatically every 30 minutes - this button is just the on-demand
+  // trigger for the same job, and is always safe to click since it only
+  // ever creates products that haven't already been sent.
+  async function handlePushLocalCatalog() {
+    if (!selectedAccountId) {
+      setError("No BrightHub account found.");
+      return;
+    }
+
+    try {
+      setPushing(true);
+      setError("");
+      setSuccess("");
+
+      const res = await brighthubProductApi.pushLocalCatalogToBrightHub(selectedAccountId);
+      const data = res?.data?.data;
+
+      setSuccess(
+        data
+          ? `Local catalog push completed. Pushed: ${data.success_records || 0}, skipped: ${data.skipped_records || 0}, failed: ${data.failed_records || 0}`
+          : "Local catalog push to BrightHub completed."
+      );
+
+      await loadProducts();
+    } catch (err) {
+      setError(err?.friendlyMessage || "Local catalog push to BrightHub failed.");
+    } finally {
+      setPushing(false);
     }
   }
 
@@ -428,6 +462,17 @@ export default function BrightHubProductDashboardPage() {
               >
                 {syncing ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}
                 SYNC
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePushLocalCatalog}
+                disabled={pushing || !selectedAccountId || loadingAccounts}
+                title="Push local catalog products/categories to BrightHub - also runs automatically every 30 minutes"
+                className="flex h-7 items-center gap-1 rounded-sm border border-sky-500/40 bg-sky-600 px-3 text-[11px] font-semibold text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pushing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                PUSH LOCAL CATALOG
               </button>
 
               <button

@@ -79,6 +79,89 @@ async function createSyncJob(accountId, triggeredByType = "user") {
   return result.insertId;
 }
 
+// Same job-tracking table as the pull sync, but direction='push' - this is
+// the local-catalog-out-to-BrightHub job, not the mirror-in-from-BrightHub one.
+async function createPushSyncJob(accountId, triggeredByType = "user") {
+  const [result] = await marketplacePool.query(
+    `INSERT INTO sync_jobs
+      (job_uid, account_id, platform_code, sync_type, direction, status, triggered_by_type, started_at, message, created_at, updated_at)
+     VALUES (?, ?, 'brighthub', 'local_catalog_push', 'push', 'running', ?, NOW(), 'BrightHub local catalog push started', NOW(), NOW())`,
+    [uid("brighthub_catalog_push"), accountId, triggeredByType]
+  );
+
+  return result.insertId;
+}
+
+// Dedicated completion update for the push job - sync_jobs.status only
+// allows ('running','success','partial','failed'), so this maps directly to
+// those instead of reusing finishSyncJob's 'partial_success' (not a valid
+// enum value there).
+async function finishPushSyncJob(jobId, summary) {
+  const total = Number(summary.total_records || 0);
+  const success = Number(summary.success_records || 0);
+  const failed = Number(summary.failed_records || 0);
+  const skipped = Number(summary.skipped_records || 0);
+
+  let status = "success";
+  if (failed > 0 && success > 0) status = "partial";
+  if (failed > 0 && success === 0 && total > 0) status = "failed";
+
+  await marketplacePool.query(
+    `UPDATE sync_jobs
+     SET status = ?, total_records = ?, success_records = ?, failed_records = ?, skipped_records = ?,
+         finished_at = NOW(), message = ?, error_details = ?, updated_at = NOW()
+     WHERE id = ?`,
+    [status, total, success, failed, skipped, summary.message || "BrightHub local catalog push completed", summary.error_details || null, jobId]
+  );
+
+  return status;
+}
+
+// Local products already pushed to this account, keyed by local_product_id -
+// the push job skips these forever after (edits happen on BrightHub's side
+// from here on, not by re-pushing).
+async function getPushedLocalProductIds(accountId) {
+  const [rows] = await productPool.query(
+    `SELECT local_product_id FROM brighthub_products
+     WHERE account_id = ? AND local_product_id IS NOT NULL AND deleted_at IS NULL`,
+    [accountId]
+  );
+
+  return new Set(rows.map((row) => Number(row.local_product_id)));
+}
+
+// Records a newly-created BrightHub product as originating from a local
+// catalog product - distinct from upsertBrightHubProduct (which mirrors
+// pull-direction reads and updates on every re-sync) because a pushed row
+// must never be touched again by this model once created.
+async function recordPushedBrightHubProduct(accountId, localProductId, product) {
+  const bhid = product?.bhid;
+
+  if (!bhid) {
+    throw new Error("BrightHub product BHID missing.");
+  }
+
+  await productPool.query(
+    `INSERT INTO brighthub_products
+      (account_id, bhid, local_product_id, sku, name, price, stock_quantity, category_id, status,
+       images_json, raw_json, last_synced_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+    [
+      accountId,
+      bhid,
+      localProductId,
+      product.sku || null,
+      product.name || null,
+      decimalOrNull(product.price),
+      product.stock_quantity ?? null,
+      product.category_id || null,
+      product.status || null,
+      json(product.images),
+      json(product),
+    ]
+  );
+}
+
 async function addSyncItem({
   jobId,
   accountId,
@@ -249,10 +332,14 @@ async function updateStockQuantity(accountId, bhid, quantity) {
 module.exports = {
   upsertBrightHubProduct,
   createSyncJob,
+  createPushSyncJob,
   addSyncItem,
   finishSyncJob,
+  finishPushSyncJob,
   markAccountProductSync,
   getDueBrightHubAccounts,
+  getPushedLocalProductIds,
+  recordPushedBrightHubProduct,
   listSyncedBrightHubProducts,
   getSyncedBrightHubProductDetail,
   deleteSyncedBrightHubProduct,
