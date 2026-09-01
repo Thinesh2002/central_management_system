@@ -581,7 +581,11 @@ export default function LocalProductsDashboard() {
         subCategoryRes,
         modelRes,
       ] = await Promise.all([
-        localProductsApi.getProducts(),
+        // Unscoped defaults to the backend's limit=25 - with more than 25
+        // local products, the rest (and every child SKU search text is
+        // built from) silently never load into this page at all, so
+        // searching for one of their variant SKUs can never match.
+        localProductsApi.getProducts({ limit: 500 }),
         // Unscoped defaults to the backend's limit=25 across the *entire*
         // image library (confirmed live: 43 total images, so nearly half
         // were silently cut from this list) - the list needs every
