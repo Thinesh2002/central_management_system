@@ -61,6 +61,9 @@ function mapItemPayload(item = {}, localOrderId) {
   };
 }
 
+// isNew tells the caller whether this order was ever seen before - used
+// to fire a "new order received" notification exactly once, on the sync
+// call that first inserts the row, never again on a status-change re-sync.
 async function upsertOrder(order, account) {
   const existingRows = await orderModel.findByColumn("daraz_order_id", order.order_id);
   const shipping = order.address_shipping || {};
@@ -76,10 +79,12 @@ async function upsertOrder(order, account) {
   const payload = mapOrderPayload(order, account, customerId);
 
   if (existingRows.length) {
-    return orderModel.update(existingRows[0].id, payload);
+    const updated = await orderModel.update(existingRows[0].id, payload);
+    return { ...updated, isNew: false };
   }
 
-  return orderModel.create(payload);
+  const created = await orderModel.create(payload);
+  return { ...created, isNew: true };
 }
 
 const CANCELED_ITEM_STATUSES = new Set(["canceled", "cancelled"]);

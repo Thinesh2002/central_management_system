@@ -1,13 +1,27 @@
 const db = require("../../config/logs_management_db/logs_management_db");
 
-async function create({ type, severity = "info", title, message = null, link = null }) {
+async function create({ type, severity = "info", title, message = null, link = null, data = null }) {
   const [result] = await db.query(
-    `INSERT INTO notifications (type, severity, title, message, link)
-     VALUES (?, ?, ?, ?, ?)`,
-    [type, severity, title, message, link]
+    `INSERT INTO notifications (type, severity, title, message, link, data)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [type, severity, title, message, link, data ? JSON.stringify(data) : null]
   );
 
   return result.insertId;
+}
+
+// MySQL2 already parses a JSON column back into an object for us, but a
+// row read before this migration ran (or written by a raw query that
+// skipped it) can still come back as a string or null - never let a
+// malformed payload break the whole notifications list.
+function parseData(row) {
+  if (!row || row.data == null || typeof row.data === "object") return row;
+
+  try {
+    return { ...row, data: JSON.parse(row.data) };
+  } catch {
+    return { ...row, data: null };
+  }
 }
 
 function buildDateFilters({ unreadOnly = false, from = null, to = null } = {}) {
@@ -38,7 +52,7 @@ async function listRecent({ limit = 30, page = 1, unreadOnly = false, from = nul
     [...params, limitNum, offset]
   );
 
-  return rows;
+  return rows.map(parseData);
 }
 
 async function countAll({ unreadOnly = false, from = null, to = null } = {}) {

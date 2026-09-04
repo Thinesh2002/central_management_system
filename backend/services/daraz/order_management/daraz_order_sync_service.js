@@ -3,6 +3,47 @@ const orderSyncSettingsModel = require("../../../models/order_management/order_s
 const darazOrderApiService = require("./daraz_order_api_service");
 const darazOrderSyncModel = require("../../../models/order_management/daraz_order_sync_model");
 const orderInventoryDeductionService = require("../../order_management/order_inventory_deduction_service");
+const notificationModel = require("../../../models/notifications/notification_model");
+
+function money(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number.toFixed(2) : "0.00";
+}
+
+// Fired once per order, exactly on the sync call that first inserts it -
+// upsertOrder's isNew flag guarantees this never repeats on a later
+// status-change re-sync of the same order. Carries the first line item's
+// product image/title/SKU so the desktop + in-app notification can show a
+// real order preview, not just a bare order number.
+async function notifyNewOrder({ localOrder, order, items }) {
+  const firstItem = items[0] || {};
+  const itemCount = items.length;
+
+  try {
+    await notificationModel.create({
+      type: "new_order",
+      severity: "success",
+      title: `New order ${localOrder.order_number || order.order_number}`,
+      message: `${localOrder.customer_name || "Customer"} — LKR ${money(localOrder.grand_total)} (${itemCount} item${itemCount === 1 ? "" : "s"})`,
+      link: `/order-management/orders/daraz/${localOrder.id}`,
+      data: {
+        order_id: localOrder.id,
+        order_number: localOrder.order_number || order.order_number,
+        customer_name: localOrder.customer_name || null,
+        grand_total: localOrder.grand_total,
+        item_count: itemCount,
+        product_title: firstItem.name || null,
+        sku: firstItem.shop_sku || firstItem.sku || null,
+        image_url: firstItem.product_main_image || null,
+      },
+    });
+  } catch (notifyError) {
+    console.error(
+      `[DARAZ_ORDER_SYNC] Failed to create new-order notification for order ${order.order_id}:`,
+      notifyError.message
+    );
+  }
+}
 
 const PAGE_SIZE = 100;
 
@@ -26,6 +67,10 @@ async function processOneOrder({ account, credentials, order }) {
     const { newlyCreated: newlyCreatedItems, newlyCanceled: newlyCanceledItems } =
       await darazOrderSyncModel.upsertItems(items, localOrder.id);
     itemCount = items.length;
+
+    if (localOrder.isNew && items.length) {
+      await notifyNewOrder({ localOrder, order, items });
+    }
 
     for (const newItem of newlyCreatedItems) {
       try {
