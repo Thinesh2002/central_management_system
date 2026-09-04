@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
 const db = require("../../../config/product_management_db/product_management_db");
 const productModel = require("../../../models/product_management/product/product_model");
 const productPriceModel = require("../../../models/product_management/product/product_price_model.js");
@@ -463,7 +464,319 @@ async function transferLocalProductToDaraz({
   return { results };
 }
 
+// ---------------------------------------------------------------------
+// Daraz account -> Daraz account clone
+//
+// The existing transfer above only ever sources from this app's own local
+// product catalog. Some Daraz listings (e.g. everything on BrightHub_Daraz)
+// were never pushed from here - they were pulled DOWN by the regular
+// product sync into daraz_products, with no local_product_id at all. This
+// path sources from that pulled-down snapshot instead, recreating an
+// equivalent listing on a different Daraz seller account from the data
+// Daraz already gave us (category, attributes, images, per-SKU pricing) -
+// no local catalog involvement, and no changes to the source listing.
+// ---------------------------------------------------------------------
+
+// Fields on a synced skus_json entry that describe the listing itself
+// (Daraz's own SkuId, its live status, current stock/price, image list,
+// storefront URL) rather than a real product attribute - everything else
+// on the object is a genuine sale attribute (color_family, size, package_*,
+// or a category-specific custom field) and must pass through untouched.
+const SKU_META_KEYS = new Set([
+  "skuid",
+  "url",
+  "price",
+  "images",
+  "status",
+  "shopsku",
+  "quantity",
+  "saleprop",
+  "available",
+  "sellersku",
+  "channelinventories",
+  "fblwarehouseinventories",
+  "multiwarehouseinventories",
+]);
+
+function extractSkuSaleAttributes(rawSku = {}) {
+  const result = {};
+
+  Object.entries(rawSku).forEach(([key, value]) => {
+    if (SKU_META_KEYS.has(String(key).toLowerCase())) return;
+    result[key] = value;
+  });
+
+  return result;
+}
+
+// Counterpart to uploadImagesToDaraz above, which only handles local disk
+// files - these images already live on Daraz's own CDN (static-01.daraz.lk),
+// just uploaded under a different seller account, so each one is fetched
+// over HTTPS first rather than read off this server's filesystem.
+async function uploadRemoteImagesToDaraz({ account, credentials, urls = [], cache = new Map() }) {
+  const hostedUrls = [];
+
+  for (const url of urls) {
+    if (!url) continue;
+
+    if (cache.has(url)) {
+      const cached = cache.get(url);
+      if (cached) hostedUrls.push(cached);
+      continue;
+    }
+
+    try {
+      const response = await axios.get(url, { responseType: "arraybuffer", timeout: 20000 });
+      const fileBuffer = Buffer.from(response.data);
+      const fileName = path.basename(new URL(url).pathname) || "image.jpg";
+
+      const result = await darazCatalogApiService.uploadDarazImage({
+        account,
+        credentials,
+        fileBuffer,
+        fileName,
+      });
+
+      const hostedUrl = result?.data?.data?.image?.url || result?.data?.image?.url || null;
+
+      cache.set(url, hostedUrl);
+      if (hostedUrl) hostedUrls.push(hostedUrl);
+    } catch (error) {
+      console.error("[DARAZ_CLONE_IMAGE_UPLOAD_ERROR]", { url, message: error?.message });
+
+      // Last resort: Daraz's own CDN URLs are typically usable by any
+      // listing regardless of which account originally uploaded them, so
+      // fall back to passing the original URL through rather than
+      // shipping the product with zero images.
+      cache.set(url, url);
+      hostedUrls.push(url);
+    }
+  }
+
+  return hostedUrls;
+}
+
+async function getDarazProductById(id) {
+  const [rows] = await db.query(`SELECT * FROM daraz_products WHERE id = ? LIMIT 1`, [id]);
+  return rows[0] || null;
+}
+
+async function listDarazProductsForAccount(accountId, { limit, offset = 0 } = {}) {
+  const params = [accountId];
+  let sql = `SELECT * FROM daraz_products WHERE account_id = ? ORDER BY id ASC`;
+
+  if (limit) {
+    sql += ` LIMIT ? OFFSET ?`;
+    params.push(Number(limit), Number(offset));
+  }
+
+  const [rows] = await db.query(sql, params);
+  return rows;
+}
+
+async function countDarazProductsForAccount(accountId) {
+  const [rows] = await db.query(
+    `SELECT COUNT(*) AS total FROM daraz_products WHERE account_id = ?`,
+    [accountId]
+  );
+  return Number(rows[0]?.total || 0);
+}
+
+function parseJsonColumn(value, fallback) {
+  if (value == null) return fallback;
+  if (typeof value === "object") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+async function cloneOneDarazProduct({ sourceProduct, targetAccountId, updatedBy }) {
+  const { account, credentials } = await tokenService.getValidCredentialsForAccount(targetAccountId);
+  const accountName = account?.account_name || account?.account_code || `#${targetAccountId}`;
+
+  const attrs = parseJsonColumn(sourceProduct.attributes_json, {});
+  const productImageUrls = parseJsonColumn(sourceProduct.images_json, []);
+  const rawSkus = parseJsonColumn(sourceProduct.skus_json, []);
+
+  if (!rawSkus.length) {
+    const error = new Error("Source listing has no SKUs to clone.");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  const uploadCache = new Map();
+
+  const productImages = await uploadRemoteImagesToDaraz({
+    account,
+    credentials,
+    urls: productImageUrls,
+    cache: uploadCache,
+  });
+
+  const skuMap = {};
+
+  const skus = await Promise.all(
+    rawSkus.map(async (rawSku) => {
+      const baseSku = rawSku.SellerSku || rawSku.ShopSku || rawSku.sellerSku;
+      const finalSku = await generateUniqueSellerSku({ accountId: targetAccountId, baseSku });
+      skuMap[baseSku] = finalSku;
+
+      if (finalSku !== baseSku) {
+        await recordAutoSkuMapping({ wrongSku: finalSku, correctSku: baseSku, updatedBy });
+      }
+
+      const images = await uploadRemoteImagesToDaraz({
+        account,
+        credentials,
+        urls: rawSku.Images || rawSku.images || [],
+        cache: uploadCache,
+      });
+
+      const {
+        colorFamily,
+        size,
+        mapped,
+        attributes: extraAttributes,
+      } = splitSaleAttributes(extractSkuSaleAttributes(rawSku));
+
+      return {
+        sellerSku: finalSku,
+        price: Number(rawSku.price ?? 0),
+        quantity: Number(rawSku.quantity ?? 0),
+        colorFamily,
+        size,
+        attributes: extraAttributes,
+        images,
+        ...mapped,
+      };
+    })
+  );
+
+  const createResult = await darazProductApiService.createDarazProduct({
+    account,
+    credentials,
+    primaryCategory: sourceProduct.primary_category,
+    name: sourceProduct.name || attrs.name,
+    shortDescription: attrs.short_description || sourceProduct.short_description || "",
+    brand: sourceProduct.brand || attrs.brand || "No Brand",
+    model: attrs.model || "",
+    attributes: attrs,
+    images: productImages,
+    skus,
+  });
+
+  const newItemId =
+    createResult?.data?.data?.item_id || createResult?.data?.item_id || createResult?.item_id;
+
+  if (newItemId) {
+    try {
+      await darazProductSyncService.syncSingleDarazProductByItemId({
+        account,
+        credentials,
+        item_id: newItemId,
+      });
+    } catch (mirrorError) {
+      console.error("[DARAZ_CLONE_MIRROR_SYNC_ERROR]", {
+        item_id: newItemId,
+        message: mirrorError?.message,
+      });
+    }
+  }
+
+  return {
+    sourceProductId: sourceProduct.id,
+    sourceName: sourceProduct.name,
+    accountId: Number(targetAccountId),
+    accountName,
+    success: true,
+    itemId: newItemId || null,
+    skuMap,
+  };
+}
+
+// Runs across a slice of one account's synced Daraz listings (limit/offset,
+// so a caller can run a small test batch before committing to the rest).
+// Every product is processed independently - one failure never stops the
+// batch, matching transferLocalProductToDaraz's per-item error isolation.
+async function cloneDarazAccountProducts({
+  sourceAccountId,
+  targetAccountId,
+  limit = null,
+  offset = 0,
+  updatedBy,
+}) {
+  if (!sourceAccountId || !targetAccountId) {
+    const error = new Error("sourceAccountId and targetAccountId are required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (Number(sourceAccountId) === Number(targetAccountId)) {
+    const error = new Error("Source and target account must be different.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const sourceProducts = await listDarazProductsForAccount(sourceAccountId, { limit, offset });
+  const totalInAccount = await countDarazProductsForAccount(sourceAccountId);
+
+  const results = [];
+
+  for (const sourceProduct of sourceProducts) {
+    try {
+      const result = await cloneOneDarazProduct({ sourceProduct, targetAccountId, updatedBy });
+      results.push(result);
+
+      await safeLogTransfer({
+        user_id: updatedBy,
+        action: "daraz_clone_account_product",
+        module: "daraz_transfer",
+        status: "success",
+        message: `Cloned "${sourceProduct.name}" from account ${sourceAccountId} to ${result.accountName} — item_id ${result.itemId || "-"}.`,
+      });
+    } catch (error) {
+      console.error("[DARAZ_CLONE_PRODUCT_ERROR]", {
+        sourceProductId: sourceProduct.id,
+        message: error?.daraz?.message || error?.message,
+        raw: error?.daraz?.raw || null,
+      });
+
+      await safeLogTransfer({
+        user_id: updatedBy,
+        action: "daraz_clone_account_product",
+        module: "daraz_transfer",
+        status: "failed",
+        message: `Failed to clone "${sourceProduct.name}" (source id ${sourceProduct.id}) to account ${targetAccountId}: ${
+          error?.daraz?.message || error?.message || "Clone failed."
+        }`,
+      });
+
+      results.push({
+        sourceProductId: sourceProduct.id,
+        sourceName: sourceProduct.name,
+        accountId: Number(targetAccountId),
+        success: false,
+        error: error?.daraz?.message || error?.message || "Clone failed.",
+      });
+    }
+  }
+
+  return {
+    total_in_source_account: totalInAccount,
+    processed: results.length,
+    succeeded: results.filter((row) => row.success).length,
+    failed: results.filter((row) => !row.success).length,
+    results,
+  };
+}
+
 module.exports = {
   generateUniqueSellerSku,
   transferLocalProductToDaraz,
+  cloneDarazAccountProducts,
+  getDarazProductById,
+  countDarazProductsForAccount,
 };

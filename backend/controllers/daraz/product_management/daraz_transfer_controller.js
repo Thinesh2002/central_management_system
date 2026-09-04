@@ -86,4 +86,34 @@ async function generateContent(req, res) {
   }
 }
 
-module.exports = { transfer, generateContent };
+async function cloneAccountProducts(req, res) {
+  try {
+    const { sourceAccountId, targetAccountId, limit, offset } = req.body || {};
+
+    if (!sourceAccountId || !targetAccountId) {
+      return res.status(400).json({
+        success: false,
+        message: "sourceAccountId and targetAccountId are required.",
+      });
+    }
+
+    const result = await darazTransferService.cloneDarazAccountProducts({
+      sourceAccountId,
+      targetAccountId,
+      limit: limit ? Number(limit) : null,
+      offset: offset ? Number(offset) : 0,
+      updatedBy: req.user?.id || null,
+    });
+
+    return res.json({ success: true, message: "Clone batch completed.", data: result });
+  } catch (error) {
+    console.error("[DARAZ_CLONE_ACCOUNT_ERROR]", { message: error?.message });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to clone products between Daraz accounts.",
+    });
+  }
+}
+
+module.exports = { transfer, generateContent, cloneAccountProducts };

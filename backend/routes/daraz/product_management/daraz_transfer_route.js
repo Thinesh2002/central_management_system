@@ -5,5 +5,6 @@ const darazTransferController = require("../../../controllers/daraz/product_mana
 
 router.post("/", darazTransferController.transfer);
 router.post("/ai-fill", darazTransferController.generateContent);
+router.post("/clone-account", darazTransferController.cloneAccountProducts);
 
 module.exports = router;
