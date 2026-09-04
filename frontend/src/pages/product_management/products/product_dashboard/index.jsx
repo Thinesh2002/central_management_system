@@ -437,7 +437,13 @@ const LOCAL_PRODUCT_EXPORT_COLUMNS = [
   { key: "created", label: "Created Date", value: (p) => formatDateForExport(p) },
 ];
 
+// A parent (variable) product's own sku/product_sku fields are often
+// blank - only its variants carry real SKUs - so both search builders
+// below must also fold in every child variant's SKU/name, or searching
+// for a child SKU here silently excludes the very product that has it.
 function buildQuickSearchText(product = {}) {
+  const variants = getProductVariants(product);
+
   return [
     product.sku,
     product.product_sku,
@@ -451,6 +457,8 @@ function buildQuickSearchText(product = {}) {
     product.model_name,
     product.product_model_name,
     product.slug,
+    ...variants.map((variant) => getVariantSku(variant)),
+    ...variants.map((variant) => variant.variant_name || variant.name || ""),
   ]
     .filter(Boolean)
     .join(" ")
@@ -458,6 +466,8 @@ function buildQuickSearchText(product = {}) {
 }
 
 function buildSkuText(product = {}) {
+  const variants = getProductVariants(product);
+
   return [
     product.sku,
     product.product_sku,
@@ -465,6 +475,7 @@ function buildSkuText(product = {}) {
     product.seller_sku,
     product.parent_sku,
     product.main_sku,
+    ...variants.map((variant) => getVariantSku(variant)),
   ]
     .filter(Boolean)
     .join(" ")
