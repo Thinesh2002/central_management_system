@@ -449,16 +449,52 @@ const commonParams = cleanParams({
   );
 
   try {
-    const response = await axios({
-      url,
-      method,
-      params: finalParams,
-      data: body,
-      timeout: 60000,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    // /product/create's payload is a full product XML doc - fine for most
+    // listings, but a verbose description (or many SKUs/attributes) can
+    // push the whole signed param set past a URL length limit on Daraz's
+    // own front door (confirmed live: "414 Request-URI Too Large" from a
+    // long-description product, never from a short one). Every param here
+    // is still part of the signature exactly as before - IOP-style
+    // signing covers the param set regardless of where it's physically
+    // sent - so the same protocol-required auth params travel in the
+    // query string while the large `payload` param moves to a
+    // form-urlencoded POST body instead, avoiding the URL length ceiling
+    // without changing what's signed.
+    const usePayloadBody = apiPath === "/product/create" && method === "POST" && finalParams.payload;
+
+    const axiosConfig = usePayloadBody
+      ? (() => {
+          const PROTOCOL_QUERY_KEYS = new Set(["app_key", "timestamp", "access_token", "sign_method", "sign"]);
+          const queryOnly = {};
+          const bodyParams = new URLSearchParams();
+
+          Object.entries(finalParams).forEach(([key, value]) => {
+            if (PROTOCOL_QUERY_KEYS.has(key)) {
+              queryOnly[key] = value;
+            } else {
+              bodyParams.append(key, value);
+            }
+          });
+
+          return {
+            url,
+            method,
+            params: queryOnly,
+            data: bodyParams.toString(),
+            timeout: 60000,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          };
+        })()
+      : {
+          url,
+          method,
+          params: finalParams,
+          data: body,
+          timeout: 60000,
+          headers: { "Content-Type": "application/json" },
+        };
+
+    const response = await axios(axiosConfig);
 
     const responseData = response.data;
     const apiHasError = isDarazApiError(responseData);
