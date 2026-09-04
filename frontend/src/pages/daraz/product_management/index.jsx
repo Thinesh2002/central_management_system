@@ -1887,13 +1887,78 @@ export default function DarazDashboardPage() {
                                                 `/order-management/sku-report/${encodeURIComponent(variant.seller_sku)}`
                                               )
                                             }
-                                            className="cursor-pointer text-orange-300 underline decoration-dotted hover:text-orange-200"
+                                            className="block cursor-pointer truncate text-orange-300 underline decoration-dotted hover:text-orange-200"
                                             title={`View SKU report for ${variant.seller_sku}`}
                                           >
                                             {variant.seller_sku}
                                           </button>
                                         ) : (
                                           "-"
+                                        )}
+
+                                        {variant.seller_sku && skuMappingByWrong[variant.seller_sku] ? (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setSkuMapDrafts((prev) => ({
+                                                ...prev,
+                                                [variant.seller_sku]: skuMappingByWrong[variant.seller_sku].correct_sku,
+                                              }))
+                                            }
+                                            className="mt-0.5 block w-full truncate text-[10px] font-semibold text-emerald-300"
+                                            title="Mapped correct SKU — click to edit"
+                                          >
+                                            → {skuMappingByWrong[variant.seller_sku].correct_sku}
+                                          </button>
+                                        ) : (
+                                          variant.seller_sku &&
+                                          skuMapDrafts[variant.seller_sku] === undefined && (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setSkuMapDrafts((prev) => ({ ...prev, [variant.seller_sku]: "" }))
+                                              }
+                                              className="mt-0.5 block w-full truncate text-[10px] text-zinc-600 hover:text-zinc-400"
+                                            >
+                                              + Map correct SKU
+                                            </button>
+                                          )
+                                        )}
+
+                                        {variant.seller_sku && skuMapDrafts[variant.seller_sku] !== undefined && (
+                                          <div className="mt-0.5 flex items-center gap-1">
+                                            <input
+                                              value={skuMapDrafts[variant.seller_sku]}
+                                              onChange={(e) =>
+                                                setSkuMapDrafts((prev) => ({
+                                                  ...prev,
+                                                  [variant.seller_sku]: e.target.value,
+                                                }))
+                                              }
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter") handleSaveSkuMapping(variant.seller_sku);
+                                                if (e.key === "Escape") {
+                                                  setSkuMapDrafts((prev) => {
+                                                    const next = { ...prev };
+                                                    delete next[variant.seller_sku];
+                                                    return next;
+                                                  });
+                                                }
+                                              }}
+                                              placeholder="Correct SKU"
+                                              disabled={skuMapSavingKey === variant.seller_sku}
+                                              className="h-6 w-full min-w-0 border border-zinc-700 bg-zinc-950 px-1 text-[10px] text-zinc-200 outline-none focus:border-emerald-400"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveSkuMapping(variant.seller_sku)}
+                                              disabled={skuMapSavingKey === variant.seller_sku}
+                                              title="Save mapping"
+                                              className="shrink-0 text-emerald-400 hover:text-emerald-300 disabled:opacity-40"
+                                            >
+                                              <Check size={13} />
+                                            </button>
+                                          </div>
                                         )}
                                       </td>
                                       <td className="px-2 py-1.5 text-zinc-300">{variant.name || "-"}</td>
