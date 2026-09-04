@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Lock,
@@ -6,11 +6,54 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
-  Sparkles,
+  Package,
+  Truck,
+  Store,
+  Boxes,
+  Users,
+  Server,
 } from "lucide-react";
 
 import api, { getApiError } from "../config/api";
 import { saveAuth } from "../config/auth";
+
+const FEATURES = [
+  { icon: Package, label: "Product Catalog", detail: "Variants, images, pricing" },
+  { icon: Truck, label: "Order Fulfillment", detail: "Pack, ship, track" },
+  { icon: Store, label: "Marketplace Sync", detail: "Daraz, BrightHub" },
+  { icon: Boxes, label: "Inventory Tracking", detail: "Live stock across SKUs" },
+  { icon: Users, label: "Role-Based Access", detail: "Per-page permissions" },
+  { icon: Server, label: "Server Monitoring", detail: "Disk, memory, CPU" },
+];
+
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const time = now.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const date = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div className="text-right">
+      <div className="font-mono text-2xl font-bold tabular-nums text-white">{time}</div>
+      <div className="mt-0.5 text-xs font-medium text-slate-400">{date}</div>
+    </div>
+  );
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -62,11 +105,15 @@ export default function Login() {
         {/* Left panel */}
         <div className="hidden border-r border-slate-800 bg-[#07111f] p-10 lg:flex lg:flex-col lg:justify-between">
           <div>
-            <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-white shadow-lg">
-              <ShieldCheck size={28} />
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-700 bg-slate-900 text-white shadow-lg">
+                <ShieldCheck size={28} />
+              </div>
+
+              <LiveClock />
             </div>
 
-            <h1 className="text-3xl font-bold leading-tight text-white">
+            <h1 className="mt-8 text-3xl font-bold leading-tight text-white">
               Central Management System
             </h1>
 
@@ -77,15 +124,23 @@ export default function Login() {
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-200">
-              <Sparkles size={16} className="text-[#FFD400]" />
-              Individual Access Control
-            </div>
-
-            <p className="text-xs leading-5 text-slate-400">
-              Every user can access only the pages and actions allowed by the
-              master admin.
+            <p className="mb-4 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Built in
             </p>
+
+            <div className="grid grid-cols-2 gap-4">
+              {FEATURES.map(({ icon: Icon, label, detail }) => (
+                <div key={label} className="flex items-start gap-2.5">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-blue-400">
+                    <Icon size={15} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-200">{label}</div>
+                    <div className="text-[11px] leading-4 text-slate-500">{detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
