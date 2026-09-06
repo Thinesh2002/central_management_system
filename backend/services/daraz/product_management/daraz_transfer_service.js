@@ -773,11 +773,26 @@ async function cloneDarazAccountProducts({
   };
 }
 
-async function getDarazProductByItemId(itemId) {
+// Accepts either a Daraz item_id (the number in Seller Center) or a
+// seller_sku (short local-style codes like "HKKDTWBBM", or the long
+// auto-generated "1770304564-1785009494304-0" form) - callers just have
+// "the identifier someone pasted in", not necessarily knowing which kind
+// it is. The same seller_sku is deliberately reused across every account
+// a product's been cloned to (that's the whole point of this feature), so
+// a SKU lookup can match several rows - BrightHub_Daraz (account 1) is
+// treated as the canonical source since every clone in this app runs
+// from there, falling back to whichever account actually has it otherwise.
+async function getDarazProductByItemId(itemId, { preferredAccountId = 1 } = {}) {
+  const value = String(itemId || "").trim();
+  if (!value) return null;
+
   const [rows] = await db.query(
-    `SELECT * FROM daraz_products WHERE daraz_item_id = ? LIMIT 1`,
-    [String(itemId)]
+    `SELECT * FROM daraz_products
+     WHERE daraz_item_id = ? OR seller_sku = ?
+     ORDER BY (account_id = ?) DESC, id ASC`,
+    [value, value, preferredAccountId]
   );
+
   return rows[0] || null;
 }
 
