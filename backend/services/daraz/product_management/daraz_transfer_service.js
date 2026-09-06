@@ -773,10 +773,119 @@ async function cloneDarazAccountProducts({
   };
 }
 
+async function getDarazProductByItemId(itemId) {
+  const [rows] = await db.query(
+    `SELECT * FROM daraz_products WHERE daraz_item_id = ? LIMIT 1`,
+    [String(itemId)]
+  );
+  return rows[0] || null;
+}
+
+// Named-product version of cloneDarazAccountProducts above - a specific
+// list of listings (by their Daraz item_id, the number visible in Seller
+// Center) fanned out to a specific list of target accounts, rather than
+// "the next N listings on this account". A target account that already
+// carries this exact seller_sku is skipped rather than cloned again with
+// an auto-suffixed SKU - re-running this for the same product list is
+// meant to fill in whichever accounts don't have it yet, not create a
+// second copy on ones that do.
+async function cloneDarazProductsToAccounts({ itemIds = [], targetAccountIds = [], updatedBy }) {
+  if (!itemIds.length) {
+    const error = new Error("At least one Daraz item ID is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!targetAccountIds.length) {
+    const error = new Error("At least one target account is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const results = [];
+
+  for (const itemId of itemIds) {
+    const sourceProduct = await getDarazProductByItemId(itemId);
+
+    if (!sourceProduct) {
+      results.push({ itemId, success: false, error: "No listing found for this item ID." });
+      continue;
+    }
+
+    for (const targetAccountId of targetAccountIds) {
+      if (Number(targetAccountId) === Number(sourceProduct.account_id)) continue;
+
+      const alreadyExists = await isSellerSkuTaken(targetAccountId, sourceProduct.seller_sku);
+
+      if (alreadyExists) {
+        results.push({
+          itemId,
+          sourceProductId: sourceProduct.id,
+          sourceName: sourceProduct.name,
+          accountId: Number(targetAccountId),
+          success: true,
+          skipped: true,
+          reason: "Already listed on this account.",
+        });
+        continue;
+      }
+
+      try {
+        const result = await cloneOneDarazProduct({ sourceProduct, targetAccountId, updatedBy });
+        results.push({ itemId, ...result });
+
+        await safeLogTransfer({
+          user_id: updatedBy,
+          action: "daraz_clone_account_product",
+          module: "daraz_transfer",
+          status: "success",
+          message: `Cloned "${sourceProduct.name}" (item ${itemId}) from account ${sourceProduct.account_id} to ${result.accountName} — item_id ${result.itemId || "-"}.`,
+        });
+      } catch (error) {
+        console.error("[DARAZ_CLONE_PRODUCT_ERROR]", {
+          itemId,
+          targetAccountId,
+          message: error?.daraz?.message || error?.message,
+          raw: error?.daraz?.raw || null,
+        });
+
+        await safeLogTransfer({
+          user_id: updatedBy,
+          action: "daraz_clone_account_product",
+          module: "daraz_transfer",
+          status: "failed",
+          message: `Failed to clone "${sourceProduct.name}" (item ${itemId}) to account ${targetAccountId}: ${
+            error?.daraz?.message || error?.message || "Clone failed."
+          }`,
+        });
+
+        results.push({
+          itemId,
+          sourceProductId: sourceProduct.id,
+          sourceName: sourceProduct.name,
+          accountId: Number(targetAccountId),
+          success: false,
+          error: error?.daraz?.message || error?.message || "Clone failed.",
+        });
+      }
+    }
+  }
+
+  return {
+    processed: results.length,
+    succeeded: results.filter((row) => row.success && !row.skipped).length,
+    skipped: results.filter((row) => row.skipped).length,
+    failed: results.filter((row) => !row.success).length,
+    results,
+  };
+}
+
 module.exports = {
   generateUniqueSellerSku,
   transferLocalProductToDaraz,
   cloneDarazAccountProducts,
+  cloneDarazProductsToAccounts,
   getDarazProductById,
+  getDarazProductByItemId,
   countDarazProductsForAccount,
 };

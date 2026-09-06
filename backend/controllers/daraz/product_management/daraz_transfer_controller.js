@@ -116,4 +116,33 @@ async function cloneAccountProducts(req, res) {
   }
 }
 
-module.exports = { transfer, generateContent, cloneAccountProducts };
+async function cloneProductsToAccounts(req, res) {
+  try {
+    const { itemIds, targetAccountIds } = req.body || {};
+
+    if (!Array.isArray(itemIds) || !itemIds.length) {
+      return res.status(400).json({ success: false, message: "itemIds must be a non-empty array." });
+    }
+
+    if (!Array.isArray(targetAccountIds) || !targetAccountIds.length) {
+      return res.status(400).json({ success: false, message: "targetAccountIds must be a non-empty array." });
+    }
+
+    const result = await darazTransferService.cloneDarazProductsToAccounts({
+      itemIds,
+      targetAccountIds,
+      updatedBy: req.user?.id || null,
+    });
+
+    return res.json({ success: true, message: "Clone completed.", data: result });
+  } catch (error) {
+    console.error("[DARAZ_CLONE_PRODUCTS_ERROR]", { message: error?.message });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Failed to clone products to the target accounts.",
+    });
+  }
+}
+
+module.exports = { transfer, generateContent, cloneAccountProducts, cloneProductsToAccounts };
