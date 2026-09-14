@@ -728,6 +728,7 @@ export default function DarazDashboardPage() {
   const [syncingId, setSyncingId] = useState("");
   const [syncResults, setSyncResults] = useState([]);
   const [stockSavingKey, setStockSavingKey] = useState("");
+  const [priceSavingKey, setPriceSavingKey] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -1205,6 +1206,49 @@ export default function DarazDashboardPage() {
       setError(getError(err, "Failed to update Daraz stock."));
     } finally {
       setStockSavingKey("");
+    }
+  }
+
+  async function updateDarazRowPrice(row, value) {
+    const id = row.id;
+    const price = Number(value);
+
+    if (!id) {
+      setError("Daraz product row ID missing. Please sync this product again before price update.");
+      return;
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      setError("Valid price is required.");
+      return;
+    }
+
+    const key = String(row.id || row.listingId || row.sku);
+    setPriceSavingKey(key);
+    setError("");
+    setSuccess("");
+
+    try {
+      await darazProductsApi.update(id, { price });
+
+      setProducts((prev) =>
+        prev.map((product) => {
+          const productId = readValue(product, FIELD.id, null);
+
+          if (String(productId) !== String(id)) return product;
+
+          return {
+            ...product,
+            price,
+          };
+        })
+      );
+
+      setSuccess(`Daraz price updated for ${row.sku || row.listingId}.`);
+    } catch (err) {
+      setError(getError(err, "Failed to update Daraz price."));
+    } finally {
+      setPriceSavingKey("");
     }
   }
 
@@ -1790,7 +1834,23 @@ export default function DarazDashboardPage() {
                           className="mx-auto h-8 w-20 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
                         />
                       </td>
-                      <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">{row.price}</td>
+                      <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          defaultValue={row.priceNumber}
+                          disabled={priceSavingKey === key}
+                          onBlur={(event) => updateDarazRowPrice(row, event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              event.currentTarget.blur();
+                            }
+                          }}
+                          className="mx-auto h-8 w-24 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
+                        />
+                      </td>
 
                       <td className="px-2 py-2 text-center align-middle">
                         <div className="flex items-center justify-center gap-0.5">
