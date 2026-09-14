@@ -120,6 +120,16 @@ export const darazProductsApi = {
     );
   },
 
+  updateVariant: (id, payload = {}) => {
+    return api.put(
+      `/daraz-products/variant/edit/${requireId(id, "Daraz variant ID")}`,
+      payload,
+      {
+        timeout: LONG_TIMEOUT,
+      }
+    );
+  },
+
   delete: (id) => {
     return api.delete(
       `/daraz-products/delete/${requireId(id, "Daraz product ID")}`,

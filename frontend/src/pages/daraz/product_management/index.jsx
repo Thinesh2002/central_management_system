@@ -729,6 +729,7 @@ export default function DarazDashboardPage() {
   const [syncResults, setSyncResults] = useState([]);
   const [stockSavingKey, setStockSavingKey] = useState("");
   const [priceSavingKey, setPriceSavingKey] = useState("");
+  const [variantSavingKey, setVariantSavingKey] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -1249,6 +1250,57 @@ export default function DarazDashboardPage() {
       setError(getError(err, "Failed to update Daraz price."));
     } finally {
       setPriceSavingKey("");
+    }
+  }
+
+  // Companion to updateDarazRowStock/updateDarazRowPrice above, for one
+  // specific child SKU on a multi-variant listing - those two always
+  // target row.id (the parent daraz_products row's own seller_sku), which
+  // for a product with several variants is only ever one of them, not
+  // "the product's" price/quantity. This edits the actual variant row
+  // asked for, via the dedicated per-variant endpoint.
+  async function updateDarazVariant(variant, rowKey, field, value) {
+    const id = variant.id;
+    const number = Number(value);
+
+    if (!id) {
+      setError("Daraz variant ID missing. Please sync this product again before editing.");
+      return;
+    }
+
+    if (!Number.isFinite(number) || number < 0) {
+      setError(field === "quantity" ? "Valid stock quantity is required." : "Valid price is required.");
+      return;
+    }
+
+    const key = `${rowKey}-${id}-${field}`;
+    setVariantSavingKey(key);
+    setError("");
+    setSuccess("");
+
+    try {
+      const payload = field === "quantity" ? { quantity: Math.trunc(number) } : { price: number };
+      await darazProductsApi.updateVariant(id, payload);
+
+      setVariantsByRow((prev) => {
+        const rows = prev[rowKey];
+        if (!rows) return prev;
+
+        return {
+          ...prev,
+          [rowKey]: rows.map((row) =>
+            row.id === id
+              ? { ...row, [field]: field === "quantity" ? Math.trunc(number) : number }
+              : row
+          ),
+        };
+      });
+
+      setSuccess(`Daraz ${field === "quantity" ? "stock" : "price"} updated for ${variant.seller_sku}.`);
+    } catch (err) {
+      setError(getError(err, `Failed to update Daraz ${field === "quantity" ? "stock" : "price"}.`));
+    } finally {
+      setVariantSavingKey("");
     }
   }
 
@@ -1819,37 +1871,55 @@ export default function DarazDashboardPage() {
                       </td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] text-zinc-400">{row.darazCreatedLabel}</td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">
-                        <input
-                          type="number"
-                          min="0"
-                          defaultValue={row.qtyNumber === null ? row.qty : row.qtyNumber}
-                          disabled={stockSavingKey === key}
-                          onBlur={(event) => updateDarazRowStock(row, event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              event.currentTarget.blur();
-                            }
-                          }}
-                          className="mx-auto h-8 w-20 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
-                        />
+                        {hasChildren ? (
+                          <span
+                            className="block text-[11px] text-zinc-500"
+                            title="This product has multiple SKUs — expand it and edit each variant's own quantity below."
+                          >
+                            See variants
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            min="0"
+                            defaultValue={row.qtyNumber === null ? row.qty : row.qtyNumber}
+                            disabled={stockSavingKey === key}
+                            onBlur={(event) => updateDarazRowStock(row, event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                event.currentTarget.blur();
+                              }
+                            }}
+                            className="mx-auto h-8 w-20 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
+                          />
+                        )}
                       </td>
                       <td className="px-2 py-2 text-center align-middle text-[12px] font-medium text-zinc-300">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          defaultValue={row.priceNumber}
-                          disabled={priceSavingKey === key}
-                          onBlur={(event) => updateDarazRowPrice(row, event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              event.currentTarget.blur();
-                            }
-                          }}
-                          className="mx-auto h-8 w-24 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
-                        />
+                        {hasChildren ? (
+                          <span
+                            className="block text-[11px] text-zinc-500"
+                            title="This product has multiple SKUs — expand it and edit each variant's own price below."
+                          >
+                            See variants
+                          </span>
+                        ) : (
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            defaultValue={row.priceNumber}
+                            disabled={priceSavingKey === key}
+                            onBlur={(event) => updateDarazRowPrice(row, event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                event.currentTarget.blur();
+                              }
+                            }}
+                            className="mx-auto h-8 w-24 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-center text-[12px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
+                          />
+                        )}
                       </td>
 
                       <td className="px-2 py-2 text-center align-middle">
@@ -2024,14 +2094,38 @@ export default function DarazDashboardPage() {
                                       <td className="px-2 py-1.5 text-zinc-300">{variant.name || "-"}</td>
                                       <td className="px-2 py-1.5 text-center text-zinc-400">{variant.status || "-"}</td>
                                       <td className="px-2 py-1.5 text-right text-zinc-300">
-                                        {Number.isFinite(Number(variant.price))
-                                          ? `LKR ${Number(variant.price).toLocaleString(undefined, {
-                                              minimumFractionDigits: 2,
-                                              maximumFractionDigits: 2,
-                                            })}`
-                                          : "-"}
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          defaultValue={Number.isFinite(Number(variant.price)) ? Number(variant.price) : ""}
+                                          disabled={variantSavingKey === `${key}-${variant.id}-price`}
+                                          onBlur={(event) => updateDarazVariant(variant, key, "price", event.target.value)}
+                                          onKeyDown={(event) => {
+                                            if (event.key === "Enter") {
+                                              event.preventDefault();
+                                              event.currentTarget.blur();
+                                            }
+                                          }}
+                                          className="h-7 w-20 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-right text-[11px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
+                                        />
                                       </td>
-                                      <td className="px-2 py-1.5 text-right text-zinc-300">{variant.quantity ?? "-"}</td>
+                                      <td className="px-2 py-1.5 text-right text-zinc-300">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          defaultValue={Number.isFinite(Number(variant.quantity)) ? Number(variant.quantity) : ""}
+                                          disabled={variantSavingKey === `${key}-${variant.id}-quantity`}
+                                          onBlur={(event) => updateDarazVariant(variant, key, "quantity", event.target.value)}
+                                          onKeyDown={(event) => {
+                                            if (event.key === "Enter") {
+                                              event.preventDefault();
+                                              event.currentTarget.blur();
+                                            }
+                                          }}
+                                          className="h-7 w-16 rounded-sm border border-yellow-200/70 bg-[#050817] px-2 text-right text-[11px] font-semibold text-zinc-100 outline-none focus:border-yellow-400 disabled:opacity-60"
+                                        />
+                                      </td>
                                     </tr>
                                   );
                                 })}

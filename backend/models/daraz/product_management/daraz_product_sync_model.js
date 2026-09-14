@@ -803,6 +803,54 @@ async function getVariantsByProduct({ account_id, daraz_item_id }) {
   return rows;
 }
 
+async function getVariantById(id) {
+  const [rows] = await pool.query(
+    `SELECT * FROM daraz_product_variants WHERE id = ? LIMIT 1`,
+    [id]
+  );
+
+  return rows[0] || null;
+}
+
+async function updateVariantLocalFields(id, { price, sale_price, quantity } = {}) {
+  const existing = await getVariantById(id);
+
+  if (!existing) {
+    return { updated: false, reason: "Variant not found" };
+  }
+
+  const sets = [];
+  const values = [];
+
+  if (price !== undefined && price !== null) {
+    sets.push("price = ?");
+    values.push(price);
+  }
+
+  if (sale_price !== undefined && sale_price !== null) {
+    sets.push("sale_price = ?");
+    values.push(sale_price);
+  }
+
+  if (quantity !== undefined && quantity !== null) {
+    sets.push("quantity = ?");
+    values.push(quantity);
+  }
+
+  if (!sets.length) {
+    return { updated: false, reason: "Nothing to update", variant: existing };
+  }
+
+  values.push(id);
+
+  await pool.query(
+    `UPDATE daraz_product_variants SET ${sets.join(", ")}, updated_at = NOW() WHERE id = ?`,
+    values
+  );
+
+  return { updated: true, variant: await getVariantById(id) };
+}
+
 async function getProductRawJson(id) {
   const [rows] = await pool.query(
     `SELECT 
@@ -1143,6 +1191,8 @@ module.exports = {
   getPreviewById,
   getPreviewByDarazItemId,
   getVariantsByProduct,
+  getVariantById,
+  updateVariantLocalFields,
   getProductRawJson,
   getLatestRun,
   getProductStats,

@@ -23,6 +23,8 @@ router.patch("/local-link/:id", darazProductSyncController.updateLocalLink);
 
 router.put("/edit/:id", darazProductSyncController.updateProduct);
 
+router.put("/variant/edit/:id", darazProductSyncController.updateVariant);
+
 router.delete("/delete/:id", darazProductSyncController.deletePreviewProduct);
 
 router.delete("/bulk-delete", darazProductSyncController.bulkDeleteByAccount);

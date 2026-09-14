@@ -549,6 +549,109 @@ async function updateProduct(req, res) {
   }
 }
 
+// Companion to updateProduct above, for one specific child SKU on a
+// multi-variant listing. updateProduct's price/quantity always targets
+// whichever single seller_sku happens to be stored on the parent
+// daraz_products row - correct for a single-SKU listing, but for a
+// parent with several variants that's an arbitrary one of them, not "the
+// product's price". Each variant here carries its own seller_sku (and
+// the shared daraz_item_id), so this edits the actual child SKU asked
+// for instead of silently touching an unrelated one.
+async function updateVariant(req, res) {
+  try {
+    const { id } = req.params;
+    const { price, sale_price, quantity } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Variant ID is required.",
+      });
+    }
+
+    const variant = await darazProductSyncModel.getVariantById(id);
+
+    if (!variant) {
+      return res.status(404).json({
+        success: false,
+        message: "Daraz product variant not found.",
+      });
+    }
+
+    if (!variant.seller_sku) {
+      return res.status(400).json({
+        success: false,
+        message: "This variant has no Seller SKU, so it cannot be edited.",
+      });
+    }
+
+    const hasPriceOrQty =
+      price !== undefined || sale_price !== undefined || quantity !== undefined;
+
+    if (!hasPriceOrQty) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide at least one field to update (price, sale price or quantity).",
+      });
+    }
+
+    const account = await accountModel.getAccountById(variant.account_id);
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        message: "Marketplace account for this variant was not found.",
+      });
+    }
+
+    const credentials = await credentialModel.findByAccountId(variant.account_id);
+
+    if (!credentials?.access_token) {
+      return res.status(401).json({
+        success: false,
+        message: "This Daraz account is not connected. Please reconnect it before editing products.",
+      });
+    }
+
+    await darazProductApiService.updateDarazPriceQuantity({
+      account,
+      credentials,
+      itemId: variant.daraz_item_id,
+      sellerSku: variant.seller_sku,
+      price,
+      salePrice: sale_price,
+      quantity,
+    });
+
+    const result = await darazProductSyncModel.updateVariantLocalFields(id, {
+      price,
+      sale_price,
+      quantity,
+    });
+
+    return res.json({
+      success: true,
+      message: "Daraz variant updated successfully and pushed to Daraz.",
+      data: result.variant,
+    });
+  } catch (error) {
+    console.error("[DARAZ_VARIANT_UPDATE_ERROR]", {
+      message: error?.message,
+      code: error?.code || null,
+      daraz: error?.daraz || null,
+    });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message:
+        error?.daraz?.message ||
+        error.message ||
+        "Failed to update Daraz product variant.",
+      error: error?.daraz || error.message,
+    });
+  }
+}
+
 async function deletePreviewProduct(req, res) {
   try {
     const { id } = req.params;
@@ -670,6 +773,7 @@ module.exports = {
   updateSyncStatus,
   updateLocalLink,
   updateProduct,
+  updateVariant,
   deletePreviewProduct,
   bulkDeleteByAccount,
 };
