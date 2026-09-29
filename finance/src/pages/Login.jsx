@@ -35,15 +35,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#1a1407_0%,#020617_50%)] px-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-7 shadow-2xl shadow-black/50">
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#1c1917_0%,#0a0a0a_50%)] px-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/80 p-7 shadow-2xl shadow-black/50">
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/15 text-orange-400">
             <Wallet size={22} />
           </div>
           <div>
             <h1 className="text-lg font-bold text-white">Finance Management</h1>
-            <p className="text-xs text-slate-400">Sign in to continue</p>
+            <p className="text-xs text-neutral-400">Sign in to continue</p>
           </div>
         </div>
 

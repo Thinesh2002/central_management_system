@@ -53,7 +53,7 @@ export default function CategoriesPage() {
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-white">Categories</h1>
-          <p className="mt-0.5 text-sm text-slate-400">Group ledger entries for the dashboard breakdowns.</p>
+          <p className="mt-0.5 text-sm text-neutral-400">Group ledger entries for the dashboard breakdowns.</p>
         </div>
         {access.ledger.edit && <Button onClick={() => setEditing({})}><Plus size={15} /> Add category</Button>}
       </div>
@@ -72,12 +72,12 @@ export default function CategoriesPage() {
                 {rows.length === 0 ? (
                   <EmptyState>No categories yet.</EmptyState>
                 ) : (
-                  <ul className="divide-y divide-slate-800">
+                  <ul className="divide-y divide-neutral-800">
                     {rows.map((c) => (
                       <li key={c.id} className="flex items-center justify-between gap-3 py-2.5">
                         <div className="min-w-0">
-                          <p className={`truncate text-sm ${c.status === "active" ? "text-slate-200" : "text-slate-500 line-through"}`}>{c.name}</p>
-                          <p className="truncate text-[11px] text-slate-500">
+                          <p className={`truncate text-sm ${c.status === "active" ? "text-neutral-200" : "text-neutral-500 line-through"}`}>{c.name}</p>
+                          <p className="truncate text-[11px] text-neutral-500">
                             {c.entry_count} {Number(c.entry_count) === 1 ? "entry" : "entries"}
                             {c.description ? ` · ${c.description}` : ""}
                           </p>
@@ -85,16 +85,16 @@ export default function CategoriesPage() {
                         <div className="flex shrink-0 items-center gap-1">
                           {access.ledger.edit && (
                             <>
-                              <button type="button" onClick={() => toggleStatus(c)} className="rounded px-2 py-1 text-xs text-slate-400 hover:bg-slate-700 hover:text-white">
+                              <button type="button" onClick={() => toggleStatus(c)} className="rounded px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-700 hover:text-white">
                                 {c.status === "active" ? "Deactivate" : "Activate"}
                               </button>
-                              <button type="button" onClick={() => setEditing(c)} className="rounded p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white" aria-label={`Edit ${c.name}`}>
+                              <button type="button" onClick={() => setEditing(c)} className="rounded p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-white" aria-label={`Edit ${c.name}`}>
                                 <Pencil size={14} />
                               </button>
                             </>
                           )}
                           {access.ledger.delete && (
-                            <button type="button" onClick={() => remove(c)} className="rounded p-1.5 text-slate-400 hover:bg-red-500/20 hover:text-red-300" aria-label={`Delete ${c.name}`}>
+                            <button type="button" onClick={() => remove(c)} className="rounded p-1.5 text-neutral-400 hover:bg-red-500/20 hover:text-red-300" aria-label={`Delete ${c.name}`}>
                               <Trash2 size={14} />
                             </button>
                           )}

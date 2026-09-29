@@ -75,9 +75,9 @@ export function RequireAuth({ children, permission }) {
 
 function NoAccess() {
   return (
-    <div className="mx-auto mt-16 max-w-md rounded-lg border border-slate-800 bg-slate-900 p-6 text-center">
+    <div className="mx-auto mt-16 max-w-md rounded-lg border border-neutral-800 bg-neutral-900 p-6 text-center">
       <h1 className="text-lg font-semibold text-white">No access</h1>
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-neutral-400">
         Your account doesn't have permission for this page. Ask an administrator to grant you
         access to the requested Finance page.
       </p>

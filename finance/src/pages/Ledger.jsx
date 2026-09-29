@@ -123,7 +123,7 @@ export default function LedgerPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">Ledger</h1>
-          <p className="mt-0.5 text-sm text-slate-400">Expenses and income that don't come from marketplace orders.</p>
+          <p className="mt-0.5 text-sm text-neutral-400">Expenses and income that don't come from marketplace orders.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={exportCsv}><Download size={15} /> CSV</Button>
@@ -147,7 +147,7 @@ export default function LedgerPage() {
       <Card>
         <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <div className="relative lg:col-span-1">
-            <Search size={14} className="pointer-events-none absolute left-2.5 top-2.5 text-slate-500" />
+            <Search size={14} className="pointer-events-none absolute left-2.5 top-2.5 text-neutral-500" />
             <input className={`${inputClass} pl-8`} placeholder="Search…" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} aria-label="Search entries" />
           </div>
           <select className={inputClass} value={filters.entry_type} onChange={(e) => updateFilter("entry_type", e.target.value)} aria-label="Type">
@@ -172,8 +172,8 @@ export default function LedgerPage() {
         ) : (
           <div className={`overflow-x-auto ${loading ? "opacity-60" : ""}`}>
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="text-xs text-slate-400">
-                <tr className="border-b border-slate-800">
+              <thead className="text-xs text-neutral-400">
+                <tr className="border-b border-neutral-800">
                   <th className="py-2 pr-3 text-left font-medium">Date</th>
                   <th className="px-3 py-2 text-left font-medium">Category</th>
                   <th className="px-3 py-2 text-left font-medium">Description</th>
@@ -182,33 +182,33 @@ export default function LedgerPage() {
                   <th className="w-20 py-2 pl-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-neutral-800">
                 {result.rows.map((row) => (
-                  <tr key={row.id} className="text-slate-300 hover:bg-slate-800/40">
+                  <tr key={row.id} className="text-neutral-300 hover:bg-neutral-800/40">
                     <td className="whitespace-nowrap py-2 pr-3">{dateLabel(row.entry_date)}</td>
                     <td className="px-3 py-2">
-                      <span className={`mr-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${row.entry_type === "income" ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-700/60 text-slate-300"}`}>
+                      <span className={`mr-1.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${row.entry_type === "income" ? "bg-emerald-500/15 text-emerald-300" : "bg-neutral-700/60 text-neutral-300"}`}>
                         {row.entry_type}
                       </span>
-                      {row.category_name || <span className="text-slate-500">Uncategorised</span>}
+                      {row.category_name || <span className="text-neutral-500">Uncategorised</span>}
                     </td>
                     <td className="max-w-72 px-3 py-2">
                       <p className="truncate">{row.description || "—"}</p>
-                      {row.reference && <p className="truncate text-[11px] text-slate-500">Ref: {row.reference}</p>}
+                      {row.reference && <p className="truncate text-[11px] text-neutral-500">Ref: {row.reference}</p>}
                     </td>
-                    <td className="px-3 py-2 text-slate-400">{row.payment_method || "—"}</td>
+                    <td className="px-3 py-2 text-neutral-400">{row.payment_method || "—"}</td>
                     <td className={`whitespace-nowrap px-3 py-2 text-right font-mono tabular-nums ${row.entry_type === "income" ? "text-emerald-300" : "text-white"}`}>
                       {row.entry_type === "income" ? "+" : "−"}{money(row.amount)}
                     </td>
                     <td className="py-2 pl-3">
                       <div className="flex justify-end gap-1">
                         {access.ledger.edit && (
-                          <button type="button" onClick={() => setEditing(row)} className="rounded p-1.5 text-slate-400 hover:bg-slate-700 hover:text-white" aria-label="Edit entry">
+                          <button type="button" onClick={() => setEditing(row)} className="rounded p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-white" aria-label="Edit entry">
                             <Pencil size={14} />
                           </button>
                         )}
                         {access.ledger.delete && (
-                          <button type="button" onClick={() => setDeleting(row)} className="rounded p-1.5 text-slate-400 hover:bg-red-500/20 hover:text-red-300" aria-label="Delete entry">
+                          <button type="button" onClick={() => setDeleting(row)} className="rounded p-1.5 text-neutral-400 hover:bg-red-500/20 hover:text-red-300" aria-label="Delete entry">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -222,7 +222,7 @@ export default function LedgerPage() {
         )}
 
         {result.total > PAGE_SIZE && (
-          <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+          <div className="mt-4 flex items-center justify-between text-xs text-neutral-400">
             <span>{result.total.toLocaleString()} entries · page {page + 1} of {pages}</span>
             <div className="flex gap-2">
               <Button variant="secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>Previous</Button>
@@ -247,7 +247,7 @@ export default function LedgerPage() {
             </>
           }
         >
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-neutral-300">
             {deleting.entry_type === "income" ? "Income" : "Expense"} of <span className="font-mono text-white">{money(deleting.amount)}</span> on {dateLabel(deleting.entry_date)}
             {deleting.description ? ` — ${deleting.description}` : ""} will be removed from the ledger and dashboard.
           </p>
@@ -259,8 +259,8 @@ export default function LedgerPage() {
 
 function Stat({ label, value, tone }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 px-4 py-3">
-      <p className="text-xs text-slate-400">{label}</p>
+    <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3">
+      <p className="text-xs text-neutral-400">{label}</p>
       <p className={`mt-1 truncate font-mono text-base font-semibold tabular-nums sm:text-lg ${tone}`}>{money(value)}</p>
     </div>
   );
@@ -316,13 +316,13 @@ function EntryModal({ entry, categories, onClose, onSaved }) {
       <form id="entry-form" onSubmit={submit} className="space-y-4">
         {error && <Alert>{error}</Alert>}
 
-        <div className="grid grid-cols-2 gap-1 rounded-md border border-slate-700 p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-md border border-neutral-700 p-1">
           {["expense", "income"].map((type) => (
             <button
               key={type}
               type="button"
               onClick={() => set("entry_type", type)}
-              className={`rounded py-1.5 text-sm font-medium capitalize ${form.entry_type === type ? (type === "income" ? "bg-emerald-600 text-white" : "bg-orange-500 text-white") : "text-slate-400 hover:text-white"}`}
+              className={`rounded py-1.5 text-sm font-medium capitalize ${form.entry_type === type ? (type === "income" ? "bg-emerald-600 text-white" : "bg-orange-500 text-white") : "text-neutral-400 hover:text-white"}`}
               aria-pressed={form.entry_type === type}
             >
               {type}
