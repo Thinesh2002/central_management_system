@@ -51,6 +51,15 @@ export const financeApi = {
   createEntry: (payload) => api.post("/finance/entries", payload),
   updateEntry: (id, payload) => api.put(`/finance/entries/${id}`, payload),
   deleteEntry: (id) => api.delete(`/finance/entries/${id}`),
+  darazAccounts: () => api.get("/finance/daraz/accounts"),
+  darazSummary: (params) => api.get("/finance/daraz/summary", { params }),
+  darazOrders: (params) => api.get("/finance/daraz/orders", { params }),
+  darazOrderLines: (accountId, orderNo) =>
+    api.get(`/finance/daraz/orders/${accountId}/${encodeURIComponent(orderNo)}`),
+  darazFeeTypes: (params) => api.get("/finance/daraz/fee-types", { params }),
+  darazStatements: (params) => api.get("/finance/daraz/statements", { params }),
+  darazAccountTransactions: (params) => api.get("/finance/daraz/account-transactions", { params }),
+  syncDaraz: (accountId, payload) => api.post(`/finance/daraz/sync/${accountId}`, payload, { timeout: 180000 }),
 };
 
 export default api;

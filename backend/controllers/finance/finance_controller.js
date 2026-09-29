@@ -3,6 +3,9 @@ const accessModel = require("../../models/accessModel");
 const accountModel = require("../../models/marketplace/account_model");
 const ledgerModel = require("../../models/finance/finance_ledger_model");
 const dashboardModel = require("../../models/finance/finance_dashboard_model");
+const darazModel = require("../../models/finance/finance_daraz_model");
+const credentialModel = require("../../models/marketplace/credential_model");
+const darazFinanceSyncService = require("../../services/daraz/finance_management/daraz_finance_sync_service");
 
 const MAX_RANGE_DAYS = 3 * 366;
 
@@ -41,11 +44,13 @@ async function loadAccountNames() {
 }
 
 const getAccess = asyncHandler(async (req, res) => {
-  const [dashboardView, ledgerView, ledgerEdit, ledgerDelete] = await Promise.all([
+  const [dashboardView, ledgerView, ledgerEdit, ledgerDelete, darazView, darazEdit] = await Promise.all([
     accessModel.hasPermission(req.user, "finance_dashboard", "view"),
     accessModel.hasPermission(req.user, "finance_ledger", "view"),
     accessModel.hasPermission(req.user, "finance_ledger", "edit"),
     accessModel.hasPermission(req.user, "finance_ledger", "delete"),
+    accessModel.hasPermission(req.user, "finance_daraz", "view"),
+    accessModel.hasPermission(req.user, "finance_daraz", "edit"),
   ]);
 
   return res.json({
@@ -53,6 +58,7 @@ const getAccess = asyncHandler(async (req, res) => {
     data: {
       dashboard: { view: dashboardView },
       ledger: { view: ledgerView, edit: ledgerEdit, delete: ledgerDelete },
+      daraz: { view: darazView, edit: darazEdit },
     },
   });
 });
@@ -113,6 +119,128 @@ const deleteEntry = asyncHandler(async (req, res) => {
   return res.json({ success: true, message: "Entry deleted." });
 });
 
+function positiveInteger(value, fieldName) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number <= 0) {
+    const error = new Error(`${fieldName} must be a positive integer.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return number;
+}
+
+function darazFilters(query = {}) {
+  const { from, to } = resolveRange(query);
+  return {
+    from,
+    to,
+    account_id: query.account_id ? positiveInteger(query.account_id, "Account") : undefined,
+  };
+}
+
+const listDarazAccounts = asyncHandler(async (_req, res) => {
+  const accounts = await accountModel.getAllAccounts({ platform_code: "DARAZ" });
+  const data = accounts.map((account) => ({
+    id: Number(account.id),
+    name: account.account_name,
+    code: account.account_code,
+    status: account.status,
+    connection_status: account.connection_status,
+  }));
+  return res.json({ success: true, data });
+});
+
+const getDarazSummary = asyncHandler(async (req, res) => {
+  const data = await darazModel.getSummary(darazFilters(req.query));
+  return res.json({ success: true, data: { ...data, category_definitions: darazModel.CATEGORIES } });
+});
+
+const listDarazOrders = asyncHandler(async (req, res) => {
+  const filters = darazFilters(req.query);
+  const data = await darazModel.listOrders({
+    ...filters,
+    search: req.query.search,
+    paid: req.query.paid,
+    limit: req.query.limit,
+    offset: req.query.offset,
+  });
+  return res.json({ success: true, ...data });
+});
+
+const getDarazOrderLines = asyncHandler(async (req, res) => {
+  const accountId = positiveInteger(req.params.accountId, "Account");
+  const orderNo = String(req.params.orderNo || "").trim();
+  if (!orderNo) {
+    const error = new Error("Order number is required.");
+    error.statusCode = 400;
+    throw error;
+  }
+  const data = await darazModel.getOrderLines(accountId, orderNo);
+  return res.json({ success: true, data });
+});
+
+const listDarazFeeTypes = asyncHandler(async (req, res) => {
+  const data = await darazModel.listFeeTypes(darazFilters(req.query));
+  return res.json({ success: true, data });
+});
+
+const listDarazStatements = asyncHandler(async (req, res) => {
+  const data = await darazModel.listStatements(darazFilters(req.query));
+  return res.json({ success: true, data });
+});
+
+const listDarazAccountTransactions = asyncHandler(async (req, res) => {
+  const data = await darazModel.listAccountTransactions(darazFilters(req.query));
+  return res.json({ success: true, data });
+});
+
+const syncDarazFinance = asyncHandler(async (req, res) => {
+  const accountId = positiveInteger(req.params.accountId, "Account");
+  const { from, to } = resolveRange({
+    date_from: req.body?.date_from,
+    date_to: req.body?.date_to,
+  });
+  const account = await accountModel.findById(accountId);
+  if (!account || String(account.platform_code).toUpperCase() !== "DARAZ") {
+    const error = new Error("Daraz marketplace account not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+  const credentials = await credentialModel.findByAccountId(accountId);
+  if (!credentials?.access_token) {
+    const error = new Error("Daraz access token is missing for this account.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const transactions = await darazFinanceSyncService.syncTransactionsRange({
+    account,
+    credentials,
+    sync_type: "manual",
+    dateFrom: from,
+    dateTo: to,
+  });
+  const payouts = await darazFinanceSyncService.syncPayouts({
+    account,
+    credentials,
+    sync_type: "manual",
+    createdAfter: from,
+  });
+  const accountTransactions = await darazFinanceSyncService.syncAccountTransactionsRange({
+    account,
+    credentials,
+    sync_type: "manual",
+    dateFrom: from,
+    dateTo: to,
+  });
+
+  return res.json({
+    success: true,
+    message: "Daraz finance sync completed.",
+    data: { range: { from, to }, transactions, account_transactions: accountTransactions, payouts },
+  });
+});
+
 module.exports = {
   getAccess,
   getDashboard,
@@ -124,4 +252,12 @@ module.exports = {
   createEntry,
   updateEntry,
   deleteEntry,
+  listDarazAccounts,
+  getDarazSummary,
+  listDarazOrders,
+  getDarazOrderLines,
+  listDarazFeeTypes,
+  listDarazStatements,
+  listDarazAccountTransactions,
+  syncDarazFinance,
 };

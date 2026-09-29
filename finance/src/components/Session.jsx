@@ -10,6 +10,7 @@ const SessionContext = createContext(null);
 const NO_ACCESS = {
   dashboard: { view: false },
   ledger: { view: false, edit: false, delete: false },
+  daraz: { view: false, edit: false },
 };
 
 export function SessionProvider({ children }) {
@@ -78,7 +79,7 @@ function NoAccess() {
       <h1 className="text-lg font-semibold text-white">No access</h1>
       <p className="mt-2 text-sm text-slate-400">
         Your account doesn't have permission for this page. Ask an administrator to grant you
-        access to Finance Dashboard / Finance Ledger.
+        access to the requested Finance page.
       </p>
     </div>
   );

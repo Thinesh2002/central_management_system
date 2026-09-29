@@ -44,4 +44,33 @@ async function getTransactionDetails({
   });
 }
 
-module.exports = { getPayoutStatus, getTransactionDetails };
+async function queryAccountTransactions({
+  account,
+  credentials,
+  startTime,
+  endTime,
+  pageNum,
+  pageSize,
+  transactionType,
+  subTransactionType,
+  transactionNumber,
+}) {
+  return callDarazApi({
+    account,
+    credentials,
+    apiPath: "/finance/transaction/accountTransactions/query",
+    method: "POST",
+    requestType: "daraz_finance_account_transactions_query",
+    query: {
+      start_time: startTime,
+      end_time: endTime,
+      page_num: pageNum,
+      page_size: pageSize,
+      transaction_type: transactionType,
+      sub_transaction_type: subTransactionType,
+      transaction_number: transactionNumber,
+    },
+  });
+}
+
+module.exports = { getPayoutStatus, getTransactionDetails, queryAccountTransactions };

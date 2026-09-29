@@ -5,6 +5,7 @@ import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
 import LedgerPage from "./pages/Ledger";
 import CategoriesPage from "./pages/Categories";
+import DarazPage from "./pages/Daraz";
 
 function Protected({ permission, children }) {
   return (
@@ -21,6 +22,7 @@ function Home() {
   const { access, loading } = useSession();
   if (loading) return null;
   if (!access.dashboard.view && access.ledger.view) return <Navigate to="/ledger" replace />;
+  if (!access.dashboard.view && !access.ledger.view && access.daraz.view) return <Navigate to="/daraz" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -32,6 +34,7 @@ export default function App() {
       <Route path="/dashboard" element={<Protected permission="dashboard.view"><DashboardPage /></Protected>} />
       <Route path="/ledger" element={<Protected permission="ledger.view"><LedgerPage /></Protected>} />
       <Route path="/categories" element={<Protected permission="ledger.view"><CategoriesPage /></Protected>} />
+      <Route path="/daraz" element={<Protected permission="daraz.view"><DarazPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

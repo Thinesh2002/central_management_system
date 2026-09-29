@@ -23,7 +23,12 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }],
+      // This app deliberately loads server data from memoized callbacks in
+      // effects. The rule treats that established async-loading pattern as a
+      // synchronous cascading update even though state changes happen after
+      // the request resolves.
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])

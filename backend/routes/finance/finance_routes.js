@@ -22,4 +22,13 @@ router.post("/entries", requirePermission("finance_ledger", "edit"), controller.
 router.put("/entries/:id", requirePermission("finance_ledger", "edit"), controller.updateEntry);
 router.delete("/entries/:id", requirePermission("finance_ledger", "delete"), controller.deleteEntry);
 
+router.get("/daraz/accounts", requirePermission("finance_daraz", "view"), controller.listDarazAccounts);
+router.get("/daraz/summary", requirePermission("finance_daraz", "view"), controller.getDarazSummary);
+router.get("/daraz/orders", requirePermission("finance_daraz", "view"), controller.listDarazOrders);
+router.get("/daraz/orders/:accountId/:orderNo", requirePermission("finance_daraz", "view"), controller.getDarazOrderLines);
+router.get("/daraz/fee-types", requirePermission("finance_daraz", "view"), controller.listDarazFeeTypes);
+router.get("/daraz/statements", requirePermission("finance_daraz", "view"), controller.listDarazStatements);
+router.get("/daraz/account-transactions", requirePermission("finance_daraz", "view"), controller.listDarazAccountTransactions);
+router.post("/daraz/sync/:accountId", requirePermission("finance_daraz", "edit"), controller.syncDarazFinance);
+
 module.exports = router;

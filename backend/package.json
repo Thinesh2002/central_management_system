@@ -36,7 +36,8 @@
     "patch-daraz-webhook": "node scripts/run-sql-file.js 34_daraz_webhook_patch.sql",
     "patch-sidebar-pages": "node scripts/run-sql-file.js 35_sidebar_page_registration_patch.sql",
     "patch-remove-woo": "node scripts/run-sql-file.js 51_remove_woo_integration_patch.sql",
-    "patch-finance-ledger": "node scripts/run-sql-file.js 60_finance_ledger_patch.sql"
+    "patch-finance-ledger": "node scripts/run-sql-file.js 60_finance_ledger_patch.sql",
+    "patch-daraz-finance-lines": "node scripts/run-sql-file.js 61_daraz_finance_line_key_patch.sql"
   },
   "author": "",
   "license": "ISC",

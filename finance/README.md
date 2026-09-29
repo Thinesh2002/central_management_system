@@ -9,6 +9,10 @@ of its own: it logs in against, and reads from, the central system backend
   lines are excluded because order revenue already counts them), ledger
   income/expenses, estimated net profit, Daraz payouts and balances.
 - **Ledger**: manual income/expense entries, with CSV export.
+- **Daraz Income**: complete buyer-income and deduction totals, every Daraz
+  fee type, per-order settlement breakdowns with line-level drill-down, payout
+  statements, seller-account movements (deposits, withdrawals, payments and
+  settlements), account/date/payment filters, and manual API backfills.
 - **Categories**: ledger categories.
 
 Net profit = order revenue − marketplace fees + other income − expenses. It
@@ -43,6 +47,9 @@ cd /var/www/central_management_system && git pull
 
 # 1. DB patch (additive, safe on live data) + restart backend
 cd backend && node scripts/run-sql-file.js 60_finance_ledger_patch.sql
+
+# Required for complete Daraz fee-line storage and the Daraz Income page
+node scripts/run-sql-file.js 61_daraz_finance_line_key_patch.sql
 pm2 restart central_management
 
 # 2. Build the finance frontend

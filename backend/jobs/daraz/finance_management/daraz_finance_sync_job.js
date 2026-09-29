@@ -6,6 +6,7 @@ const darazFinanceSyncService = require("../../../services/daraz/finance_managem
 
 let payoutRunning = false;
 let transactionRunning = false;
+let accountTransactionRunning = false;
 
 async function syncAllDarazPayouts() {
   if (payoutRunning) {
@@ -81,18 +82,44 @@ async function syncAllDarazTransactions() {
   }
 }
 
+async function syncAllDarazAccountTransactions() {
+  if (accountTransactionRunning) {
+    console.log("[DARAZ_FINANCE_ACCOUNT_TRANSACTION_SYNC] Previous sync still running. Skipped.");
+    return;
+  }
+  accountTransactionRunning = true;
+  try {
+    const accounts = await accountModel.listActiveDarazAccounts();
+    for (const account of accounts) {
+      try {
+        const credentials = await credentialModel.findByAccountId(account.id);
+        if (!credentials?.access_token) continue;
+        await darazFinanceSyncService.syncAccountTransactions({ account, credentials, sync_type: "auto" });
+      } catch (accountError) {
+        console.error(`[DARAZ_FINANCE_ACCOUNT_TRANSACTION_SYNC] Failed account ${account.id}:`, accountError.message);
+      }
+    }
+  } catch (error) {
+    console.error("[DARAZ_FINANCE_ACCOUNT_TRANSACTION_SYNC] Job failed:", error.message);
+  } finally {
+    accountTransactionRunning = false;
+  }
+}
+
 function startDarazFinanceSyncJob() {
   // Payout statements: every 6 hours, per Daraz GetPayoutStatus docs.
   cron.schedule("0 */6 * * *", syncAllDarazPayouts, { timezone: "Asia/Colombo" });
 
   // Transaction details: every 1 hour, per Daraz QueryTransactionDetails docs.
   cron.schedule("0 * * * *", syncAllDarazTransactions, { timezone: "Asia/Colombo" });
+  cron.schedule("15 * * * *", syncAllDarazAccountTransactions, { timezone: "Asia/Colombo" });
 
-  console.log("[DARAZ_FINANCE_SYNC] Scheduler started. Payouts every 6h, transactions every 1h.");
+  console.log("[DARAZ_FINANCE_SYNC] Scheduler started. Payouts every 6h, order and account transactions every 1h.");
 }
 
 module.exports = {
   startDarazFinanceSyncJob,
   syncAllDarazPayouts,
   syncAllDarazTransactions,
+  syncAllDarazAccountTransactions,
 };

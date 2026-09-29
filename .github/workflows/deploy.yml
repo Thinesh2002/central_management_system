@@ -18,7 +18,12 @@ jobs:
             set -e
             cd /var/www/central_management_system
             git pull origin main
-            cd frontend
+            cd backend
+            node scripts/run-sql-file.js 61_daraz_finance_line_key_patch.sql
+            cd ../finance
+            npm ci
+            npm run build
+            cd ../frontend
             npm run build
             cd ../backend
             pm2 restart central_management

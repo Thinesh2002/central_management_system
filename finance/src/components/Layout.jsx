@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpen, LayoutDashboard, LogOut, Menu, Tags, Wallet, X } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Menu, ReceiptText, Tags, Wallet, X } from "lucide-react";
 import { useSession } from "./Session";
 import { authApi } from "../lib/api";
 import { logout } from "../lib/auth";
@@ -9,6 +9,7 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: ["dashboard", "view"] },
   { to: "/ledger", label: "Ledger", icon: BookOpen, permission: ["ledger", "view"] },
   { to: "/categories", label: "Categories", icon: Tags, permission: ["ledger", "view"] },
+  { to: "/daraz", label: "Daraz Income", icon: ReceiptText, permission: ["daraz", "view"] },
 ];
 
 export default function Layout({ children }) {

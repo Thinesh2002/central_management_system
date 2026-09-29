@@ -25,6 +25,10 @@ function parseDate(value) {
   return parsed.toISOString().slice(0, 10);
 }
 
+function buildLineKey(transactionNumber, orderItemNo, feeType) {
+  return [transactionNumber, str(orderItemNo) || "", str(feeType) || ""].join("|").slice(0, 255);
+}
+
 function buildFilters({ account_id, order_no, date_from, date_to } = {}) {
   const params = [];
   let whereSql = "WHERE 1=1";
@@ -56,17 +60,21 @@ async function upsertTransaction(accountId, row = {}) {
   const transactionNumber = str(row.transaction_number);
   if (!transactionNumber) return null;
 
+  // One transaction_number covers every fee line of an order item, so the
+  // line itself is identified by number + order item + fee type.
+  const lineKey = buildLineKey(transactionNumber, row.orderItem_no, row.fee_type);
+
   const transactionDate = str(row.transaction_date);
   const transactionDateParsed = parseDate(transactionDate);
 
   await db.query(
     `INSERT INTO daraz_finance_transactions
-       (account_id, transaction_number, order_no, order_item_no, transaction_date, transaction_date_parsed,
+       (account_id, transaction_number, line_key, order_no, order_item_no, transaction_date, transaction_date_parsed,
         amount, paid_status, shipping_provider, wht_included_in_amount, wht_amount, vat_in_amount,
         payment_ref_id, seller_sku, lazada_sku, fee_type, fee_name, transaction_type,
         order_item_status, reference, shipping_speed, statement, details, comment,
         shipment_type, raw_json)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
        order_no = VALUES(order_no),
        order_item_no = VALUES(order_item_no),
@@ -95,6 +103,7 @@ async function upsertTransaction(accountId, row = {}) {
     [
       accountId,
       transactionNumber,
+      lineKey,
       str(row.order_no),
       str(row.orderItem_no),
       transactionDate,
@@ -123,8 +132,8 @@ async function upsertTransaction(accountId, row = {}) {
   );
 
   const [rows] = await db.query(
-    `SELECT * FROM daraz_finance_transactions WHERE account_id = ? AND transaction_number = ? LIMIT 1`,
-    [accountId, transactionNumber]
+    `SELECT * FROM daraz_finance_transactions WHERE account_id = ? AND line_key = ? LIMIT 1`,
+    [accountId, lineKey]
   );
 
   return rows[0] || null;
