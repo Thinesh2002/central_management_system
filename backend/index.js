@@ -304,7 +304,11 @@ async function startServer() {
     startJob("DARAZ_PRODUCT_SYNC_JOB", startDarazProductSyncJob);
     startJob("DARAZ_INVENTORY_SYNC_JOB", startDarazInventorySyncJob);
     startJob("DARAZ_ORDER_SYNC_JOB", startDarazOrderSyncJob);
-    startJob("DARAZ_FINANCE_SYNC_JOB", startDarazFinanceSyncJob);
+    // Daraz finance sync now runs in the separate Finance Management backend
+    // (D:\development\finance_management, PM2 "finance_management"), which
+    // writes the same cm_finance_management tables this app's Daraz Finance
+    // pages read. Not started here so the two apps don't both call Daraz.
+    void startDarazFinanceSyncJob;
     startJob("DARAZ_TITLE_OPTIMIZER_JOB", startDarazTitleOptimizerJob);
     startJob("DARAZ_TITLE_FULL_SCAN_JOB", startDarazTitleFullScanJob);
     startJob("DARAZ_LISTING_SALES_REPORT_JOB", startDarazListingSalesReportJob);
