@@ -92,7 +92,7 @@ export default function Layout({ children }) {
       </button>
 
       <main className="min-w-0 flex-1 overflow-y-auto lg:pl-56">
-        <div className="mx-auto max-w-7xl px-4 pb-10 pt-14 lg:px-6 lg:pt-6">{children}</div>
+        <div className="pb-10 pt-14 lg:pt-6">{children}</div>
       </main>
     </div>
   );
