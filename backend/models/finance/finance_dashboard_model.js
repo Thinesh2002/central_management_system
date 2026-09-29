@@ -5,11 +5,13 @@ const orderDb = require("../../config/order_management_db/order_management_db");
 // returned orders never count toward revenue.
 const EXCLUDED_ORDER_STATUSES = ["cancelled", "canceled", "returned", "shipped_back_success"];
 
-// Daraz "Item Price Credit" / "Reversal Item Price" lines mirror the order
-// value itself, which is already counted from the orders tables. Every
-// other transaction line (commission, payment fee, shipping, penalties,
-// fee reversals, incentives) nets into "marketplace fees".
-const ITEM_PRICE_CONDITION = "LOWER(COALESCE(fee_name, '')) LIKE '%item price%'";
+// Buyer-income lines mirror revenue already counted from the order tables.
+// They are not marketplace costs. Every other finance line (fees, penalties,
+// promotions, claims and reversals) nets into marketplace fees.
+const BUYER_INCOME_CONDITION = `(fee_type IN ('13', '8')
+  OR LOWER(COALESCE(fee_name, '')) LIKE '%product price%'
+  OR LOWER(COALESCE(fee_name, '')) LIKE '%item price%'
+  OR LOWER(COALESCE(fee_name, '')) LIKE '%shipping fee paid by buyer%')`;
 
 const ORDER_SOURCES = [
   { source: "daraz", label: "Daraz", table: "daraz_orders" },
@@ -23,6 +25,12 @@ function toNumber(value) {
 
 function round2(value) {
   return Math.round(toNumber(value) * 100) / 100;
+}
+
+function parseMoney(value) {
+  if (value === undefined || value === null || value === "") return 0;
+  const parsed = Number(String(value).replace(/[^\d.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function periodFormat(granularity) {
@@ -121,7 +129,7 @@ async function getMarketplaceFeesByPeriod(from, to, granularity) {
             COALESCE(-SUM(amount), 0) AS fees
      FROM daraz_finance_transactions
      WHERE transaction_date_parsed >= ? AND transaction_date_parsed <= ?
-       AND NOT (${ITEM_PRICE_CONDITION})
+       AND NOT (${BUYER_INCOME_CONDITION})
      GROUP BY period`,
     [periodFormat(granularity), from, to]
   );
@@ -135,7 +143,7 @@ async function getFeeBreakdown(from, to) {
             COUNT(*) AS line_count
      FROM daraz_finance_transactions
      WHERE transaction_date_parsed >= ? AND transaction_date_parsed <= ?
-       AND NOT (${ITEM_PRICE_CONDITION})
+       AND NOT (${BUYER_INCOME_CONDITION})
      GROUP BY fee_label
      HAVING net_fee > 0
      ORDER BY net_fee DESC`,
@@ -157,7 +165,12 @@ async function getFeeBreakdown(from, to) {
 
 async function getPayoutSnapshot(from, to, accountNames) {
   const [[paidRow]] = await financeDb.query(
-    `SELECT COALESCE(SUM(paid), 0) AS paid, COUNT(*) AS statements
+    `SELECT
+       COALESCE(SUM(CASE WHEN paid = 1 THEN
+         CAST(REPLACE(REPLACE(payout, 'LKR', ''), ',', '') AS DECIMAL(14,2))
+       ELSE 0 END), 0) AS paid,
+       COALESCE(SUM(paid = 1), 0) AS statements,
+       COUNT(*) AS total_statements
      FROM daraz_finance_payouts
      WHERE DATE(daraz_created_at) >= ? AND DATE(daraz_created_at) <= ?`,
     [from, to]
@@ -199,12 +212,14 @@ async function getPayoutSnapshot(from, to, accountNames) {
   return {
     paid: round2(paidRow.paid),
     statements: Number(paidRow.statements || 0),
+    total_statements: Number(paidRow.total_statements || 0),
     balances,
     total_balance: round2(balances.reduce((sum, row) => sum + row.closing_balance, 0)),
     recent: recentRows.map((row) => ({
       ...row,
       account_name: accountNames.get(Number(row.account_id)) || `Account #${row.account_id}`,
       paid: round2(row.paid),
+      payout: round2(parseMoney(row.payout)),
       item_revenue: round2(row.item_revenue),
       fees_total: round2(row.fees_total),
       refunds: round2(row.refunds),

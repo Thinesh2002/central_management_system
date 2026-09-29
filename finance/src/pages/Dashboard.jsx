@@ -406,7 +406,7 @@ function PayoutsCard({ payouts, className }) {
                 <th className="py-2 pr-3 text-left font-medium">Statement</th>
                 <th className="px-3 py-2 text-right font-medium">Item revenue</th>
                 <th className="px-3 py-2 text-right font-medium">Fees</th>
-                <th className="px-3 py-2 text-right font-medium">Paid</th>
+                <th className="px-3 py-2 text-right font-medium">Payout</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800">
@@ -418,7 +418,9 @@ function PayoutsCard({ payouts, className }) {
                   </td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{compactMoney(p.item_revenue)}</td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">{compactMoney(p.fees_total)}</td>
-                  <td className="px-3 py-2 text-right font-mono tabular-nums text-white">{compactMoney(p.paid)}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-white">
+                    {p.paid ? compactMoney(p.payout) : <span className="text-neutral-500">Pending</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>
