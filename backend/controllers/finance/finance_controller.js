@@ -144,8 +144,16 @@ const listDarazAccounts = asyncHandler(async (_req, res) => {
     id: Number(account.id),
     name: account.account_name,
     code: account.account_code,
+    country_code: account.country_code,
+    seller_id: account.seller_id,
+    seller_email: account.seller_email,
+    store_url: account.store_url,
+    is_sandbox: Boolean(account.is_sandbox),
     status: account.status,
     connection_status: account.connection_status,
+    token_status: account.token_status,
+    last_sync_at: account.last_sync_at,
+    last_checked_at: account.last_checked_at,
   }));
   return res.json({ success: true, data });
 });

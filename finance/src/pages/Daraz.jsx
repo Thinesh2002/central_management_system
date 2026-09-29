@@ -59,6 +59,7 @@ export default function DarazPage() {
   const [filters, setFilters] = useState(defaultFilters);
   const [searchInput, setSearchInput] = useState("");
   const [accounts, setAccounts] = useState([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [orders, setOrders] = useState({ rows: [], total: 0, totals: null });
   const [feeTypes, setFeeTypes] = useState([]);
@@ -73,8 +74,17 @@ export default function DarazPage() {
 
   useEffect(() => {
     financeApi.darazAccounts()
-      .then((res) => setAccounts(res.data.data || []))
-      .catch((err) => setError(getApiError(err, "Could not load Daraz accounts.")));
+      .then((res) => {
+        const loadedAccounts = res.data.data || [];
+        setAccounts(loadedAccounts);
+        setFilters((current) => (
+          current.account_id || !loadedAccounts.length
+            ? current
+            : { ...current, account_id: String(loadedAccounts[0].id) }
+        ));
+      })
+      .catch((err) => setError(getApiError(err, "Could not load Daraz accounts.")))
+      .finally(() => setAccountsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -86,6 +96,10 @@ export default function DarazPage() {
   }, [searchInput]);
 
   const load = useCallback(async () => {
+    if (!filters.account_id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -160,6 +174,7 @@ export default function DarazPage() {
   };
 
   const pages = Math.max(Math.ceil(orders.total / PAGE_SIZE), 1);
+  const selectedAccount = accounts.find((account) => String(account.id) === String(filters.account_id));
 
   return (
     <div className="space-y-5">
@@ -188,8 +203,12 @@ export default function DarazPage() {
       <Card>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">
           <select className={inputClass} value={filters.account_id} onChange={(event) => updateFilter("account_id", event.target.value)} aria-label="Daraz account">
-            <option value="">All Daraz accounts</option>
-            {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+            {!accounts.length && <option value="">{accountsLoading ? "Loading Daraz accounts..." : "No Daraz accounts"}</option>}
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}{account.code ? ` · ${account.code}` : ""}
+              </option>
+            ))}
           </select>
           <select className={inputClass} value={filters.preset} onChange={(event) => changePreset(event.target.value)} aria-label="Date range">
             {RANGE_PRESETS.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
@@ -208,8 +227,12 @@ export default function DarazPage() {
         </div>
       </Card>
 
-      {!summary && loading ? (
+      {selectedAccount && <AccountDetailsCard account={selectedAccount} totalAccounts={accounts.length} />}
+
+      {!summary && (loading || accountsLoading) ? (
         <div className="flex h-64 items-center justify-center"><Spinner size={28} /></div>
+      ) : !accounts.length ? (
+        <Card><EmptyState>No Daraz marketplace accounts are configured.</EmptyState></Card>
       ) : summary && (
         <div className={`space-y-5 transition-opacity ${loading ? "opacity-60" : ""}`}>
           <SummaryCards summary={summary} />
@@ -231,6 +254,47 @@ export default function DarazPage() {
       )}
 
       {detail && <OrderDetailModal order={detail} accounts={accounts} onClose={() => setDetail(null)} />}
+    </div>
+  );
+}
+
+function AccountDetailsCard({ account, totalAccounts }) {
+  const connection = account.connection_status || "Unknown";
+  const connected = connection.toLowerCase() === "connected";
+  const token = account.token_status || "Unknown";
+
+  return (
+    <Card
+      title={account.name}
+      subtitle={`Selected Daraz account · ${totalAccounts} account${totalAccounts === 1 ? "" : "s"} available`}
+      action={(
+        <div className="flex flex-wrap justify-end gap-2 text-xs">
+          <span className={`rounded-full px-2 py-1 ${connected ? "bg-emerald-500/15 text-emerald-300" : "bg-amber-500/15 text-amber-300"}`}>
+            {connection}
+          </span>
+          <span className="rounded-full bg-neutral-800 px-2 py-1 text-neutral-300">{account.status || "Unknown"}</span>
+        </div>
+      )}
+    >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <AccountDetail label="Account code" value={account.code || "—"} />
+        <AccountDetail label="Seller ID" value={account.seller_id || "—"} />
+        <AccountDetail label="Seller email" value={account.seller_email || "—"} />
+        <AccountDetail label="Country" value={account.country_code || "—"} />
+        <AccountDetail label="Token status" value={token} />
+        <AccountDetail label="Environment" value={account.is_sandbox ? "Sandbox" : "Production"} />
+        <AccountDetail label="Last finance sync" value={account.last_sync_at ? new Date(account.last_sync_at).toLocaleString() : "Not synced"} />
+        <AccountDetail label="Last connection check" value={account.last_checked_at ? new Date(account.last_checked_at).toLocaleString() : "Not checked"} />
+      </div>
+    </Card>
+  );
+}
+
+function AccountDetail({ label, value }) {
+  return (
+    <div className="rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2">
+      <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
+      <p className="mt-1 truncate text-sm text-neutral-200" title={String(value)}>{value}</p>
     </div>
   );
 }
