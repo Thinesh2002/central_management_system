@@ -7,7 +7,7 @@ const EXCLUDED_ORDER_STATUSES = ["cancelled", "canceled", "returned", "shipped_b
 
 // Buyer-income lines mirror revenue already counted from the order tables.
 // They are not marketplace costs. Every other finance line (fees, penalties,
-// promotions, claims and reversals) nets into marketplace fees.
+// promotions, refunds, claims and reversals) nets into Daraz expenses.
 const BUYER_INCOME_CONDITION = `(fee_type IN ('13', '8')
   OR LOWER(COALESCE(fee_name, '')) LIKE '%product price%'
   OR LOWER(COALESCE(fee_name, '')) LIKE '%item price%'

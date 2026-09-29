@@ -11,7 +11,7 @@ import { Alert, Button, Card, EmptyState, inputClass, Spinner } from "../compone
 // income is always blue, costs always orange, net always aqua.
 const SERIES = {
   income: { color: "#3987e5", label: "Income" },
-  costs: { color: "#d95926", label: "Costs" },
+  costs: { color: "#d95926", label: "Daraz expenses" },
   net: { color: "#199e70", label: "Net" },
 };
 
@@ -118,11 +118,11 @@ export default function DashboardPage() {
                 empty="No orders in this period."
               />
             </Card>
-            <Card title="Daraz fees" subtitle="Net of fee reversals, by fee type">
+            <Card title="Daraz expenses" subtitle="Fees, refunds, promotions, penalties and adjustments, net of reversals">
               <BarList
                 items={data.fee_breakdown.map((f) => ({ name: f.name, amount: f.amount, meta: `${f.lines} lines` }))}
                 color={SERIES.costs.color}
-                empty="No Daraz fee transactions in this period."
+                empty="No Daraz expenses in this period."
               />
             </Card>
           </div>
@@ -138,7 +138,7 @@ export default function DashboardPage() {
 
 const KPIS = [
   { key: "order_revenue", label: "Order revenue", goodWhenUp: true, sub: (t) => `${Number(t.order_count).toLocaleString()} orders` },
-  { key: "marketplace_fees", label: "Marketplace fees", goodWhenUp: false, sub: (t) => pctOf(t.marketplace_fees, t.daraz_revenue, "of Daraz sales") },
+  { key: "marketplace_fees", label: "Daraz expenses", goodWhenUp: false, sub: (t) => pctOf(t.marketplace_fees, t.daraz_revenue, "of Daraz sales") },
   { key: "net_profit", label: "Net profit", goodWhenUp: true, sub: (t) => pctOf(t.net_profit, t.order_revenue, "margin"), hero: true },
 ];
 
@@ -203,7 +203,7 @@ function TrendTooltip({ active, payload, label }) {
       ))}
       <div className="mt-1.5 space-y-0.5 border-t border-neutral-800 pt-1.5 text-neutral-400">
         <Detail label="Order revenue" value={row.revenue} />
-        <Detail label="Marketplace fees" value={row.marketplace_fees} />
+        <Detail label="Daraz expenses" value={row.marketplace_fees} />
         <div className="flex justify-between gap-4"><span>Orders</span><span className="font-mono tabular-nums">{row.orders}</span></div>
       </div>
     </div>
@@ -226,8 +226,8 @@ function TrendCard({ series, granularity }) {
 
   return (
     <Card
-      title="Income vs costs"
-      subtitle={`LKR per ${granularity}. Income = order revenue; costs = marketplace fees.`}
+      title="Revenue vs Daraz expenses"
+      subtitle={`LKR per ${granularity}. Daraz expenses include all deductions, net of reversals.`}
       action={
         <div className="flex rounded-md border border-neutral-700 p-0.5">
           {[
@@ -248,7 +248,7 @@ function TrendCard({ series, granularity }) {
       }
     >
       {!hasData ? (
-        <EmptyState>No income or costs recorded in this period.</EmptyState>
+        <EmptyState>No revenue or Daraz expenses recorded in this period.</EmptyState>
       ) : view === "chart" ? (
         <>
         <ul className="mb-2 flex justify-end gap-4 text-xs text-neutral-300">
@@ -298,7 +298,7 @@ function TrendTable({ series }) {
   const rows = series.filter((row) => row.income || row.costs);
   const cols = [
     ["revenue", "Order revenue"],
-    ["marketplace_fees", "Fees"],
+    ["marketplace_fees", "Daraz expenses"],
     ["net", "Net"],
   ];
   return (
