@@ -352,7 +352,12 @@ function OrdersCard({ result, accounts, page, pages, onPage, onOpen }) {
                   <td className="px-2 py-2 font-mono text-xs text-orange-300">{row.order_no}</td>
                   <td className="px-2 py-2">{accountName(accounts, row.account_id)}</td>
                   <td className="max-w-40 truncate px-2 py-2 font-mono text-xs text-neutral-400">{row.seller_skus || "-"}</td>
-                  <td className="max-w-56 truncate px-2 py-2" title={row.product_title}>{row.product_title || "-"}</td>
+                  <td className="px-2 py-2">
+                    <div className="flex min-w-52 items-center gap-2.5">
+                      <ProductThumbnail src={row.thumbnail_url} alt={row.product_title || row.seller_skus || "Daraz product"} />
+                      <span className="max-w-52 truncate" title={row.product_title}>{row.product_title || "-"}</span>
+                    </div>
+                  </td>
                   <td className="px-2 py-2 text-right font-mono text-sky-300">{money(row.income)}</td>
                   <td className="px-2 py-2 text-right font-mono text-orange-300">{money(Math.abs(row.deductions))}</td>
                   <td className={`px-2 py-2 text-right font-mono font-semibold ${row.net < 0 ? "text-red-300" : "text-emerald-300"}`}>{money(row.net)}</td>
@@ -374,6 +379,27 @@ function OrdersCard({ result, accounts, page, pages, onPage, onOpen }) {
         </div>
       )}
     </Card>
+  );
+}
+
+function ProductThumbnail({ src, alt }) {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-700 bg-neutral-800 text-neutral-500">
+      {src && !failed ? (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <ShoppingBag size={16} aria-hidden="true" />
+      )}
+    </div>
   );
 }
 

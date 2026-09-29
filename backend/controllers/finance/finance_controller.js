@@ -4,6 +4,7 @@ const accountModel = require("../../models/marketplace/account_model");
 const ledgerModel = require("../../models/finance/finance_ledger_model");
 const dashboardModel = require("../../models/finance/finance_dashboard_model");
 const darazModel = require("../../models/finance/finance_daraz_model");
+const darazOrderLookupModel = require("../../models/daraz/finance_management/daraz_order_lookup_model");
 const credentialModel = require("../../models/marketplace/credential_model");
 const darazFinanceSyncService = require("../../services/daraz/finance_management/daraz_finance_sync_service");
 
@@ -40,6 +41,22 @@ async function loadAccountNames() {
   } catch (error) {
     console.error("[FINANCE_ACCOUNT_NAMES_FAILED]", error.message);
     return new Map();
+  }
+}
+
+async function enrichOrdersWithImages(rows) {
+  try {
+    const thumbnails = await darazOrderLookupModel.getOrderThumbnailsByOrderNos(
+      rows.map((row) => row.order_no)
+    );
+    return rows.map((row) => ({
+      ...row,
+      thumbnail_url: thumbnails[row.order_no]?.thumbnail_url || null,
+      product_title: thumbnails[row.order_no]?.product_title || row.product_title,
+    }));
+  } catch (error) {
+    console.error("[FINANCE_DARAZ_ORDER_IMAGES_FAILED]", error.message);
+    return rows;
   }
 }
 
@@ -172,7 +189,8 @@ const listDarazOrders = asyncHandler(async (req, res) => {
     limit: req.query.limit,
     offset: req.query.offset,
   });
-  return res.json({ success: true, ...data });
+  const rows = await enrichOrdersWithImages(data.rows);
+  return res.json({ success: true, ...data, rows });
 });
 
 const getDarazOrderLines = asyncHandler(async (req, res) => {
