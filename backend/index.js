@@ -49,6 +49,7 @@ const messageTemplatesRoutes = require("./routes/order_management/message_templa
 const darazFinanceRoutes = require("./routes/daraz/finance_management/daraz_finance_routes");
 const notificationRoutes = require("./routes/notifications/notification_routes");
 const supplierRoutes = require("./routes/supplier_management/supplier_routes");
+const financeRoutes = require("./routes/finance/finance_routes");
 
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -118,6 +119,9 @@ const defaultAllowedOrigins = [
   "https://system.teckvora.com",
   "https://www.system.teckvora.com",
   "https://backend.teckvora.com",
+  "https://finance.teckvora.com",
+  "http://localhost:5174",
+  "http://127.0.0.1:5174",
 ];
 
 const allowedOrigins = [
@@ -249,6 +253,7 @@ app.use("/api/order-management/message-templates", messageTemplatesRoutes);
 app.use("/api/daraz/finance", darazFinanceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/suppliers", supplierRoutes);
+app.use("/api/finance", financeRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
