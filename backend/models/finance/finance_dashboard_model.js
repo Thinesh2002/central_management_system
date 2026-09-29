@@ -250,7 +250,7 @@ async function getPeriodTotals(from, to) {
     marketplace_fees: sum(fees, "fees"),
   };
 
-  totals.net_profit = totals.order_revenue - totals.marketplace_fees;
+  totals.net_payout = totals.order_revenue - totals.marketplace_fees;
 
   return Object.fromEntries(
     Object.entries(totals).map(([key, value]) => [key, key === "order_count" ? value : round2(value)])

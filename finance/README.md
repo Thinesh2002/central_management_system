@@ -7,13 +7,13 @@ of its own: it logs in against, and reads from, the central system backend
 - **Dashboard**: order revenue (manual + Daraz orders, excluding
   cancelled/returned), Daraz expenses (fees, promotions, penalties, refunds,
   claims and adjustments, net of reversals; buyer-income lines are excluded
-  because order revenue already counts them), estimated net profit, Daraz
+  because order revenue already counts them), calculated net payout, Daraz
   payouts and balances.
 - **Daraz Income**: complete buyer-income and deduction totals, every Daraz
   fee type, per-order settlement breakdowns with line-level drill-down, payout
   statements, seller-account movements (deposits, withdrawals, payments and
   settlements), account/date/payment filters, and manual API backfills.
-Net profit = order revenue − Daraz expenses. It does not include cost of goods
+Net payout = order revenue − Daraz expenses. It does not include cost of goods
 or operating expenses outside Daraz.
 
 ## Access

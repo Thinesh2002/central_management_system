@@ -12,7 +12,7 @@ import { Alert, Button, Card, EmptyState, inputClass, Spinner } from "../compone
 const SERIES = {
   income: { color: "#3987e5", label: "Income" },
   costs: { color: "#d95926", label: "Daraz expenses" },
-  net: { color: "#199e70", label: "Net" },
+  net: { color: "#199e70", label: "Net payout" },
 };
 
 const AXIS_TICK = { fill: "#a3a3a3", fontSize: 11 };
@@ -139,7 +139,7 @@ export default function DashboardPage() {
 const KPIS = [
   { key: "order_revenue", label: "Order revenue", goodWhenUp: true, sub: (t) => `${Number(t.order_count).toLocaleString()} orders` },
   { key: "marketplace_fees", label: "Daraz expenses", goodWhenUp: false, sub: (t) => pctOf(t.marketplace_fees, t.daraz_revenue, "of Daraz sales") },
-  { key: "net_profit", label: "Net profit", goodWhenUp: true, sub: (t) => pctOf(t.net_profit, t.order_revenue, "margin"), hero: true },
+  { key: "net_payout", label: "Net payout", goodWhenUp: true, sub: () => "Order revenue − Daraz expenses", hero: true },
 ];
 
 function pctOf(value, base, suffix) {
@@ -299,7 +299,7 @@ function TrendTable({ series }) {
   const cols = [
     ["revenue", "Order revenue"],
     ["marketplace_fees", "Daraz expenses"],
-    ["net", "Net"],
+    ["net", "Net payout"],
   ];
   return (
     <div className="max-h-80 overflow-auto">
