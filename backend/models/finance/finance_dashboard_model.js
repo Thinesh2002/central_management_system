@@ -229,70 +229,14 @@ async function getPayoutSnapshot(from, to, accountNames) {
 }
 
 // ---------------------------------------------------------------------
-// Ledger (cm_finance_management)
-// ---------------------------------------------------------------------
-
-async function getLedgerByPeriod(from, to, granularity) {
-  const [rows] = await financeDb.query(
-    `SELECT DATE_FORMAT(entry_date, ?) AS period,
-            COALESCE(SUM(CASE WHEN entry_type = 'income' THEN amount ELSE 0 END), 0) AS income,
-            COALESCE(SUM(CASE WHEN entry_type = 'expense' THEN amount ELSE 0 END), 0) AS expense
-     FROM finance_entries
-     WHERE deleted_at IS NULL AND entry_date >= ? AND entry_date <= ?
-     GROUP BY period`,
-    [periodFormat(granularity), from, to]
-  );
-  return rows;
-}
-
-async function getLedgerByCategory(from, to, entryType) {
-  const [rows] = await financeDb.query(
-    `SELECT COALESCE(c.name, 'Uncategorised') AS category_label, COALESCE(SUM(e.amount), 0) AS total_amount, COUNT(*) AS entries
-     FROM finance_entries e
-     LEFT JOIN finance_categories c ON c.id = e.category_id
-     WHERE e.deleted_at IS NULL AND e.entry_type = ? AND e.entry_date >= ? AND e.entry_date <= ?
-     GROUP BY category_label
-     ORDER BY total_amount DESC`,
-    [entryType, from, to]
-  );
-
-  const items = rows.map((row) => ({ name: row.category_label, amount: round2(row.total_amount), entries: Number(row.entries) }));
-  const top = items.slice(0, 7);
-  const rest = items.slice(7);
-  if (rest.length) {
-    top.push({
-      name: `Other (${rest.length})`,
-      amount: round2(rest.reduce((sum, item) => sum + item.amount, 0)),
-      entries: rest.reduce((sum, item) => sum + item.entries, 0),
-    });
-  }
-  return top;
-}
-
-async function getRecentEntries(limit = 8) {
-  const [rows] = await financeDb.query(
-    `SELECT e.id, e.entry_type, DATE_FORMAT(e.entry_date, '%Y-%m-%d') AS entry_date, e.amount,
-            e.description, e.reference, c.name AS category_name
-     FROM finance_entries e
-     LEFT JOIN finance_categories c ON c.id = e.category_id
-     WHERE e.deleted_at IS NULL
-     ORDER BY e.entry_date DESC, e.id DESC
-     LIMIT ?`,
-    [limit]
-  );
-  return rows.map((row) => ({ ...row, amount: round2(row.amount) }));
-}
-
-// ---------------------------------------------------------------------
 // Assembly
 // ---------------------------------------------------------------------
 
 async function getPeriodTotals(from, to) {
   const granularity = "month";
-  const [orders, fees, ledger] = await Promise.all([
+  const [orders, fees] = await Promise.all([
     getOrderRevenueByPeriod(from, to, granularity),
     getMarketplaceFeesByPeriod(from, to, granularity),
-    getLedgerByPeriod(from, to, granularity),
   ]);
 
   const sum = (rows, key, predicate = () => true) =>
@@ -304,12 +248,9 @@ async function getPeriodTotals(from, to) {
     manual_revenue: sum(orders, "revenue", (row) => row.source === "local"),
     order_count: sum(orders, "orders"),
     marketplace_fees: sum(fees, "fees"),
-    other_income: sum(ledger, "income"),
-    expenses: sum(ledger, "expense"),
   };
 
-  totals.net_profit =
-    totals.order_revenue - totals.marketplace_fees + totals.other_income - totals.expenses;
+  totals.net_profit = totals.order_revenue - totals.marketplace_fees;
 
   return Object.fromEntries(
     Object.entries(totals).map(([key, value]) => [key, key === "order_count" ? value : round2(value)])
@@ -327,31 +268,23 @@ async function getDashboard({ from, to, accountNames }) {
     previousTotals,
     orderSeries,
     feeSeries,
-    ledgerSeries,
     channels,
     feeBreakdown,
-    expenseBreakdown,
-    incomeBreakdown,
     payouts,
-    recentEntries,
   ] = await Promise.all([
     getPeriodTotals(from, to),
     getPeriodTotals(previousFrom, previousTo),
     getOrderRevenueByPeriod(from, to, granularity),
     getMarketplaceFeesByPeriod(from, to, granularity),
-    getLedgerByPeriod(from, to, granularity),
     getOrderRevenueByChannel(from, to),
     getFeeBreakdown(from, to),
-    getLedgerByCategory(from, to, "expense"),
-    getLedgerByCategory(from, to, "income"),
     getPayoutSnapshot(from, to, accountNames),
-    getRecentEntries(8),
   ]);
 
   const byPeriod = new Map(
     listPeriods(from, to, granularity).map((period) => [
       period,
-      { period, revenue: 0, orders: 0, marketplace_fees: 0, other_income: 0, expenses: 0 },
+      { period, revenue: 0, orders: 0, marketplace_fees: 0 },
     ])
   );
 
@@ -365,23 +298,14 @@ async function getDashboard({ from, to, accountNames }) {
     const bucket = byPeriod.get(row.period);
     if (bucket) bucket.marketplace_fees += toNumber(row.fees);
   });
-  ledgerSeries.forEach((row) => {
-    const bucket = byPeriod.get(row.period);
-    if (!bucket) return;
-    bucket.other_income += toNumber(row.income);
-    bucket.expenses += toNumber(row.expense);
-  });
-
   const series = [...byPeriod.values()].map((row) => {
-    const income = row.revenue + row.other_income;
-    const costs = row.marketplace_fees + row.expenses;
+    const income = row.revenue;
+    const costs = row.marketplace_fees;
     return {
       period: row.period,
       orders: row.orders,
       revenue: round2(row.revenue),
       marketplace_fees: round2(row.marketplace_fees),
-      other_income: round2(row.other_income),
-      expenses: round2(row.expenses),
       income: round2(income),
       costs: round2(costs),
       net: round2(income - costs),
@@ -395,10 +319,7 @@ async function getDashboard({ from, to, accountNames }) {
     series,
     channels,
     fee_breakdown: feeBreakdown,
-    expense_breakdown: expenseBreakdown,
-    income_breakdown: incomeBreakdown,
     payouts,
-    recent_entries: recentEntries,
   };
 }
 

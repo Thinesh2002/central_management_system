@@ -6,18 +6,14 @@ of its own: it logs in against, and reads from, the central system backend
 
 - **Dashboard**: order revenue (manual + Daraz orders, excluding
   cancelled/returned), Daraz marketplace fees (net of fee reversals; item-price
-  lines are excluded because order revenue already counts them), ledger
-  income/expenses, estimated net profit, Daraz payouts and balances.
-- **Ledger**: manual income/expense entries, with CSV export.
+  lines are excluded because order revenue already counts them), estimated net
+  profit, Daraz payouts and balances.
 - **Daraz Income**: complete buyer-income and deduction totals, every Daraz
   fee type, per-order settlement breakdowns with line-level drill-down, payout
   statements, seller-account movements (deposits, withdrawals, payments and
   settlements), account/date/payment filters, and manual API backfills.
-- **Categories**: ledger categories.
-
-Net profit = order revenue − marketplace fees + other income − expenses. It
-does not include cost of goods unless you record stock purchases as ledger
-expenses.
+Net profit = order revenue − marketplace fees. It does not include cost of
+goods or other operating expenses.
 
 ## Access
 
@@ -27,7 +23,6 @@ Access Control pages on system.teckvora.com:
 | Page key            | Controls                                            |
 |---------------------|-----------------------------------------------------|
 | `finance_dashboard` | view the dashboard                                  |
-| `finance_ledger`    | view / edit / delete ledger entries and categories  |
 
 Master admins have full access automatically. Everyone else starts with no
 access until someone grants it.
@@ -45,10 +40,8 @@ npm run dev            # http://localhost:5174 (whitelisted in backend CORS)
 ```sh
 cd /var/www/central_management_system && git pull
 
-# 1. DB patch (additive, safe on live data) + restart backend
-cd backend && node scripts/run-sql-file.js 60_finance_ledger_patch.sql
-
-# Required for complete Daraz fee-line storage and the Daraz Income page
+# 1. Required for complete Daraz fee-line storage and the Daraz Income page
+cd backend
 node scripts/run-sql-file.js 61_daraz_finance_line_key_patch.sql
 pm2 restart central_management
 

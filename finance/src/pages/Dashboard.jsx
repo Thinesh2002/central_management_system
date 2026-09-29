@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowDownRight, ArrowUpRight, BarChart3, Info, RefreshCw, Table as TableIcon } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BarChart3, RefreshCw, Table as TableIcon } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { financeApi, getApiError } from "../lib/api";
 import { presetRange, RANGE_PRESETS } from "../lib/dates";
@@ -111,19 +110,12 @@ export default function DashboardPage() {
           <KpiRow totals={data.totals} previous={data.previous_totals} />
           <TrendCard series={data.series} granularity={data.range.granularity} />
 
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-5 lg:grid-cols-2">
             <Card title="Revenue by channel" subtitle="Order totals, excluding cancelled/returned">
               <BarList
                 items={data.channels.map((c) => ({ name: c.channel, amount: c.revenue, meta: `${c.orders} orders` }))}
                 color={SERIES.income.color}
                 empty="No orders in this period."
-              />
-            </Card>
-            <Card title="Expenses by category" subtitle="From the ledger">
-              <BarList
-                items={data.expense_breakdown.map((c) => ({ name: c.name, amount: c.amount, meta: `${c.entries} entries` }))}
-                color={SERIES.costs.color}
-                empty={<>No expenses recorded. <Link to="/ledger" className="text-orange-300 hover:underline">Add one</Link></>}
               />
             </Card>
             <Card title="Daraz fees" subtitle="Net of fee reversals, by fee type">
@@ -135,10 +127,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-5">
-            <PayoutsCard payouts={data.payouts} className="lg:col-span-3" />
-            <RecentEntriesCard entries={data.recent_entries} incomeBreakdown={data.income_breakdown} className="lg:col-span-2" />
-          </div>
+          <PayoutsCard payouts={data.payouts} />
         </div>
       )}
     </div>
@@ -150,9 +139,7 @@ export default function DashboardPage() {
 const KPIS = [
   { key: "order_revenue", label: "Order revenue", goodWhenUp: true, sub: (t) => `${Number(t.order_count).toLocaleString()} orders` },
   { key: "marketplace_fees", label: "Marketplace fees", goodWhenUp: false, sub: (t) => pctOf(t.marketplace_fees, t.daraz_revenue, "of Daraz sales") },
-  { key: "other_income", label: "Other income", goodWhenUp: true, sub: () => "Ledger income entries" },
-  { key: "expenses", label: "Expenses", goodWhenUp: false, sub: () => "Ledger expense entries" },
-  { key: "net_profit", label: "Net profit", goodWhenUp: true, sub: (t) => pctOf(t.net_profit, t.order_revenue + t.other_income, "margin"), hero: true },
+  { key: "net_profit", label: "Net profit", goodWhenUp: true, sub: (t) => pctOf(t.net_profit, t.order_revenue, "margin"), hero: true },
 ];
 
 function pctOf(value, base, suffix) {
@@ -162,7 +149,7 @@ function pctOf(value, base, suffix) {
 
 function KpiRow({ totals, previous }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       {KPIS.map((kpi) => {
         const change = percentChange(totals[kpi.key], previous[kpi.key]);
         const up = change !== null && change >= 0;
@@ -216,9 +203,7 @@ function TrendTooltip({ active, payload, label }) {
       ))}
       <div className="mt-1.5 space-y-0.5 border-t border-neutral-800 pt-1.5 text-neutral-400">
         <Detail label="Order revenue" value={row.revenue} />
-        <Detail label="Other income" value={row.other_income} />
         <Detail label="Marketplace fees" value={row.marketplace_fees} />
-        <Detail label="Expenses" value={row.expenses} />
         <div className="flex justify-between gap-4"><span>Orders</span><span className="font-mono tabular-nums">{row.orders}</span></div>
       </div>
     </div>
@@ -242,7 +227,7 @@ function TrendCard({ series, granularity }) {
   return (
     <Card
       title="Income vs costs"
-      subtitle={`LKR per ${granularity}. Income = order revenue + other income; costs = marketplace fees + expenses.`}
+      subtitle={`LKR per ${granularity}. Income = order revenue; costs = marketplace fees.`}
       action={
         <div className="flex rounded-md border border-neutral-700 p-0.5">
           {[
@@ -313,9 +298,7 @@ function TrendTable({ series }) {
   const rows = series.filter((row) => row.income || row.costs);
   const cols = [
     ["revenue", "Order revenue"],
-    ["other_income", "Other income"],
     ["marketplace_fees", "Fees"],
-    ["expenses", "Expenses"],
     ["net", "Net"],
   ];
   return (
@@ -426,40 +409,6 @@ function PayoutsCard({ payouts, className }) {
             </tbody>
           </table>
         </div>
-      )}
-    </Card>
-  );
-}
-
-function RecentEntriesCard({ entries, incomeBreakdown, className }) {
-  return (
-    <Card
-      className={className}
-      title="Recent ledger entries"
-      action={<Link to="/ledger" className="text-xs font-medium text-orange-300 hover:text-orange-200">Open ledger</Link>}
-    >
-      {entries.length === 0 ? (
-        <EmptyState>No ledger entries yet.</EmptyState>
-      ) : (
-        <ul className="divide-y divide-neutral-800">
-          {entries.map((e) => (
-            <li key={e.id} className="flex items-center justify-between gap-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-neutral-200">{e.description || e.category_name || "Untitled entry"}</p>
-                <p className="text-[11px] text-neutral-500">{dateLabel(e.entry_date)} · {e.category_name || "Uncategorised"}</p>
-              </div>
-              <span className={`shrink-0 font-mono text-sm tabular-nums ${e.entry_type === "income" ? "text-emerald-300" : "text-neutral-200"}`}>
-                {e.entry_type === "income" ? "+" : "−"}{compactMoney(e.amount)}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {incomeBreakdown.length > 0 && (
-        <p className="mt-3 flex items-start gap-1.5 text-[11px] text-neutral-500">
-          <Info size={12} className="mt-px shrink-0" />
-          Top other-income category this period: {incomeBreakdown[0].name} ({money(incomeBreakdown[0].amount, { decimals: 0 })})
-        </p>
       )}
     </Card>
   );
