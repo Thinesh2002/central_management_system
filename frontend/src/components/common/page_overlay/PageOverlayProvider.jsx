@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { isPageOverlayCloseMessage } from "../../../utils/pageOverlayBridge";
+import { useAppShell } from "../app_shell/AppShellContext";
 
 const OverlayContext = createContext(null);
 
@@ -15,6 +16,7 @@ function withEmbedFlag(url) {
 }
 
 export function PageOverlayProvider({ children }) {
+  const shell = useAppShell();
   const [url, setUrl] = useState(null);
   const [onCloseCallback, setOnCloseCallback] = useState(null);
 
@@ -63,7 +65,7 @@ export function PageOverlayProvider({ children }) {
           >
             <div className="flex h-12 shrink-0 items-center justify-between gap-3 rounded-t-2xl border-b border-[#653bb3]/15 bg-[#653bb3] px-4">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-purple-300">
-                Central Management
+                {shell.title}
               </span>
 
               <button

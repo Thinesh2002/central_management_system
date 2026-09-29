@@ -16,6 +16,7 @@ import {
 
 import api, { getApiError } from "../config/api";
 import { saveAuth } from "../config/auth";
+import { useAppShell } from "../components/common/app_shell/AppShellContext";
 
 const FEATURES = [
   { icon: Package, label: "Product Catalog", detail: "Variants, images, pricing" },
@@ -57,6 +58,7 @@ function LiveClock() {
 
 export default function Login() {
   const navigate = useNavigate();
+  const shell = useAppShell();
 
   const [form, setForm] = useState({
     identifier: "",
@@ -86,7 +88,7 @@ export default function Login() {
 
       saveAuth(data.token, data.user, data.menu || []);
 
-      navigate("/dashboard", { replace: true });
+      navigate(shell.homePath, { replace: true });
     } catch (err) {
       setError(getApiError(err, "Login failed."));
     } finally {
@@ -114,7 +116,7 @@ export default function Login() {
             </div>
 
             <h1 className="mt-8 text-3xl font-bold leading-tight text-white">
-              Central Management System
+              {shell.loginTitle || "Central Management System"}
             </h1>
 
             <p className="mt-4 max-w-sm text-sm leading-6 text-slate-400">

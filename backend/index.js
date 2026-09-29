@@ -120,8 +120,11 @@ const defaultAllowedOrigins = [
   "https://www.system.teckvora.com",
   "https://backend.teckvora.com",
   "https://finance.teckvora.com",
+  "https://inventory.teckvora.com",
   "http://localhost:5174",
   "http://127.0.0.1:5174",
+  "http://localhost:5175",
+  "http://127.0.0.1:5175",
 ];
 
 const allowedOrigins = [

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dev:inventory": "vite --mode inventory",
+    "build:inventory": "vite build --mode inventory",
     "lint": "eslint .",
     "preview": "vite preview"
   },
