@@ -188,8 +188,6 @@ export default function DarazPage() {
   };
 
   const pages = Math.max(Math.ceil(orders.total / PAGE_SIZE), 1);
-  const selectedAccount = accounts.find((account) => String(account.id) === String(filters.account_id));
-
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -233,8 +231,6 @@ export default function DarazPage() {
         </div>
       </Card>
 
-      {selectedAccount && <AccountDetailsCard account={selectedAccount} totalAccounts={accounts.length} />}
-
       {!summary && (loading || accountsLoading) ? (
         <div className="flex h-64 items-center justify-center"><Spinner size={28} /></div>
       ) : !accounts.length ? (
@@ -260,47 +256,6 @@ export default function DarazPage() {
       )}
 
       {detail && <OrderDetailModal order={detail} accounts={accounts} onClose={() => setDetail(null)} />}
-    </div>
-  );
-}
-
-function AccountDetailsCard({ account, totalAccounts }) {
-  const connection = account.connection_status || "Unknown";
-  const connected = connection.toLowerCase() === "connected";
-  const token = account.token_status || "Unknown";
-
-  return (
-    <Card
-      title={account.name}
-      subtitle={`Selected Daraz account · ${totalAccounts} account${totalAccounts === 1 ? "" : "s"} available`}
-      action={(
-        <div className="flex flex-wrap justify-end gap-2 text-xs">
-          <span className={`rounded-full px-2 py-1 ${connected ? "bg-emerald-500/15 text-emerald-300" : "bg-amber-500/15 text-amber-300"}`}>
-            {connection}
-          </span>
-          <span className="rounded-full bg-neutral-800 px-2 py-1 text-neutral-300">{account.status || "Unknown"}</span>
-        </div>
-      )}
-    >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <AccountDetail label="Account code" value={account.code || "—"} />
-        <AccountDetail label="Seller ID" value={account.seller_id || "—"} />
-        <AccountDetail label="Seller email" value={account.seller_email || "—"} />
-        <AccountDetail label="Country" value={account.country_code || "—"} />
-        <AccountDetail label="Token status" value={token} />
-        <AccountDetail label="Environment" value={account.is_sandbox ? "Sandbox" : "Production"} />
-        <AccountDetail label="Last finance sync" value={account.last_sync_at ? new Date(account.last_sync_at).toLocaleString() : "Not synced"} />
-        <AccountDetail label="Last connection check" value={account.last_checked_at ? new Date(account.last_checked_at).toLocaleString() : "Not checked"} />
-      </div>
-    </Card>
-  );
-}
-
-function AccountDetail({ label, value }) {
-  return (
-    <div className="rounded-md border border-neutral-800 bg-neutral-950/60 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 truncate text-sm text-neutral-200" title={String(value)}>{value}</p>
     </div>
   );
 }
