@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { BookOpen, ExternalLink, LayoutDashboard, LogOut, Menu, Tags, Wallet, X } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Menu, Tags, Wallet, X } from "lucide-react";
 import { useSession } from "./Session";
 import { authApi } from "../lib/api";
 import { logout } from "../lib/auth";
@@ -41,8 +41,8 @@ export default function Layout({ children }) {
               <Wallet size={18} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Teckvora</p>
-              <p className="text-[11px] text-slate-400">Finance</p>
+              <p className="text-sm font-semibold text-white">Finance</p>
+              <p className="text-[11px] text-slate-400">Management</p>
             </div>
           </div>
           <button type="button" className="rounded p-1 text-slate-400 hover:text-white lg:hidden" onClick={() => setOpen(false)} aria-label="Close menu">
@@ -66,14 +66,6 @@ export default function Layout({ children }) {
               {label}
             </NavLink>
           ))}
-
-          <a
-            href="https://system.teckvora.com"
-            className="mt-4 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"
-          >
-            <ExternalLink size={16} />
-            Central system
-          </a>
         </nav>
 
         <div className="border-t border-slate-800 p-3">

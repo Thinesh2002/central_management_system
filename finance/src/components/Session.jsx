@@ -77,8 +77,8 @@ function NoAccess() {
     <div className="mx-auto mt-16 max-w-md rounded-lg border border-slate-800 bg-slate-900 p-6 text-center">
       <h1 className="text-lg font-semibold text-white">No access</h1>
       <p className="mt-2 text-sm text-slate-400">
-        Your account doesn't have permission for this page. Ask a Master Admin to grant it under
-        Access Control on system.teckvora.com (Finance Dashboard / Finance Ledger).
+        Your account doesn't have permission for this page. Ask an administrator to grant you
+        access to Finance Dashboard / Finance Ledger.
       </p>
     </div>
   );

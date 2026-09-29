@@ -42,8 +42,8 @@ export default function LoginPage() {
             <Wallet size={22} />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">Teckvora Finance</h1>
-            <p className="text-xs text-slate-400">Sign in with your central system account</p>
+            <h1 className="text-lg font-bold text-white">Finance Management</h1>
+            <p className="text-xs text-slate-400">Sign in to continue</p>
           </div>
         </div>
 

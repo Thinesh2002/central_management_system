@@ -1,4 +1,4 @@
-# Teckvora Finance (finance.teckvora.com)
+# Finance Management (finance.teckvora.com)
 
 Standalone React/Vite frontend for the Finance Dashboard. It has no backend
 of its own: it logs in against, and reads from, the central system backend
