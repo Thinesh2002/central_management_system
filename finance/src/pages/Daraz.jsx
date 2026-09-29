@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Banknote,
   ChevronLeft,
@@ -56,6 +57,7 @@ function accountName(accounts, id) {
 
 export default function DarazPage() {
   const { access } = useSession();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(defaultFilters);
   const [searchInput, setSearchInput] = useState("");
   const [accounts, setAccounts] = useState([]);
@@ -77,15 +79,27 @@ export default function DarazPage() {
       .then((res) => {
         const loadedAccounts = res.data.data || [];
         setAccounts(loadedAccounts);
-        setFilters((current) => (
-          current.account_id || !loadedAccounts.length
-            ? current
-            : { ...current, account_id: String(loadedAccounts[0].id) }
-        ));
       })
       .catch((err) => setError(getApiError(err, "Could not load Daraz accounts.")))
       .finally(() => setAccountsLoading(false));
   }, []);
+
+  const requestedAccountId = searchParams.get("account_id");
+
+  useEffect(() => {
+    if (!accounts.length) return;
+    const accountId = accounts.some((account) => String(account.id) === String(requestedAccountId))
+      ? String(requestedAccountId)
+      : String(accounts[0].id);
+
+    setFilters((current) => (
+      current.account_id === accountId ? current : { ...current, account_id: accountId }
+    ));
+
+    if (requestedAccountId !== accountId) {
+      setSearchParams({ account_id: accountId }, { replace: true });
+    }
+  }, [accounts, requestedAccountId, setSearchParams]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -201,15 +215,7 @@ export default function DarazPage() {
       {notice && <div onClick={() => setNotice("")}><Alert tone="success">{notice}</Alert></div>}
 
       <Card>
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">
-          <select className={inputClass} value={filters.account_id} onChange={(event) => updateFilter("account_id", event.target.value)} aria-label="Daraz account">
-            {!accounts.length && <option value="">{accountsLoading ? "Loading Daraz accounts..." : "No Daraz accounts"}</option>}
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}{account.code ? ` · ${account.code}` : ""}
-              </option>
-            ))}
-          </select>
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           <select className={inputClass} value={filters.preset} onChange={(event) => changePreset(event.target.value)} aria-label="Date range">
             {RANGE_PRESETS.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
           </select>
